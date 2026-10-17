@@ -1,10 +1,17 @@
-import { Palette, Smartphone, Sparkles, Volume2 } from 'lucide-react'
+import { Info, Palette, ShieldAlert, ShieldCheck, Smartphone, Sparkles, Volume2 } from 'lucide-react'
+import { useStorageStatus, type StorageStatus } from '../app/install'
 import { setPref, usePrefs, type ThemePref } from '../app/prefs'
 import { navigate } from '../app/routes'
 import { Screen } from '../shell/Screen'
 import { ChoiceChips } from '../ui/ChoiceChips'
 import { ListRow } from '../ui/ListRow'
 import { Switch } from '../ui/Switch'
+
+const STORAGE_TEXT: Record<StorageStatus, { title: string; subtitle: string }> = {
+  protected: { title: 'Хранилище: защищено', subtitle: 'iPhone не сотрёт слова при нехватке места' },
+  unprotected: { title: 'Хранилище: не защищено', subtitle: 'Нажми, чтобы попросить защиту' },
+  unknown: { title: 'Хранилище: проверяю…', subtitle: 'Защита от стирания при нехватке места' },
+}
 
 const THEME_OPTIONS: { value: ThemePref; label: string }[] = [
   { value: 'system', label: 'Как в системе' },
@@ -14,6 +21,7 @@ const THEME_OPTIONS: { value: ThemePref; label: string }[] = [
 
 export function ProfileScreen() {
   const prefs = usePrefs()
+  const [storage, requestStorage] = useStorageStatus()
   return (
     <Screen title="Профиль">
       <section className="mb-6">
@@ -40,6 +48,22 @@ export function ProfileScreen() {
           subtitle="Если телефон поддерживает"
           right={<Switch label="Вибрация" checked={prefs.haptics} onChange={(v) => setPref('haptics', v)} />}
         />
+      </section>
+
+      <section className="-mx-4 mb-6 border-t-2 border-border">
+        <ListRow
+          icon={
+            storage === 'protected' ? (
+              <ShieldCheck size={24} className="text-primary" />
+            ) : (
+              <ShieldAlert size={24} className="text-streak" />
+            )
+          }
+          title={STORAGE_TEXT[storage].title}
+          subtitle={STORAGE_TEXT[storage].subtitle}
+          onClick={storage === 'unprotected' ? requestStorage : undefined}
+        />
+        <ListRow icon={<Info size={24} className="text-muted" />} title="Версия" right={<span className="text-small font-bold text-muted">{__APP_VERSION__}</span>} />
       </section>
 
       <p className="m-0 mb-2 text-small font-semibold text-muted">

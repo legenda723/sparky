@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Иконка Спарки: светлячок светится в ночном небе. Цвета — DESIGN.md → «Иконка». -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1C2832"/>
+      <stop offset="1" stop-color="#121A21"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop offset="0" stop-color="#D9FF7A" stop-opacity=".7"/>
+      <stop offset=".55" stop-color="#D9FF7A" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#D9FF7A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <circle cx="108" cy="112" r="5" fill="#D9FF7A" fill-opacity=".7"/>
+  <circle cx="412" cy="92" r="4" fill="#D9FF7A" fill-opacity=".55"/>
+  <circle cx="430" cy="404" r="5" fill="#D9FF7A" fill-opacity=".5"/>
+  <circle cx="84" cy="384" r="3.5" fill="#D9FF7A" fill-opacity=".45"/>
+  <circle cx="256" cy="270" r="215" fill="url(#glow)"/>
+  <!-- маскот из viewBox 120 → масштаб 2.6, по центру -->
+  <g transform="translate(100 96) scale(2.6)">
+    <ellipse cx="34" cy="36" rx="14" ry="21" fill="#DDF3FF" fill-opacity=".92" stroke="#9CD3F2" stroke-width="2.5" transform="rotate(-32 46.6 54.9)"/>
+    <ellipse cx="86" cy="36" rx="14" ry="21" fill="#DDF3FF" fill-opacity=".92" stroke="#9CD3F2" stroke-width="2.5" transform="rotate(32 73.4 54.9)"/>
+    <path d="M52 32 Q48 18 40 13" stroke="#8FD12E" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M68 32 Q72 18 80 13" stroke="#8FD12E" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <circle cx="40" cy="12" r="5.5" fill="#D9FF7A"/>
+    <circle cx="80" cy="12" r="5.5" fill="#D9FF7A"/>
+    <circle cx="38.5" cy="10.5" r="1.8" fill="#FFFFFF"/>
+    <circle cx="78.5" cy="10.5" r="1.8" fill="#FFFFFF"/>
+    <circle cx="60" cy="68" r="38" fill="#8FD12E"/>
+    <circle cx="59" cy="65" r="36" fill="#B6EF4A"/>
+    <ellipse cx="60" cy="84" rx="21" ry="14" fill="#E4FBA8"/>
+    <ellipse cx="40" cy="46" rx="8" ry="5" fill="#FFFFFF" fill-opacity=".55" transform="rotate(-35 40 46)"/>
+    <ellipse cx="46" cy="62" rx="8.5" ry="10.5" fill="#1E2A33"/>
+    <ellipse cx="74" cy="62" rx="8.5" ry="10.5" fill="#1E2A33"/>
+    <circle cx="49" cy="58" r="3.4" fill="#FFFFFF"/>
+    <circle cx="77" cy="58" r="3.4" fill="#FFFFFF"/>
+    <circle cx="43.5" cy="66" r="1.5" fill="#FFFFFF"/>
+    <circle cx="71.5" cy="66" r="1.5" fill="#FFFFFF"/>
+    <ellipse cx="35" cy="75" rx="6" ry="3.5" fill="#FF9CB8" fill-opacity=".85"/>
+    <ellipse cx="85" cy="75" rx="6" ry="3.5" fill="#FF9CB8" fill-opacity=".85"/>
+    <path d="M52 76 Q60 85 68 76" stroke="#5A2A1E" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>

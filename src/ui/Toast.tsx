@@ -6,6 +6,10 @@ export interface ToastOptions {
   message: string
   /** Если задано — кнопка «Отменить», тост держится 5 с */
   onUndo?: () => void
+  /** Своя кнопка вместо «Отменить» (например, «Обновить») */
+  action?: { label: string; onClick: () => void }
+  /** Сколько держать, мс (по умолчанию 2,5 с, с кнопкой — 5 с) */
+  durationMs?: number
 }
 
 interface ToastItem extends ToastOptions {
@@ -29,7 +33,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!toast) return
-    const timer = setTimeout(() => setToast(null), toast.onUndo ? 5000 : 2500)
+    const ms = toast.durationMs ?? (toast.onUndo || toast.action ? 5000 : 2500)
+    const timer = setTimeout(() => setToast(null), ms)
     return () => clearTimeout(timer)
   }, [toast])
 
@@ -49,17 +54,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               className="pointer-events-auto flex min-h-14 w-full max-w-[420px] items-center gap-3 rounded-card border-2 border-border bg-bg py-2 pr-2 pl-4 shadow-[0_4px_0_var(--c-border)]"
             >
               <span className="flex-1 text-small font-bold text-text">{toast.message}</span>
-              {toast.onUndo && (
+              {(toast.action || toast.onUndo) && (
                 <button
                   type="button"
                   onClick={() => {
                     feedback('tap')
-                    toast.onUndo?.()
+                    if (toast.action) toast.action.onClick()
+                    else toast.onUndo?.()
                     setToast(null)
                   }}
                   className="h-11 rounded-card px-3 text-small font-extrabold tracking-[0.04em] text-info-ink uppercase active:bg-surface"
                 >
-                  Отменить
+                  {toast.action ? toast.action.label : 'Отменить'}
                 </button>
               )}
             </motion.div>
