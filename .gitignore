@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.claude/settings.local.json
+
+# Образцы дизайна — не коммитим (кроме пояснения)
+references/*
+!references/README.txt
+
+# Личные бэкапы
+sparky-backup-*.json
