@@ -4,6 +4,7 @@ import { useStorageStatus, type StorageStatus } from '../app/install'
 import { getPendingUpdate, subscribePendingUpdate } from '../app/updates'
 import { setPref, usePrefs, type ThemePref } from '../app/prefs'
 import { navigate } from '../app/routes'
+import { changeTheme } from '../app/theme'
 import { Screen } from '../shell/Screen'
 import { ChoiceChips } from '../ui/ChoiceChips'
 import { ListRow } from '../ui/ListRow'
@@ -35,7 +36,7 @@ export function ProfileScreen() {
           label="Тема"
           options={THEME_OPTIONS}
           value={prefs.theme}
-          onChange={(v) => setPref('theme', v)}
+          onChange={changeTheme}
         />
       </section>
 

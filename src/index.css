@@ -235,14 +235,14 @@
   /* Плоский элемент (чип): лёгкое сжатие */
   .press-soft {
     transition:
-      scale 140ms cubic-bezier(0.22, 1, 0.36, 1),
-      background-color 160ms ease-out,
-      border-color 160ms ease-out,
-      color 160ms ease-out;
+      scale 240ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 260ms ease-out,
+      border-color 260ms ease-out,
+      color 260ms ease-out;
   }
   .press-soft[data-pressed] {
-    scale: 0.94;
-    transition-duration: 60ms;
+    scale: 0.96;
+    transition-duration: 90ms;
   }
 
   /* Кружок переключателя: сдвиг 20 px, при касании вытягивается на 6 px к центру */
@@ -260,6 +260,13 @@
   [data-pressed][data-checked] > * > .switch-knob {
     translate: 14px 0;
   }
+}
+
+/* Смена темы: старые цвета плавно перетекают в новые (theme.ts → changeTheme) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 350ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* iOS 26: у веб-приложения на экране Домой высота экрана занижена на высоту статус-бара
