@@ -35,7 +35,11 @@ export function parsePref<K extends keyof Prefs>(key: K, raw: string | null): Pr
   return (typeof value === 'boolean' ? value : fallback) as Prefs[K]
 }
 
+// Режим «Как на iPhone 16» живёт только до перезапуска: забытый, он испортил бы отступы на настоящем телефоне.
+const SESSION_ONLY: (keyof Prefs)[] = ['simIphone']
+
 function read<K extends keyof Prefs>(key: K): Prefs[K] {
+  if (SESSION_ONLY.includes(key)) return DEFAULT_PREFS[key]
   try {
     return parsePref(key, localStorage.getItem(KEY_PREFIX + key))
   } catch {
@@ -60,6 +64,10 @@ export function getPrefs(): Prefs {
 
 export function setPref<K extends keyof Prefs>(key: K, value: Prefs[K]): void {
   current = { ...getPrefs(), [key]: value }
+  if (SESSION_ONLY.includes(key)) {
+    listeners.forEach((l) => l())
+    return
+  }
   try {
     localStorage.setItem(KEY_PREFIX + key, JSON.stringify(value))
   } catch {

@@ -28,7 +28,8 @@ export function playSound(name: SoundName): void {
   try {
     const ac = ensureContext()
     if (!ac || !master) return
-    if (ac.state === 'suspended') void ac.resume()
+    // На iOS после звонка или Siri состояние бывает 'interrupted' — будим в любом не-рабочем состоянии.
+    if (ac.state !== 'running') void ac.resume()
     const t0 = ac.currentTime + 0.005
     for (const tone of SOUNDS[name]) {
       const osc = ac.createOscillator()

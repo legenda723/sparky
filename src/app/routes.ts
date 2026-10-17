@@ -28,6 +28,7 @@ export function useRoute(): Route {
   )
 }
 
+/** Переход без новой записи в истории: свайп «назад» в Safari не листает вкладки. */
 export function navigate(route: Route): void {
-  window.location.hash = routeHref(route)
+  window.location.replace(routeHref(route))
 }

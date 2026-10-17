@@ -26,9 +26,8 @@ export function TabBar({ active }: { active: TabRoute }) {
                 type="button"
                 aria-current={isActive ? 'page' : undefined}
                 onClick={() => {
-                  if (isActive) return
                   feedback('tap')
-                  navigate(route)
+                  if (!isActive) navigate(route)
                 }}
                 className={`relative flex h-14 w-full max-w-[88px] flex-col items-center justify-center gap-0.5 rounded-card ${isActive ? 'text-info-ink' : 'text-muted'}`}
               >

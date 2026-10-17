@@ -47,7 +47,8 @@
   color-scheme: light;
 }
 
-/* Тёмная тема: по системе (если не выбрана светлая вручную) или вручную */
+/* Тёмная тема: по системе (если не выбрана светлая вручную) или вручную.
+   Значения в двух блоках ниже должны совпадать. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --c-primary: #52d646;
@@ -69,12 +70,12 @@
     --c-bg: #121a21;
     --c-disabled: #37464f;
     --c-overlay: rgba(0, 0, 0, 0.6);
-  --c-primary-tint: #1c3627;
-  --c-danger-tint: #36262d;
-  --c-info-tint: #183241;
-  --c-primary-ink: #52d646;
-  --c-danger-ink: #ff6b70;
-  --c-info-ink: #3cbdf5;
+    --c-primary-tint: #1c3627;
+    --c-danger-tint: #36262d;
+    --c-info-tint: #183241;
+    --c-primary-ink: #52d646;
+    --c-danger-ink: #ff6b70;
+    --c-info-ink: #3cbdf5;
     color-scheme: dark;
   }
 }
@@ -206,6 +207,7 @@
   textarea {
     font: inherit;
     font-size: max(16px, 1em);
+    touch-action: manipulation;
   }
 
   :focus-visible {

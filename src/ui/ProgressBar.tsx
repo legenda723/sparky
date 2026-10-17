@@ -1,4 +1,4 @@
-import { motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 
 interface ProgressBarProps {
   /** 0–1 */
@@ -9,6 +9,8 @@ interface ProgressBarProps {
 /** Прогресс-бар (DESIGN.md → «Прогресс-бар»): плавно заполняется, с бликом сверху. */
 export function ProgressBar({ value, label = 'Прогресс' }: ProgressBarProps) {
   const v = Math.min(1, Math.max(0, value))
+  // Ширину Motion сам не глушит при «Уменьшении движения» — делаем мгновенной.
+  const reduce = useReducedMotion()
   return (
     <div
       role="progressbar"
@@ -23,7 +25,7 @@ export function ProgressBar({ value, label = 'Прогресс' }: ProgressBarPr
         style={{ minWidth: v > 0 ? 16 : 0 }}
         initial={false}
         animate={{ width: `${v * 100}%` }}
-        transition={{ type: 'spring', stiffness: 170, damping: 24 }}
+        transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 170, damping: 24 }}
       >
         <span className="absolute top-[3px] right-2 left-2 h-1 rounded-full bg-on-color/35" />
       </motion.div>
