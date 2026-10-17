@@ -1,4 +1,5 @@
 import { feedback } from '../feedback/feedback'
+import { usePress } from './usePress'
 
 interface ChoiceChipsProps<T extends string | number> {
   options: { value: T; label: string }[]
@@ -14,21 +15,34 @@ export function ChoiceChips<T extends string | number>({ options, value, onChang
       {options.map((o) => {
         const selected = o.value === value
         return (
-          <button
+          <Chip
             key={String(o.value)}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            onClick={() => {
-              feedback('tap')
-              onChange(o.value)
-            }}
-            className={`h-11 rounded-full border-2 px-4 text-small font-extrabold transition-colors duration-200 active:scale-95 ${selected ? 'border-info bg-info-tint text-info-ink' : 'border-border bg-bg text-text'}`}
-          >
-            {o.label}
-          </button>
+            label={o.label}
+            selected={selected}
+            onSelect={() => onChange(o.value)}
+          />
         )
       })}
     </div>
+  )
+}
+
+function Chip({ label, selected, onSelect }: { label: string; selected: boolean; onSelect: () => void }) {
+  const { pressed, pressHandlers } = usePress()
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      {...pressHandlers}
+      data-pressed={pressed || undefined}
+      onClick={() => {
+        feedback('tap')
+        onSelect()
+      }}
+      className={`press-soft h-11 rounded-full border-2 px-4 text-small font-extrabold ${selected ? 'border-info bg-info-tint text-info-ink' : 'border-border bg-bg text-text'}`}
+    >
+      {label}
+    </button>
   )
 }

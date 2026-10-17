@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react'
-import { useState } from 'react'
-import { TABS, type TabRoute } from '../app/routes'
+import type { TabRoute } from '../app/routes'
 import { ProfileScreen } from '../screens/ProfileScreen'
 import { PlaceholderScreen } from './Screen'
 import { TabBar } from './TabBar'
@@ -18,31 +17,25 @@ function TabScreen({ route }: { route: TabRoute }) {
   }
 }
 
-/** Оболочка: экран + нижняя панель вкладок. Переход — короткий сдвиг + прозрачность. */
-export function Shell({ route }: { route: TabRoute }) {
-  // Направление сдвига: вправо по списку вкладок — экран приезжает справа.
-  const [last, setLast] = useState({ route, direction: 1 })
-  if (last.route !== route) {
-    setLast({ route, direction: TABS.indexOf(route) > TABS.indexOf(last.route) ? 1 : -1 })
-  }
-  const direction = last.route === route ? last.direction : 1
+// Смена вкладки: старый экран быстро гаснет, новый мягко проявляется (DESIGN.md → «Движение»).
+const SCREEN_VARIANTS = {
+  enter: { opacity: 0, scale: 0.985 },
+  center: { opacity: 1, scale: 1, transition: { duration: 0.26, ease: [0.22, 1, 0.36, 1] } },
+  exit: { opacity: 0, transition: { duration: 0.12, ease: 'easeOut' } },
+} as const
 
+/** Оболочка: экран + нижняя панель вкладок. */
+export function Shell({ route }: { route: TabRoute }) {
   return (
     <div className="flex h-full flex-col bg-bg">
       <main className="relative flex-1 overflow-hidden">
-        <AnimatePresence initial={false} custom={direction}>
+        <AnimatePresence initial={false}>
           <motion.div
             key={route}
-            custom={direction}
-            variants={{
-              enter: (d: number) => ({ opacity: 0, x: 24 * d }),
-              center: { opacity: 1, x: 0 },
-              exit: (d: number) => ({ opacity: 0, x: -24 * d }),
-            }}
+            variants={SCREEN_VARIANTS}
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.2, ease: 'easeOut' }}
             className="absolute inset-0"
           >
             <TabScreen route={route} />

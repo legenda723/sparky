@@ -216,6 +216,48 @@
   }
 }
 
+/* ===== Нажатие (DESIGN.md → «Движение → Нажатие») ===== */
+@layer components {
+  /* Объёмный элемент: тень своего цвета складывается под него, вниз быстро, вверх мягко. */
+  .press-3d {
+    box-shadow: 0 4px 0 var(--press-shadow);
+    transition-property: translate, box-shadow, background-color, border-color, color;
+    transition-duration: 180ms;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .press-3d[data-pressed] {
+    translate: 0 4px;
+    box-shadow: 0 0 0 var(--press-shadow);
+    transition-duration: 80ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+  }
+
+  /* Плоский элемент (чип): лёгкое сжатие */
+  .press-soft {
+    transition:
+      scale 200ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 200ms ease-out,
+      border-color 200ms ease-out,
+      color 200ms ease-out;
+  }
+  .press-soft[data-pressed] {
+    scale: 0.94;
+    transition-duration: 90ms;
+  }
+}
+
+/* iOS 26: у веб-приложения на экране Домой высота экрана занижена на высоту статус-бара
+   (ошибка WebKit 301108) — без этого всё заканчивается на ~59 pt выше низа экрана.
+   Страница не ниже всего экрана → iOS отдаёт полную высоту. min() не даёт вылезти за экран. */
+@media (display-mode: standalone) {
+  html {
+    min-height: min(100lvh, calc(100% + env(safe-area-inset-top)));
+  }
+  #root {
+    height: min(100lvh, calc(100dvh + env(safe-area-inset-top)));
+  }
+}
+
 /* Уменьшение движения: CSS-анимации и переходы становятся мгновенными */
 @media (prefers-reduced-motion: reduce) {
   *,

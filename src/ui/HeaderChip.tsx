@@ -1,5 +1,6 @@
 import { forwardRef, type ReactNode } from 'react'
 import { feedback } from '../feedback/feedback'
+import { usePress } from './usePress'
 
 interface HeaderChipProps {
   icon: ReactNode
@@ -15,16 +16,19 @@ export const HeaderChip = forwardRef<HTMLButtonElement, HeaderChipProps>(functio
   { icon, value, colorClass, label, onClick },
   ref,
 ) {
+  const { pressed, pressHandlers } = usePress()
   return (
     <button
       ref={ref}
       type="button"
       aria-label={label}
+      {...pressHandlers}
+      data-pressed={pressed || undefined}
       onClick={() => {
         feedback('tap')
         onClick?.()
       }}
-      className="flex h-11 items-center gap-1.5 rounded-full px-2 text-body font-black text-text transition-transform duration-100 active:scale-90"
+      className="flex h-11 items-center gap-1.5 rounded-full px-2 text-body font-black text-text press-soft"
     >
       <span className={`flex ${colorClass}`}>{icon}</span>
       <span>{value}</span>

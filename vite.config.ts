@@ -4,17 +4,24 @@ import { execSync } from 'node:child_process'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-/** Версия для строки в Профиле: дата сборки + короткий номер коммита. */
+/** Версия для строки в Профиле: дата и время сборки по Москве + короткий номер коммита. */
 function appVersion(): string {
-  const d = new Date()
-  const date = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`
+  const when = new Intl.DateTimeFormat('ru-RU', {
+    timeZone: 'Europe/Moscow',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+    .format(new Date())
+    .replace(',', '')
   let hash = 'dev'
   try {
     hash = execSync('git rev-parse --short HEAD').toString().trim()
   } catch {
     // нет git — оставляем «dev»
   }
-  return `${date} · ${hash}`
+  return `${when} · ${hash}`
 }
 
 // https://vite.dev/config/

@@ -5,10 +5,10 @@ import { usePress } from './usePress'
 export type ButtonVariant = 'primary' | 'secondary' | 'info' | 'danger'
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: 'bg-primary text-on-color shadow-[0_4px_0_var(--c-primary-shadow)]',
-  info: 'bg-info text-on-color shadow-[0_4px_0_var(--c-info-shadow)]',
-  danger: 'bg-danger text-on-color shadow-[0_4px_0_var(--c-danger-shadow)]',
-  secondary: 'bg-bg text-text border-2 border-border shadow-[0_4px_0_var(--c-border)]',
+  primary: 'press-3d bg-primary text-on-color [--press-shadow:var(--c-primary-shadow)]',
+  info: 'press-3d bg-info text-on-color [--press-shadow:var(--c-info-shadow)]',
+  danger: 'press-3d bg-danger text-on-color [--press-shadow:var(--c-danger-shadow)]',
+  secondary: 'press-3d bg-bg text-text border-2 border-border [--press-shadow:var(--c-border)]',
 }
 
 interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'> {
@@ -46,7 +46,7 @@ export function Button({
         if (!silent) feedback('tap')
         onClick?.(e)
       }}
-      className={`inline-flex h-[50px] items-center justify-center gap-2 rounded-card px-5 text-body font-extrabold tracking-[0.04em] uppercase transition-[translate,box-shadow] duration-100 ease-out data-pressed:translate-y-1 data-pressed:shadow-none ${look} ${block ? 'w-full' : ''} ${className}`}
+      className={`inline-flex h-[50px] items-center justify-center gap-2 rounded-card px-5 text-body font-extrabold tracking-[0.04em] uppercase ${look} ${block ? 'w-full' : ''} ${className}`}
     >
       {icon}
       {children}

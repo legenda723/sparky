@@ -25,7 +25,7 @@ export function ListRow({ icon, title, subtitle, right, onClick }: ListRowProps)
     </>
   )
   const cls =
-    'flex min-h-14 w-full items-center gap-3 border-b-2 border-border px-4 py-2 transition-colors duration-100 data-pressed:bg-surface'
+    'flex min-h-14 w-full items-center gap-3 border-b-2 border-border px-4 py-2 transition-colors duration-200 ease-out data-pressed:bg-surface data-pressed:duration-75'
   if (!onClick) return <div className={cls}>{content}</div>
   return (
     <button
