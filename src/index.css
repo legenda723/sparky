@@ -1,0 +1,41 @@
+/* Временные стили этапа 0. Полная дизайн-система (токены, Nunito) — на этапе 1 по DESIGN.md. */
+:root {
+  --c-text: #3c3c3c;
+  --c-bg: #ffffff;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --c-text: #f1f4f6;
+    --c-bg: #121a21;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: system-ui, -apple-system, sans-serif;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hello {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+  text-align: center;
+}
+
+.hello h1 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 900;
+}
