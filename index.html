@@ -3,7 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Спарки</title>
+    <script>
+      // Тема ставится до отрисовки, чтобы не было вспышки светлого экрана в тёмной теме.
+      try {
+        var t = localStorage.getItem('sparky.theme')
+        if (t === '"light"' || t === '"dark"') document.documentElement.dataset.theme = JSON.parse(t)
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
