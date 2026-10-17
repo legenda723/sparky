@@ -18,11 +18,18 @@ function TabScreen({ route }: { route: TabRoute }) {
 }
 
 // Смена вкладки: старый экран быстро гаснет, новый мягко проявляется (DESIGN.md → «Движение»).
+// Профиль плотнее остальных экранов — проявляется чуть дольше, иначе смена выглядит резкой.
+const enterDuration = (route: TabRoute) => (route === 'profile' ? 0.26 : 0.18)
+
 const SCREEN_VARIANTS = {
   enter: { opacity: 0, scale: 0.985 },
-  center: { opacity: 1, scale: 1, transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] } },
-  exit: { opacity: 0, transition: { duration: 0.08, ease: 'easeOut' } },
-} as const
+  center: (route: TabRoute) => ({
+    opacity: 1,
+    scale: 1,
+    transition: { duration: enterDuration(route), ease: [0.22, 1, 0.36, 1] as const },
+  }),
+  exit: { opacity: 0, transition: { duration: 0.08, ease: 'easeOut' as const } },
+}
 
 /** Оболочка: экран + нижняя панель вкладок. */
 export function Shell({ route }: { route: TabRoute }) {
@@ -32,6 +39,7 @@ export function Shell({ route }: { route: TabRoute }) {
         <AnimatePresence initial={false}>
           <motion.div
             key={route}
+            custom={route}
             variants={SCREEN_VARIANTS}
             initial="enter"
             animate="center"

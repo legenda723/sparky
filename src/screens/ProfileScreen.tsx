@@ -42,8 +42,8 @@ export function ProfileScreen() {
       <section className="-mx-4 mb-6 border-t-2 border-border">
         <ListRow
           icon={<Volume2 size={24} className="text-info" />}
-          title="Звуки"
-          right={<Switch label="Звуки" checked={prefs.sound} onChange={(v) => setPref('sound', v)} />}
+          title="Звук"
+          right={<Switch label="Звук" checked={prefs.sound} onChange={(v) => setPref('sound', v)} />}
         />
       </section>
 
