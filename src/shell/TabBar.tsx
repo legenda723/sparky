@@ -12,8 +12,8 @@ const ITEMS: { route: TabRoute; label: string; Icon: LucideIcon }[] = [
 ]
 
 // Мягкие пружины без долгого дрожания (DESIGN.md → «Движение»).
-const PILL_SPRING = { type: 'spring', bounce: 0.15, duration: 0.45 } as const
-const ICON_SPRING = { type: 'spring', stiffness: 420, damping: 18, mass: 0.6 } as const
+const PILL_SPRING = { type: 'spring', bounce: 0.1, duration: 0.25 } as const
+const ICON_SPRING = { type: 'spring', stiffness: 700, damping: 26, mass: 0.5 } as const
 
 /** Нижняя панель вкладок (DESIGN.md → «Нижняя панель вкладок»). */
 export function TabBar({ active }: { active: TabRoute }) {
@@ -34,16 +34,22 @@ export function TabBar({ active }: { active: TabRoute }) {
 }
 
 function TabButton({ route, label, Icon, isActive }: { route: TabRoute; label: string; Icon: LucideIcon; isActive: boolean }) {
-  // Иконка сжимается сразу при касании, после отпускания пружинит обратно.
+  // Вкладка переключается сразу при касании (не ждём отпускания); звук — по отпусканию,
+  // т.к. iOS разрешает звук только после завершённого касания.
   const { pressed, pressHandlers } = usePress()
   return (
     <button
       type="button"
       aria-current={isActive ? 'page' : undefined}
       {...pressHandlers}
-      onClick={() => {
+      onPointerDown={(e) => {
+        pressHandlers.onPointerDown(e)
+        if (e.button === 0 && !isActive) navigate(route)
+      }}
+      onClick={(e) => {
         feedback('tap')
-        if (!isActive) navigate(route)
+        // Клавиатура/VoiceOver: касания не было — переключаем по нажатию.
+        if (e.detail === 0 && !isActive) navigate(route)
       }}
       className={`relative flex h-14 w-full max-w-[88px] flex-col items-center justify-center gap-0.5 rounded-card transition-colors duration-200 ${isActive ? 'text-info-ink' : 'text-muted'}`}
     >

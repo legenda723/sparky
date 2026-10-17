@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 
 /** Даже при самом быстром тапе кнопка успевает целиком «провалиться». */
-const MIN_PRESS_MS = 90
+const MIN_PRESS_MS = 60
 
 /**
  * Состояние «нажато» по касанию. На iOS :active без слушателей не срабатывает,

@@ -20,8 +20,8 @@ function TabScreen({ route }: { route: TabRoute }) {
 // Смена вкладки: старый экран быстро гаснет, новый мягко проявляется (DESIGN.md → «Движение»).
 const SCREEN_VARIANTS = {
   enter: { opacity: 0, scale: 0.985 },
-  center: { opacity: 1, scale: 1, transition: { duration: 0.26, ease: [0.22, 1, 0.36, 1] } },
-  exit: { opacity: 0, transition: { duration: 0.12, ease: 'easeOut' } },
+  center: { opacity: 1, scale: 1, transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] } },
+  exit: { opacity: 0, transition: { duration: 0.08, ease: 'easeOut' } },
 } as const
 
 /** Оболочка: экран + нижняя панель вкладок. */

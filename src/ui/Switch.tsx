@@ -1,5 +1,5 @@
-import { motion } from 'motion/react'
 import { feedback } from '../feedback/feedback'
+import { usePress } from './usePress'
 
 interface SwitchProps {
   checked: boolean
@@ -7,14 +7,22 @@ interface SwitchProps {
   label: string
 }
 
-/** Переключатель 51×31 (DESIGN.md → «Переключатель»). Касание — вся область 51×44. */
+/**
+ * Переключатель 51×31 (DESIGN.md → «Переключатель»). Касание — вся область 51×44.
+ * Кружок едет простым сдвигом (без пересчёта раскладки — на iPhone так плавнее),
+ * при касании чуть вытягивается, как в iOS.
+ */
 export function Switch({ checked, onChange, label }: SwitchProps) {
+  const { pressed, pressHandlers } = usePress()
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
       aria-label={label}
+      {...pressHandlers}
+      data-pressed={pressed || undefined}
+      data-checked={checked || undefined}
       onClick={() => {
         // Отклик звучит по новому значению: при выключении звука «тик» уже не играет.
         onChange(!checked)
@@ -23,13 +31,9 @@ export function Switch({ checked, onChange, label }: SwitchProps) {
       className="flex h-11 w-[51px] shrink-0 items-center"
     >
       <span
-        className={`flex h-[31px] w-[51px] items-center rounded-full p-0.5 transition-colors duration-200 ${checked ? 'justify-end bg-primary' : 'justify-start bg-border'}`}
+        className={`relative block h-[31px] w-[51px] rounded-full transition-colors duration-200 ease-out ${checked ? 'bg-primary' : 'bg-border'}`}
       >
-        <motion.span
-          layout
-          transition={{ type: 'spring', stiffness: 600, damping: 32 }}
-          className="block size-[27px] rounded-full bg-on-color shadow-[0_2px_4px_rgba(0,0,0,0.2)]"
-        />
+        <span className="switch-knob absolute top-0.5 left-0.5 block h-[27px] w-[27px] rounded-full bg-on-color shadow-[0_2px_4px_rgba(0,0,0,0.2)]" />
       </span>
     </button>
   )

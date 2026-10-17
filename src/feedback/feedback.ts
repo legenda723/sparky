@@ -15,10 +15,14 @@ export const FEEDBACK: Record<FeedbackEvent, { sound: SoundName; haptic: HapticN
   reward: { sound: 'reward', haptic: 'celebrate' },
 }
 
+// Вибрация выключена: на iPhone владельца её почти не слышно, а обходной путь web-haptics
+// делает лишние скрытые нажатия (SPEC → «Решения», 2026-10-18). Вернуть — true.
+const HAPTICS_ENABLED = false
+
 /** Звать только в ответ на действие владельца (касание). */
 export function feedback(event: FeedbackEvent): void {
   const prefs = getPrefs()
   const { sound, haptic } = FEEDBACK[event]
   if (prefs.sound) playSound(sound)
-  if (prefs.haptics) vibrate(haptic)
+  if (HAPTICS_ENABLED && prefs.haptics) vibrate(haptic)
 }

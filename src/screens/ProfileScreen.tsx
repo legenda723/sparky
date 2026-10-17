@@ -1,4 +1,4 @@
-import { Download, Info, Palette, ShieldAlert, ShieldCheck, Smartphone, Sparkles, Volume2 } from 'lucide-react'
+import { Download, Info, Palette, ShieldAlert, ShieldCheck, Sparkles, Volume2 } from 'lucide-react'
 import { useSyncExternalStore } from 'react'
 import { useStorageStatus, type StorageStatus } from '../app/install'
 import { getPendingUpdate, subscribePendingUpdate } from '../app/updates'
@@ -44,12 +44,6 @@ export function ProfileScreen() {
           icon={<Volume2 size={24} className="text-info" />}
           title="Звуки"
           right={<Switch label="Звуки" checked={prefs.sound} onChange={(v) => setPref('sound', v)} />}
-        />
-        <ListRow
-          icon={<Smartphone size={24} className="text-streak" />}
-          title="Вибрация"
-          subtitle="Если телефон поддерживает"
-          right={<Switch label="Вибрация" checked={prefs.haptics} onChange={(v) => setPref('haptics', v)} />}
         />
       </section>
 
