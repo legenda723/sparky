@@ -1,0 +1,24 @@
+// Единая точка отклика: событие → звук + вибрация (с учётом настроек).
+import { getPrefs } from '../app/prefs'
+import { vibrate, type HapticName } from './haptics'
+import { playSound } from './player'
+import type { SoundName } from './sounds'
+
+export type FeedbackEvent = 'tap' | 'correct' | 'wrong' | 'streak' | 'finish' | 'reward'
+
+export const FEEDBACK: Record<FeedbackEvent, { sound: SoundName; haptic: HapticName }> = {
+  tap: { sound: 'tap', haptic: 'tap' },
+  correct: { sound: 'correct', haptic: 'correct' },
+  wrong: { sound: 'wrong', haptic: 'wrong' },
+  streak: { sound: 'streak', haptic: 'celebrate' },
+  finish: { sound: 'finish', haptic: 'celebrate' },
+  reward: { sound: 'reward', haptic: 'celebrate' },
+}
+
+/** Звать только в ответ на действие владельца (касание). */
+export function feedback(event: FeedbackEvent): void {
+  const prefs = getPrefs()
+  const { sound, haptic } = FEEDBACK[event]
+  if (prefs.sound) playSound(sound)
+  if (prefs.haptics) vibrate(haptic)
+}

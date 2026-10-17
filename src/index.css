@@ -23,6 +23,12 @@
   --c-on-xp: #3c3c3c;
   --c-disabled: #e5e5e5;
   --c-overlay: rgba(0, 0, 0, 0.4);
+  --c-primary-tint: #e3f7e1;
+  --c-danger-tint: #ffe6e7;
+  --c-info-tint: #dff4fd;
+  --c-primary-ink: #2e8b26;
+  --c-danger-ink: #c7383d;
+  --c-info-ink: #106a98;
 
   /* Цвета колод (одинаковые в обеих темах) */
   --c-deck-pink: #ff7eb6;
@@ -63,6 +69,12 @@
     --c-bg: #121a21;
     --c-disabled: #37464f;
     --c-overlay: rgba(0, 0, 0, 0.6);
+  --c-primary-tint: #1c3627;
+  --c-danger-tint: #36262d;
+  --c-info-tint: #183241;
+  --c-primary-ink: #52d646;
+  --c-danger-ink: #ff6b70;
+  --c-info-ink: #3cbdf5;
     color-scheme: dark;
   }
 }
@@ -87,6 +99,12 @@
   --c-bg: #121a21;
   --c-disabled: #37464f;
   --c-overlay: rgba(0, 0, 0, 0.6);
+  --c-primary-tint: #1c3627;
+  --c-danger-tint: #36262d;
+  --c-info-tint: #183241;
+  --c-primary-ink: #52d646;
+  --c-danger-ink: #ff6b70;
+  --c-info-ink: #3cbdf5;
   color-scheme: dark;
 }
 
@@ -120,6 +138,12 @@
   --color-on-xp: var(--c-on-xp);
   --color-disabled: var(--c-disabled);
   --color-overlay: var(--c-overlay);
+  --color-primary-tint: var(--c-primary-tint);
+  --color-danger-tint: var(--c-danger-tint);
+  --color-info-tint: var(--c-info-tint);
+  --color-primary-ink: var(--c-primary-ink);
+  --color-danger-ink: var(--c-danger-ink);
+  --color-info-ink: var(--c-info-ink);
   --color-transparent: transparent;
 
   --font-sans: 'Nunito', system-ui, -apple-system, sans-serif;
