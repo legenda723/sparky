@@ -1,5 +1,7 @@
-import { Info, Palette, ShieldAlert, ShieldCheck, Smartphone, Sparkles, Volume2 } from 'lucide-react'
+import { Download, Info, Palette, ShieldAlert, ShieldCheck, Smartphone, Sparkles, Volume2 } from 'lucide-react'
+import { useSyncExternalStore } from 'react'
 import { useStorageStatus, type StorageStatus } from '../app/install'
+import { getPendingUpdate, subscribePendingUpdate } from '../app/updates'
 import { setPref, usePrefs, type ThemePref } from '../app/prefs'
 import { navigate } from '../app/routes'
 import { Screen } from '../shell/Screen'
@@ -22,6 +24,7 @@ const THEME_OPTIONS: { value: ThemePref; label: string }[] = [
 export function ProfileScreen() {
   const prefs = usePrefs()
   const [storage, requestStorage] = useStorageStatus()
+  const applyUpdate = useSyncExternalStore(subscribePendingUpdate, getPendingUpdate)
   return (
     <Screen title="Профиль">
       <section className="mb-6">
@@ -63,7 +66,19 @@ export function ProfileScreen() {
           subtitle={STORAGE_TEXT[storage].subtitle}
           onClick={storage === 'unprotected' ? requestStorage : undefined}
         />
-        <ListRow icon={<Info size={24} className="text-muted" />} title="Версия" right={<span className="text-small font-bold text-muted">{__APP_VERSION__}</span>} />
+        <ListRow
+          icon={<Info size={24} className="text-muted" />}
+          title="Версия"
+          right={<span className="text-small font-bold text-muted">{__APP_VERSION__}</span>}
+        />
+        {applyUpdate && (
+          <ListRow
+            icon={<Download size={24} className="text-primary" />}
+            title="Обновить Спарки"
+            subtitle="Новая версия уже скачана"
+            onClick={applyUpdate}
+          />
+        )}
       </section>
 
       <p className="m-0 mb-2 text-small font-semibold text-muted">

@@ -30,3 +30,21 @@ export function subscribeUpdateBlocked(listener: () => void): () => void {
   listeners.add(listener)
   return () => listeners.delete(listener)
 }
+
+// Готовая новая версия: Профиль показывает строку «Обновить», пока её не включили.
+let applyPending: (() => void) | null = null
+const pendingListeners = new Set<() => void>()
+
+export function setPendingUpdate(apply: (() => void) | null): void {
+  applyPending = apply
+  pendingListeners.forEach((l) => l())
+}
+
+export function getPendingUpdate(): (() => void) | null {
+  return applyPending
+}
+
+export function subscribePendingUpdate(listener: () => void): () => void {
+  pendingListeners.add(listener)
+  return () => pendingListeners.delete(listener)
+}

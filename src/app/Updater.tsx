@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { useToast } from '../ui/Toast'
-import { decideUpdate, isUpdateBlocked, REOPEN_AFTER_HIDDEN_MS, subscribeUpdateBlocked } from './updates'
+import {
+  decideUpdate,
+  isUpdateBlocked,
+  REOPEN_AFTER_HIDDEN_MS,
+  setPendingUpdate,
+  subscribeUpdateBlocked,
+} from './updates'
 
 const CHECK_EVERY_MS = 60 * 60_000
 
@@ -39,6 +45,10 @@ export function Updater() {
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [])
+
+  useEffect(() => {
+    setPendingUpdate(needRefresh ? () => void updateServiceWorker(true) : null)
+  }, [needRefresh, updateServiceWorker])
 
   useEffect(() => {
     if (!needRefresh) return
