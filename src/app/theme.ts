@@ -19,18 +19,24 @@ function applyTheme(pref: ThemePref): void {
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', BG[resolveTheme(pref, systemDark)])
 }
 
+// Сколько держим класс плавной смены темы (чуть дольше самого перехода в index.css).
+const THEME_ANIM_MS = 260
+let themeAnimTimer: number | undefined
+
 /**
- * Смена темы владельцем: цвета плавно перетекают (View Transitions, Safari 18+),
- * а не перекрашиваются в один кадр. Без поддержки или при «Уменьшении движения» — сразу.
+ * Смена темы владельцем: на время перехода все цвета на экране перетекают одновременно
+ * и одинаково (класс theme-anim в index.css), без «снимков» экрана — поэтому без двоения.
+ * При «Уменьшении движения» — сразу.
  */
 export function changeTheme(pref: ThemePref): void {
-  const apply = () => {
-    flushSync(() => setPref('theme', pref))
-    applyTheme(pref)
+  const root = document.documentElement
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    root.classList.add('theme-anim')
+    window.clearTimeout(themeAnimTimer)
+    themeAnimTimer = window.setTimeout(() => root.classList.remove('theme-anim'), THEME_ANIM_MS)
   }
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  if (reduce || typeof document.startViewTransition !== 'function') apply()
-  else document.startViewTransition(apply)
+  flushSync(() => setPref('theme', pref))
+  applyTheme(pref)
 }
 
 /** Держит тему на <html> по настройке; следит за сменой темы системы. */

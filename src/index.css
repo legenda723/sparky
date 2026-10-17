@@ -235,10 +235,10 @@
   /* Плоский элемент (чип): лёгкое сжатие */
   .press-soft {
     transition:
-      scale 240ms cubic-bezier(0.22, 1, 0.36, 1),
-      background-color 260ms ease-out,
-      border-color 260ms ease-out,
-      color 260ms ease-out;
+      scale 200ms cubic-bezier(0.25, 0.1, 0.25, 1),
+      background-color 200ms cubic-bezier(0.25, 0.1, 0.25, 1),
+      border-color 200ms cubic-bezier(0.25, 0.1, 0.25, 1),
+      color 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
   }
   .press-soft[data-pressed] {
     scale: 0.96;
@@ -262,11 +262,16 @@
   }
 }
 
-/* Смена темы: старые цвета плавно перетекают в новые (theme.ts → changeTheme) */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 350ms;
-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+/* Смена темы (theme.ts → changeTheme): на 260 мс все цвета на экране перетекают
+   одновременно, с одной кривой; возврат нажатой кнопки — в том же темпе. */
+html.theme-anim,
+html.theme-anim *,
+html.theme-anim *::before,
+html.theme-anim *::after {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow, scale, translate !important;
+  transition-duration: 200ms !important;
+  transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+  transition-delay: 0s !important;
 }
 
 /* iOS 26: у веб-приложения на экране Домой высота экрана занижена на высоту статус-бара
