@@ -19,9 +19,9 @@ export function AnswerBanner({ open, kind, title, children, onNext }: AnswerBann
       {open && (
         <motion.div
           role="status"
-          initial={{ y: '100%' }}
-          animate={{ y: 0 }}
-          exit={{ y: '100%' }}
+          initial={{ transform: 'translateY(100%)' }}
+          animate={{ transform: 'translateY(0%)' }}
+          exit={{ transform: 'translateY(100%)' }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
           className={`fixed inset-x-0 bottom-0 z-30 flex flex-col gap-4 rounded-t-panel px-4 pt-5 pb-[calc(16px+var(--safe-bottom))] ${correct ? 'bg-primary-tint' : 'bg-danger-tint'}`}
         >

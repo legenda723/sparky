@@ -42,9 +42,10 @@ export function Popover({ open, onClose, anchorRef, children, width = 320 }: Pop
         <div className="fixed inset-0 z-40" onClick={onClose}>
           <motion.div
             role="dialog"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, transform: 'scale(0.9)' }}
+            animate={{ opacity: 1, transform: 'scale(1)' }}
+            exit={{ opacity: 0, transform: 'scale(0.9)' }}
+            // Целая строка transform — Motion отдаёт пружину видеокарте (DESIGN.md → «Движение»).
             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
             style={{
               top: pos.top,

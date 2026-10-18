@@ -47,9 +47,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <motion.div
               key={toast.id}
               role="status"
-              initial={{ opacity: 0, y: -24 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -24 }}
+              initial={{ opacity: 0, transform: 'translateY(-24px)' }}
+              animate={{ opacity: 1, transform: 'translateY(0px)' }}
+              exit={{ opacity: 0, transform: 'translateY(-24px)' }}
               transition={{ type: 'spring', stiffness: 500, damping: 34 }}
               className="pointer-events-auto flex min-h-14 w-full max-w-[420px] items-center gap-3 rounded-card border-2 border-border bg-bg py-2 pr-2 pl-4 shadow-[0_4px_0_var(--c-border)]"
             >
