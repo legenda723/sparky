@@ -10,7 +10,9 @@ import { ListRow } from '../ui/ListRow'
 import { Switch } from '../ui/Switch'
 import { TextField } from '../ui/TextField'
 import { STATUS_LOOK } from './CardRow'
+import { AudioField, ImageField } from './MediaFields'
 import { normalizeWord } from './parseList'
+import { useMediaBlob } from './useMediaUrl'
 
 interface CardEditorProps {
   open: boolean
@@ -42,6 +44,11 @@ export function CardEditor({ open, deckId, card, existing, onClose, onAdded, onD
     setMedia({})
   }, [open, cardId])
 
+  // Показываем только что выбранное, иначе сохранённое (null — владелец убрал).
+  const savedImage = useMediaBlob(card?.imageId)
+  const savedAudio = useMediaBlob(card?.audioId)
+  const shown = (input: MediaInput, saved: Blob | undefined) => (input === undefined ? saved : (input?.blob ?? undefined))
+
   const set = (key: keyof CardText) => (e: { target: { value: string } }) => setText((t) => ({ ...t, [key]: e.target.value }))
   const valid = text.front.trim() !== '' && text.back.trim() !== ''
   const dup =
@@ -72,6 +79,8 @@ export function CardEditor({ open, deckId, card, existing, onClose, onAdded, onD
       />
       <TextField label="Перевод" placeholder="яблоко" value={text.back} onChange={set('back')} />
       <TextField label="Транскрипция (необязательно)" placeholder="[ˈæp.əl]" value={text.transcription} onChange={set('transcription')} {...EN} />
+      <ImageField blob={shown(media.image, savedImage)} onChange={(image) => setMedia((m) => ({ ...m, image }))} />
+      <AudioField blob={shown(media.audio, savedAudio)} onChange={(audio) => setMedia((m) => ({ ...m, audio }))} />
       <TextField label="Пример (необязательно)" value={text.example} onChange={set('example')} lang="en" />
       <TextField label="Перевод примера (необязательно)" value={text.exampleTranslation} onChange={set('exampleTranslation')} />
       <TextField label="Заметка (необязательно)" value={text.note} onChange={set('note')} />
