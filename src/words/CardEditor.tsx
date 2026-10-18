@@ -1,5 +1,5 @@
 import { Snowflake, Trash2 } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useRef, useState, type KeyboardEvent } from 'react'
 import { addCard, updateCard, type CardText, type MediaInput } from '../db/cards'
 import { db } from '../db/db'
 import type { Card, Id } from '../db/types'
@@ -32,6 +32,17 @@ const EMPTY: Required<CardText> = { front: '', back: '', transcription: '', exam
 
 // Английские поля: без автоисправления и заглавных.
 const EN = { lang: 'en', autoCapitalize: 'off', autoCorrect: 'off', spellCheck: false } as const
+/**
+ * Синяя галочка на клавиатуре iPhone (как в форме колоды): нажал — клавиатура убирается.
+ * autoComplete off — иначе iOS предлагает «Автозаполнить контакт».
+ */
+const DONE = {
+  enterKeyHint: 'done',
+  autoComplete: 'off',
+  onKeyDown: (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') e.currentTarget.blur()
+  },
+} as const
 
 export function CardEditor({ open, deckId, card, existing, onClose, onAdded, onDelete, onSuspend }: CardEditorProps) {
   const [text, setText] = useState(EMPTY)
@@ -86,10 +97,11 @@ export function CardEditor({ open, deckId, card, existing, onClose, onAdded, onD
         value={text.front}
         onChange={set('front')}
         {...EN}
+        {...DONE}
         error={dup ? 'Такое слово уже есть в колоде' : undefined}
       />
-      <TextField label="Перевод" placeholder="яблоко" value={text.back} onChange={set('back')} />
-      <TextField label="Транскрипция (необязательно)" placeholder="[ˈæp.əl]" value={text.transcription} onChange={set('transcription')} {...EN} />
+      <TextField label="Перевод" placeholder="яблоко" value={text.back} onChange={set('back')} {...DONE} />
+      <TextField label="Транскрипция (необязательно)" placeholder="[ˈæp.əl]" value={text.transcription} onChange={set('transcription')} {...EN} {...DONE} />
       <ImageField
         blob={shown(media.image, savedImage)}
         pending={media.image === undefined && !!card?.imageId && !savedImage}
@@ -100,9 +112,9 @@ export function CardEditor({ open, deckId, card, existing, onClose, onAdded, onD
         onChange={(audio) => setMedia((m) => ({ ...m, audio }))}
         onRecordingChange={setRecording}
       />
-      <TextField label="Пример (необязательно)" value={text.example} onChange={set('example')} lang="en" />
-      <TextField label="Перевод примера (необязательно)" value={text.exampleTranslation} onChange={set('exampleTranslation')} />
-      <TextField label="Заметка (необязательно)" value={text.note} onChange={set('note')} />
+      <TextField label="Пример (необязательно)" value={text.example} onChange={set('example')} lang="en" {...DONE} />
+      <TextField label="Перевод примера (необязательно)" value={text.exampleTranslation} onChange={set('exampleTranslation')} {...DONE} />
+      <TextField label="Заметка (необязательно)" value={text.note} onChange={set('note')} {...DONE} />
 
       {card && (
         <>

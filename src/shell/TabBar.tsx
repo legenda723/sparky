@@ -58,8 +58,9 @@ export function TabBar({ active }: { active: TabRoute }) {
 }
 
 function TabButton({ route, label, Icon, isActive }: { route: TabRoute; label: string; Icon: LucideIcon; isActive: boolean }) {
-  // Вкладка переключается сразу при касании (не ждём отпускания); звук — по отпусканию,
-  // т.к. iOS разрешает звук только после завершённого касания.
+  // Вкладка переключается сразу при касании (не ждём отпускания); звук — по отпусканию пальца.
+  // Не по click: экран под пальцем уже сменился, и iPhone иногда не присылает click (звука не было
+  // на «Пути», «Словах» и «Профиле»). Отпускание пальца iOS тоже засчитывает как касание для звука.
   const { pressed, pressHandlers } = usePress()
   return (
     <button
@@ -70,10 +71,15 @@ function TabButton({ route, label, Icon, isActive }: { route: TabRoute; label: s
         pressHandlers.onPointerDown(e)
         if (e.button === 0 && !isActive) navigate(route)
       }}
+      onPointerUp={(e) => {
+        pressHandlers.onPointerUp()
+        if (e.button === 0) feedback('tap')
+      }}
       onClick={(e) => {
+        // Клавиатура/VoiceOver: касания не было — звук и переключение по нажатию.
+        if (e.detail !== 0) return
         feedback('tap')
-        // Клавиатура/VoiceOver: касания не было — переключаем по нажатию.
-        if (e.detail === 0 && !isActive) navigate(route)
+        if (!isActive) navigate(route)
       }}
       className={`relative flex h-14 w-full max-w-[88px] flex-col items-center justify-center gap-0.5 rounded-card transition-colors duration-200 ${isActive ? 'text-info-ink' : 'text-muted'}`}
     >
