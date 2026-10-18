@@ -20,10 +20,12 @@ export function FormSheet({ open, title, onCancel, onDone, doneLabel = 'Гото
   useImperativeHandle(ref, () => ({ dismiss: async () => frame.current?.dismiss() }), [])
   return (
     <SheetFrame ref={frame} open={open} label={title} onClose={onCancel} layer="z-30" className="flex h-[calc(100%-8px-var(--safe-top))] flex-col">
-      <div className="flex h-14 shrink-0 items-center justify-between border-b-2 border-border px-1">
-        <TextButton onClick={() => void frame.current?.dismiss()}>Отмена</TextButton>
-        <h2 className="m-0 min-w-0 flex-1 truncate text-center text-body font-black text-text">{title}</h2>
-        <TextButton onClick={onDone} disabled={doneDisabled}>
+      <div className="flex h-16 shrink-0 items-center justify-between gap-1 border-b-2 border-border px-1">
+        <TextButton className="min-h-12! px-4! text-body!" onClick={() => void frame.current?.dismiss()}>
+          Отмена
+        </TextButton>
+        <h2 className="m-0 min-w-0 flex-1 truncate text-center text-heading font-black text-text">{title}</h2>
+        <TextButton className="min-h-12! px-4! text-body!" onClick={onDone} disabled={doneDisabled}>
           {doneLabel}
         </TextButton>
       </div>
