@@ -1,7 +1,5 @@
 import { useCallback, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from 'react'
 import { createPortal } from 'react-dom'
-import { useLegacySheets } from '../dev/sheetLab'
-import { SheetFrameMotion } from './legacy/SheetFrameMotion'
 import { hide, place, SHEET_SNAP, slide } from './sheetAnim'
 import { useSheetDrag } from './useSheetDrag'
 
@@ -31,10 +29,8 @@ export interface SheetFrameProps {
  * Если родитель сам поставил open=false (например, после сохранения), лист тоже уезжает.
  */
 export function SheetFrame(props: SheetFrameProps) {
-  const legacy = useLegacySheets()
   const [mounted, setMounted] = useState(props.open)
   if (props.open && !mounted) setMounted(true)
-  if (legacy) return <SheetFrameMotion {...props} />
   if (!mounted) return null
   return createPortal(<Panel {...props} onGone={() => setMounted(false)} />, document.body)
 }
