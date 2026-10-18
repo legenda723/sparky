@@ -15,7 +15,7 @@ interface SheetFrameProps {
 }
 
 /**
- * Основа листа снизу: затемнение, выезд и закрытие свайпом вниз с «ручкой» сверху.
+ * Основа листа снизу: затемнение, выезд и закрытие свайпом вниз.
  * Рендерится внутри AnimatePresence — появляется при открытии, уезжает при закрытии.
  */
 export function SheetFrame({ label, onClose, closeOnOverlay, layer, className, children }: SheetFrameProps) {
@@ -35,10 +35,6 @@ export function SheetFrame({ label, onClose, closeOnOverlay, layer, className, c
         {...SHEET_MOTION}
         className={`relative rounded-t-panel bg-bg ${className}`}
       >
-        {/* «Ручка»: подсказка, что лист можно потянуть вниз */}
-        <div data-sheet-handle aria-hidden className="absolute inset-x-0 top-0 z-10 flex h-4 justify-center pt-1.5">
-          <span className="h-[5px] w-9 rounded-full bg-border" />
-        </div>
         {children}
       </motion.div>
     </div>

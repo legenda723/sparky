@@ -20,7 +20,7 @@ export function FormSheet({ open, title, onCancel, onDone, doneLabel = 'Гото
     <AnimatePresence>
       {open && (
         <SheetFrame label={title} onClose={onCancel} layer="z-30" className="flex h-[calc(100%-8px-var(--safe-top))] flex-col">
-          <div data-sheet-handle className="flex h-14 shrink-0 items-center justify-between border-b-2 border-border px-1 pt-1">
+          <div data-sheet-handle className="flex h-14 shrink-0 items-center justify-between border-b-2 border-border px-1">
             <TextButton onClick={onCancel}>Отмена</TextButton>
             <h2 className="m-0 min-w-0 flex-1 truncate text-center text-body font-black text-text">{title}</h2>
             <TextButton onClick={onDone} disabled={doneDisabled}>

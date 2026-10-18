@@ -8,8 +8,9 @@ import { useEffect, useRef, type RefObject } from 'react'
 const CLOSE_SHARE = 0.25
 /** …или отпустили быстрее этого (px/мс). */
 const CLOSE_SPEED = 0.5
-const SNAP_MS = 320
-const SNAP_EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)'
+// Возврат на место: дольше и с долгим мягким торможением — лист «оседает», а не прыгает.
+const SNAP_MS = 480
+const SNAP_EASE = 'cubic-bezier(0.25, 1, 0.5, 1)'
 
 /** Решение по первому движению: тянуть лист или отдать жест прокрутке. */
 export function shouldDrag(dx: number, dy: number, atTop: boolean, onHandle: boolean): boolean | null {
