@@ -7,11 +7,11 @@ interface IconButtonProps {
   onClick: () => void
   children: ReactNode
   className?: string
-  /** Крупная — 52×52 (карандаш в шапке колоды: по 44 было неудобно попадать). */
+  /** Крупная — 56×56 (карандаш в шапке колоды: по 44 было неудобно попадать). */
   large?: boolean
 }
 
-/** Кнопка-иконка 44×44 или 52×52 (шапка вложенного экрана): нажатие — круглый фон --c-surface. */
+/** Кнопка-иконка 44×44 или 56×56 (шапка вложенного экрана): нажатие — круглый фон --c-surface. */
 export function IconButton({ label, onClick, children, className = 'text-muted', large }: IconButtonProps) {
   const { pressed, pressHandlers } = usePress()
   return (
@@ -24,7 +24,7 @@ export function IconButton({ label, onClick, children, className = 'text-muted',
         feedback('tap')
         onClick()
       }}
-      className={`press-soft flex ${large ? 'size-13' : 'size-11'} shrink-0 items-center justify-center rounded-full data-pressed:bg-surface ${className}`}
+      className={`press-soft flex ${large ? 'size-14' : 'size-11'} shrink-0 items-center justify-center rounded-full data-pressed:bg-surface ${className}`}
     >
       {children}
     </button>
