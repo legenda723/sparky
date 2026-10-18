@@ -16,6 +16,7 @@ import { Sheet } from '../ui/Sheet'
 import { Switch } from '../ui/Switch'
 import { TextField } from '../ui/TextField'
 import { useToast } from '../ui/Toast'
+import { MotionLab } from './MotionLab'
 
 /** Витрина #/dev: все детали интерфейса, их можно потрогать. */
 export default function DevPage() {
@@ -55,6 +56,7 @@ export default function DevPage() {
           />
         </Section>
 
+        <MotionLab />
         {import.meta.env.DEV && <SeedSection />}
         <MascotSection />
         <ButtonsSection />
