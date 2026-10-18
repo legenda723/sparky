@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { SHEET_MOTION } from './sheetMotion'
 import { TextButton } from './TextButton'
 
 interface FormSheetProps {
@@ -30,10 +31,7 @@ export function FormSheet({ open, title, onCancel, onDone, doneLabel = 'Гото
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 420, damping: 40 }}
+            {...SHEET_MOTION}
             className="relative flex h-[calc(100%-8px-var(--safe-top))] flex-col rounded-t-panel bg-bg"
           >
             <div className="flex h-14 shrink-0 items-center justify-between border-b-2 border-border px-1">

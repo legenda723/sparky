@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { SHEET_MOTION } from './sheetMotion'
 
 interface SheetProps {
   open: boolean
@@ -29,10 +30,7 @@ export function Sheet({ open, onClose, title, text, children }: SheetProps) {
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 420, damping: 38 }}
+            {...SHEET_MOTION}
             className="relative flex flex-col gap-3 rounded-t-panel bg-bg px-4 pt-6 pb-[calc(16px+var(--safe-bottom))]"
           >
             <h2 className="m-0 text-center text-heading font-black text-text">{title}</h2>

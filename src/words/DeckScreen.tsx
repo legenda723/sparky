@@ -1,9 +1,9 @@
-import { useLiveQuery } from 'dexie-react-hooks'
 import { ClipboardList, Pencil, Plus } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { navigateSub } from '../app/routes'
 import { deleteCard, listCards, restoreCard, setSuspended } from '../db/cards'
 import { db } from '../db/db'
+import { useCachedLiveQuery } from '../db/liveCache'
 import type { Card, Id } from '../db/types'
 import { cardStatus } from '../srs/status'
 import { Screen } from '../shell/Screen'
@@ -19,6 +19,7 @@ import { DeckEditor } from './DeckEditor'
 import { useDeckDeletedToast } from './DeckList'
 import { filterCards, type StatusFilter } from './filter'
 import { PasteList } from './PasteList'
+import { KEYS } from './prefetch'
 
 const FILTERS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'Все' },
@@ -32,9 +33,9 @@ type Editing = { kind: 'new' } | { kind: 'edit'; id: Id } | null
 
 /** Колода: поиск, фильтр, слова (SPEC 7.3). */
 export function DeckScreen({ deckId }: { deckId: Id }) {
-  // null — ещё грузится, undefined — такой колоды нет.
-  const deck = useLiveQuery(() => db.decks.get(deckId), [deckId], null)
-  const cards = useLiveQuery(() => listCards(db, deckId), [deckId])
+  // undefined — ещё грузится, null — такой колоды нет.
+  const deck = useCachedLiveQuery(KEYS.deck(deckId), async () => (await db.decks.get(deckId)) ?? null, [deckId])
+  const cards = useCachedLiveQuery(KEYS.cards(deckId), () => listCards(db, deckId), [deckId])
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<StatusFilter>('all')
   const [editing, setEditing] = useState<Editing>(null)
@@ -46,7 +47,7 @@ export function DeckScreen({ deckId }: { deckId: Id }) {
   const deckDeleted = useDeckDeletedToast()
 
   // Колоды нет (удалена или неверный адрес) — назад к списку.
-  const gone = deck === undefined || (deck !== null && deck.deletedAt !== undefined)
+  const gone = deck === null || (deck !== undefined && deck.deletedAt !== undefined)
   useEffect(() => {
     if (gone) navigateSub('words')
   }, [gone])

@@ -1,10 +1,10 @@
-import { useLiveQuery } from 'dexie-react-hooks'
 import { ArrowUpDown, Plus } from 'lucide-react'
 import { Reorder } from 'motion/react'
 import { useState } from 'react'
 import { navigateSub } from '../app/routes'
 import { db } from '../db/db'
 import { listDecks, reorderDecks, restoreDeck } from '../db/decks'
+import { useCachedLiveQuery } from '../db/liveCache'
 import { Screen } from '../shell/Screen'
 import { Button } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
@@ -14,11 +14,12 @@ import { useToast } from '../ui/Toast'
 import { DeckEditor } from './DeckEditor'
 import { loadDeckStats } from './deckStats'
 import { DeckTile, DeckTileDraggable } from './DeckTile'
+import { KEYS } from './prefetch'
 
 /** Список колод (SPEC 7.3). */
 export function DeckList() {
-  const decks = useLiveQuery(() => listDecks(db))
-  const stats = useLiveQuery(() => loadDeckStats(db))
+  const decks = useCachedLiveQuery(KEYS.decks, () => listDecks(db), [])
+  const stats = useCachedLiveQuery(KEYS.stats, () => loadDeckStats(db), [])
   const [creating, setCreating] = useState(false)
   const [order, setOrder] = useState<string[] | null>(null)
   const toast = useToast()

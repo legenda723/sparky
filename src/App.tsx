@@ -9,6 +9,7 @@ import { InstallScreen } from './screens/InstallScreen'
 import { IphoneSim } from './shell/IphoneSim'
 import { Shell } from './shell/Shell'
 import { ToastProvider } from './ui/Toast'
+import { prefetchWords } from './words/prefetch'
 
 // Витрина грузится отдельно и не замедляет открытие приложения.
 const DevPage = lazy(() => import('./dev/DevPage'))
@@ -29,6 +30,7 @@ export default function App() {
   // Настройки из базы (тема уже стоит из быстрой копии, здесь — сверка).
   useEffect(() => {
     void loadPrefs().catch(() => {})
+    void prefetchWords().catch(() => {})
   }, [])
 
   return (
