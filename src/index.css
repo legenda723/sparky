@@ -30,6 +30,7 @@
   --c-danger-ink: #c7383d;
   --c-info-ink: #106a98;
   --c-streak-ink: #b45309;
+  --c-xp-ink: #a16207;
 
   /* Цвета колод (одинаковые в обеих темах) */
   --c-deck-pink: #ff7eb6;
@@ -78,6 +79,7 @@
     --c-danger-ink: #ff6b70;
     --c-info-ink: #3cbdf5;
     --c-streak-ink: #ffae3d;
+    --c-xp-ink: #ffd25c;
     color-scheme: dark;
   }
 }
@@ -109,6 +111,7 @@
   --c-danger-ink: #ff6b70;
   --c-info-ink: #3cbdf5;
   --c-streak-ink: #ffae3d;
+  --c-xp-ink: #ffd25c;
   color-scheme: dark;
 }
 
@@ -149,6 +152,7 @@
   --color-danger-ink: var(--c-danger-ink);
   --color-info-ink: var(--c-info-ink);
   --color-streak-ink: var(--c-streak-ink);
+  --color-xp-ink: var(--c-xp-ink);
   --color-transparent: transparent;
 
   --font-sans: 'Nunito', system-ui, -apple-system, sans-serif;

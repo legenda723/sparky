@@ -1,4 +1,4 @@
-// Задания этапа 4: «Знакомство» и «Карточка с переворотом».
+// Общее для заданий урока и задания «Знакомство» и «Карточка с переворотом».
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Card, Settings } from '../db/types'
 import { speak } from '../media/speech'
@@ -8,31 +8,47 @@ import { Button } from '../ui/Button'
 import { usePress } from '../ui/usePress'
 import { WordView } from './WordView'
 
-interface TaskProps {
+export interface TaskProps {
   card: Card
   settings: Settings
   audio?: Blob
 }
 
-/** Общая раскладка задания: прокручиваемая середина и кнопки внизу. */
-function TaskLayout({ children, footer }: { children: ReactNode; footer: ReactNode }) {
+/** Общая раскладка задания: прокручиваемая середина и кнопки внизу (над клавиатурой, если она открыта). */
+export function TaskLayout({ children, footer, keyboard = 0 }: { children: ReactNode; footer: ReactNode; keyboard?: number }) {
   return (
     <div className="flex h-full flex-col">
       {/* Слово прижато к верху: когда появляется ответ, оно не «уезжает». */}
-      <div className="flex-1 overflow-y-auto overscroll-none px-[calc(16px+var(--safe-left))] pt-[5vh] pb-4">{children}</div>
-      <div className="flex min-h-[calc(88px+var(--safe-bottom))] flex-col justify-end px-[calc(16px+var(--safe-left))] pt-2 pb-[calc(16px+var(--safe-bottom))]">
+      <div className="flex-1 overflow-y-auto overscroll-none px-[calc(16px+var(--safe-left))] pt-[3vh] pb-4">{children}</div>
+      <div
+        className="flex min-h-[calc(88px+var(--safe-bottom))] flex-col justify-end px-[calc(16px+var(--safe-left))] pt-2 pb-[calc(16px+var(--safe-bottom))]"
+        style={keyboard > 0 ? { paddingBottom: keyboard + 12, minHeight: 0 } : undefined}
+      >
         {footer}
       </div>
     </div>
   )
 }
 
-function useSpeech({ card, settings, audio }: TaskProps) {
-  const say = () => speak(card.front, { voiceURI: settings.voiceURI, rate: settings.speechRate }, audio)
-  // Автоозвучка при показе (настройка). Звук уже разрешён касанием «УЧИТЬ».
-  const auto = useRef(settings.autoSpeak)
+/** Чип-метка над заданием (DESIGN.md → «Слово в задании»). */
+export function TaskLabel({ children }: { children: ReactNode }) {
+  return (
+    <span className="rounded-full bg-info-tint px-3 py-1 text-caption font-black tracking-[0.04em] text-info-ink uppercase">
+      {children}
+    </span>
+  )
+}
+
+/**
+ * Озвучка слова задания. auto: «setting» — при показе, если включена автоозвучка; «always» — всегда
+ * (аудирование); «never» — не звучать при показе (слово — это ответ). Звук уже разрешён касанием «УЧИТЬ».
+ */
+export function useSpeech({ card, settings, audio }: TaskProps, auto: 'setting' | 'always' | 'never' = 'setting') {
+  const say = (slow = false) =>
+    speak(card.front, { voiceURI: settings.voiceURI, rate: settings.speechRate * (slow ? 0.6 : 1) }, slow ? undefined : audio)
+  const first = useRef(auto === 'always' || (auto === 'setting' && settings.autoSpeak))
   useEffect(() => {
-    if (auto.current) say()
+    if (first.current) say()
   }, []) // только при показе
   return say
 }
@@ -48,7 +64,7 @@ export function IntroTask(props: TaskProps & { onDone: (durationMs: number) => v
         </Button>
       }
     >
-      <WordView card={props.card} label="Новое слово" answer photoFirst onSpeak={say} />
+      <WordView card={props.card} label="Новое слово" answer photoFirst onSpeak={() => say()} />
     </TaskLayout>
   )
 }
@@ -111,7 +127,7 @@ export function FlipTask(props: TaskProps & { onGrade: (g: Grade, outcome: Outco
         )
       }
     >
-      <WordView card={props.card} label="Вспомни перевод" answer={revealed !== null} onSpeak={say} />
+      <WordView card={props.card} label="Вспомни перевод" answer={revealed !== null} onSpeak={() => say()} />
     </TaskLayout>
   )
 }

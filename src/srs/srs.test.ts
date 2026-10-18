@@ -130,12 +130,13 @@ const DECKS = new Map([
 ])
 
 describe('сборщик урока', () => {
-  it('новые слова — по порядку колод и слов, до 5, каждое: знакомство + переворот', () => {
+  it('новые слова — по порядку колод и слов, до 5, каждое: знакомство + задание с оценкой', () => {
     const cards = [card('b2', 'd2', 0), card('a2', 'd1', 1), card('a1', 'd1', 0), ...['a3', 'a4', 'a5', 'a6'].map((id, i) => card(id, 'd1', i + 2))]
     const plan = buildLesson(cards, DECKS, NOW, LIMITS)
     expect(plan.newCount).toBe(5)
     expect(plan.tasks.map((t) => `${t.kind}:${t.cardId}`)).toEqual(
-      ['a1', 'a2', 'a3', 'a4', 'a5'].flatMap((id) => [`intro:${id}`, `flip:${id}`]),
+      // «Пары» — после 5-го слова, перед возвратами слов в обучении
+      [...['a1', 'a2', 'a3', 'a4', 'a5'].flatMap((id) => [`intro:${id}`, `graded:${id}`]), 'pairs:'],
     )
   })
 
@@ -154,11 +155,11 @@ describe('сборщик урока', () => {
     ]
     const plan = buildLesson(cards, DECKS, NOW, LIMITS)
     expect(plan.tasks.map((t) => `${t.kind}:${t.cardId}`)).toEqual([
-      'flip:r-old',
-      'flip:r-mid',
+      'graded:r-old',
+      'graded:r-mid',
       'intro:n1',
-      'flip:n1',
-      'flip:r-fresh',
+      'graded:n1',
+      'graded:r-fresh',
     ])
   })
 
@@ -180,7 +181,9 @@ describe('сборщик урока', () => {
   it('много повторений — новые не влезают, урок не больше размера', () => {
     const cards = [...Array.from({ length: 20 }, (_, i) => review(`r${i}`, '2026-10-10T10:00')), card('n1', 'd1', 0)]
     const plan = buildLesson(cards, DECKS, NOW, LIMITS)
-    expect(plan.tasks).toHaveLength(15)
+    expect(plan.tasks.filter((t) => t.kind !== 'pairs')).toHaveLength(15)
+    // «Пары» — бонус, в счёт размера урока не входят
+    expect(plan.tasks.filter((t) => t.kind === 'pairs')).toHaveLength(1)
     expect(plan.newCount).toBe(0)
   })
 
@@ -206,24 +209,24 @@ describe('сборщик урока', () => {
 })
 
 describe('ход урока', () => {
-  const plan = { tasks: [{ kind: 'intro' as const, cardId: 'a' }, { kind: 'flip' as const, cardId: 'a' }, { kind: 'flip' as const, cardId: 'b' }], newCount: 1, reviewCount: 1 }
+  const plan = { tasks: [{ kind: 'intro' as const, cardId: 'a' }, { kind: 'graded' as const, cardId: 'a' }, { kind: 'graded' as const, cardId: 'b' }], newCount: 1, reviewCount: 1 }
   const inMin = (m: number) => new Date(NOW.getTime() + m * 60_000)
 
   it('ошибка или шаг обучения (≤ 20 мин) — слово в конец урока', () => {
     let s = startLesson(plan)
     s = afterIntro(s)
     s = afterGrade(s, 'a', Rating.Again, inMin(1), NOW)
-    expect(s.queue.at(-1)).toEqual({ kind: 'flip', cardId: 'a' })
-    expect(currentTask(s)).toEqual({ kind: 'flip', cardId: 'b' })
+    expect(s.queue.at(-1)).toEqual({ kind: 'graded', cardId: 'a' })
+    expect(currentTask(s)).toEqual({ kind: 'graded', cardId: 'b' })
     s = afterGrade(s, 'b', Rating.Good, inMin(60 * 24 * 3), NOW)
-    expect(currentTask(s)).toEqual({ kind: 'flip', cardId: 'a' })
+    expect(currentTask(s)).toEqual({ kind: 'graded', cardId: 'a' })
     s = afterGrade(s, 'a', Rating.Good, inMin(60 * 24), NOW)
     expect(isFinished(s)).toBe(true)
     expect([s.correct, s.wrong, accuracy(s)]).toEqual([2, 1, 67])
   })
 
   it(`слово возвращается не больше ${MAX_RETURNS} раз`, () => {
-    let s = startLesson({ tasks: [{ kind: 'flip', cardId: 'a' }], newCount: 0, reviewCount: 1 })
+    let s = startLesson({ tasks: [{ kind: 'graded', cardId: 'a' }], newCount: 0, reviewCount: 1 })
     for (let i = 0; i < 10 && !isFinished(s); i++) s = afterGrade(s, 'a', Rating.Again, inMin(1), NOW)
     expect(s.queue).toHaveLength(1 + MAX_RETURNS)
     expect(isFinished(s)).toBe(true)

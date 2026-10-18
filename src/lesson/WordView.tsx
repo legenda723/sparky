@@ -13,7 +13,7 @@ export function SpeakButton({ onClick }: { onClick: () => void }) {
       aria-label="Произнести"
       {...pressHandlers}
       data-pressed={pressed || undefined}
-      onClick={onClick}
+      onClick={() => onClick()}
       className="press-soft flex size-12 shrink-0 items-center justify-center rounded-full bg-info-tint text-info-ink"
     >
       <Volume2 size={26} strokeWidth={2.5} />
@@ -21,7 +21,7 @@ export function SpeakButton({ onClick }: { onClick: () => void }) {
   )
 }
 
-function Photo({ id }: { id: string }) {
+export function Photo({ id }: { id: string }) {
   const url = useMediaUrl(id)
   return (
     <div className="flex h-[180px] w-full items-center justify-center overflow-hidden rounded-card border-2 border-border bg-surface">

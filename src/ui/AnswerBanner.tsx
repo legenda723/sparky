@@ -8,11 +8,13 @@ interface AnswerBannerProps {
   kind: 'correct' | 'wrong'
   title: string
   children?: ReactNode
+  /** Справа от текста — например, кнопка озвучки. */
+  action?: ReactNode
   onNext: () => void
 }
 
 /** Плашка ответа (DESIGN.md → «Плашка ответа»): выезжает снизу за 200 мс. */
-export function AnswerBanner({ open, kind, title, children, onNext }: AnswerBannerProps) {
+export function AnswerBanner({ open, kind, title, children, action, onNext }: AnswerBannerProps) {
   const correct = kind === 'correct'
   return (
     <AnimatePresence>
@@ -31,10 +33,11 @@ export function AnswerBanner({ open, kind, title, children, onNext }: AnswerBann
             >
               {correct ? <Check size={26} strokeWidth={4} /> : <X size={26} strokeWidth={4} />}
             </span>
-            <div className="flex min-w-0 flex-col gap-1 pt-0.5">
+            <div className="flex min-w-0 flex-1 flex-col gap-1 pt-0.5">
               <h2 className={`m-0 text-title font-black ${correct ? 'text-primary-ink' : 'text-danger-ink'}`}>{title}</h2>
               {children && <div className="text-body font-bold text-text">{children}</div>}
             </div>
+            {action}
           </div>
           <Button variant={correct ? 'primary' : 'danger'} block onClick={onNext}>
             Далее

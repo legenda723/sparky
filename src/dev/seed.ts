@@ -40,7 +40,7 @@ export async function seedTestData(): Promise<void> {
         const last = new Date(now - 3 * DAY)
         if (kind === 1) await db.cards.update(c.id, { state: State.Learning, stability: 0.5, difficulty: 6, reps: 1, last_review: last, due: new Date(now + 10 * 60_000) })
         if (kind === 2) await db.cards.update(c.id, { state: State.Review, stability: 4, difficulty: 5, reps: 3, last_review: last, due: new Date(now - DAY) })
-        if (kind === 3) await db.cards.update(c.id, { state: State.Review, stability: 30, difficulty: 4, reps: 6, last_review: last, due: new Date(now + 27 * DAY) })
+        if (kind === 3) await db.cards.update(c.id, { state: State.Review, stability: 30, difficulty: 4, reps: 6, last_review: new Date(now - 31 * DAY), due: new Date(now - DAY) })
         if (kind === 4) await db.cards.update(c.id, { state: State.Review, stability: 9, difficulty: 5, reps: 4, last_review: last, due: new Date(now + 6 * DAY), suspended: i % 2 === 0 })
       }
     })

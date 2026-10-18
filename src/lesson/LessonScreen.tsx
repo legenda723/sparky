@@ -2,34 +2,110 @@ import { Undo2, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
 import { navigate } from '../app/routes'
+import { speak } from '../media/speech'
 import { screenFade } from '../shell/screenFade'
+import type { PoolCard } from '../srs/exercise'
+import { isChoice, isTyping } from '../srs/grade'
 import { accuracy, currentTask, isFinished } from '../srs/lesson'
+import { AnswerBanner } from '../ui/AnswerBanner'
 import { Button } from '../ui/Button'
 import { IconButton } from '../ui/IconButton'
 import { Mascot } from '../ui/Mascot'
 import { ProgressBar } from '../ui/ProgressBar'
 import { Sheet } from '../ui/Sheet'
-import { LessonSummary } from './LessonSummary'
+import { ChoiceTask } from './ChoiceTask'
+import { formatDuration, LessonSummary } from './LessonSummary'
+import { PairsTask } from './PairsTask'
 import { ReactionPill } from './ReactionPill'
+import { StreakPill } from './StreakPill'
 import { FlipTask, IntroTask } from './tasks'
-import { useLesson } from './useLesson'
+import { TypeTask } from './TypeTask'
+import { useLesson, type Checked, type LessonApi } from './useLesson'
+import { SpeakButton } from './WordView'
 
 const TASK_FADE = screenFade(() => 0.18)
+const PRAISE = ['Отлично!', 'Точно!', 'Огонь!', 'Так держать!']
 
 function leave() {
   navigate('path')
 }
 
+/** Плашка ответа после выбора, ввода и «Пар» (DESIGN.md → «Плашка ответа в уроке»). */
+function Banner({ lesson, checked }: { lesson: LessonApi; checked: Checked | null }) {
+  // Держим последний ответ, пока плашка уезжает.
+  const [last, setLast] = useState<Checked | null>(null)
+  if (checked && checked !== last) setLast(checked)
+  const c = checked ?? last
+  const card = c?.cardId ? lesson.loaded?.cards.get(c.cardId) : undefined
+  const settings = lesson.loaded?.settings
+  let title = ''
+  let text = null
+  if (c?.exercise === 'pairs') {
+    title = 'Пары собраны!'
+    text = <>За {formatDuration(c.ms ?? 0)}</>
+  } else if (c && card) {
+    const word = (
+      <>
+        <span lang="en" className="font-black">
+          {card.front}
+        </span>{' '}
+        — {card.back}
+      </>
+    )
+    if (!c.correct) {
+      title = 'Почти!'
+      text = <>Правильно: {word}</>
+    } else if (c.typo) {
+      title = 'Засчитано!'
+      text = (
+        <>
+          Опечатка: правильно{' '}
+          <span lang="en" className="font-black">
+            {card.front}
+          </span>
+        </>
+      )
+    } else {
+      title = PRAISE[c.next.index % PRAISE.length]
+      text = word
+    }
+  }
+  return (
+    <AnswerBanner
+      open={checked !== null}
+      kind={!c || c.correct ? 'correct' : 'wrong'}
+      title={title}
+      action={
+        card && settings ? (
+          <SpeakButton
+            onClick={() => speak(card.front, { voiceURI: settings.voiceURI, rate: settings.speechRate }, lesson.loaded?.audio.get(card.id))}
+          />
+        ) : undefined
+      }
+      onNext={lesson.next}
+    >
+      {text}
+    </AnswerBanner>
+  )
+}
+
 /** Экран урока (SPEC 7.2, DESIGN.md → «Экран урока»). */
 export default function LessonScreen() {
   const lesson = useLesson()
-  const { loaded, state } = lesson
+  const { loaded, state, checked } = lesson
   const [confirmExit, setConfirmExit] = useState(false)
 
   const finished = state ? isFinished(state) : false
   const task = state ? currentTask(state) : undefined
   const card = task && loaded ? loaded.cards.get(task.cardId) : undefined
-  const progress = state && state.queue.length ? state.index / state.queue.length : 0
+  // Прогресс и серия — уже с учётом проверенного ответа.
+  const shown = checked?.next ?? state
+  const progress = shown && shown.queue.length ? shown.index / shown.queue.length : 0
+  const poolOf = (ids: string[] | undefined): PoolCard[] =>
+    (ids ?? []).flatMap((id) => {
+      const p = loaded?.poolById.get(id)
+      return p ? [p] : []
+    })
 
   let body = null
   let key = 'loading'
@@ -53,21 +129,30 @@ export default function LessonScreen() {
     key = 'summary'
     body = (
       <LessonSummary
-        words={new Set(state.queue.map((t) => t.cardId)).size}
+        xp={lesson.totalXp}
         accuracy={accuracy(state)}
         elapsedMs={lesson.elapsedMs}
+        bestStreak={state.bestStreak}
         onDone={leave}
       />
     )
-  } else if (task && card && loaded) {
+  } else if (task && loaded) {
     key = `task-${state!.index}-${lesson.undoCount}`
-    const common = { card, settings: loaded.settings, audio: loaded.audio.get(card.id) }
-    body =
-      task.kind === 'intro' ? (
-        <IntroTask {...common} onDone={(ms) => lesson.introDone(card.id, ms)} />
-      ) : (
-        <FlipTask {...common} onGrade={(g, outcome, ms) => lesson.grade(card.id, g, outcome, ms)} />
-      )
+    const ex = task.exercise
+    if (task.kind === 'pairs') {
+      body = <PairsTask words={poolOf(task.pairIds)} settings={loaded.settings} audio={loaded.audio} onDone={lesson.pairsDone} />
+    } else if (card) {
+      const common = { card, settings: loaded.settings, audio: loaded.audio.get(card.id) }
+      if (task.kind === 'intro') {
+        body = <IntroTask {...common} onDone={(ms) => lesson.introDone(card.id, ms)} />
+      } else if (isChoice(ex)) {
+        body = <ChoiceTask {...common} exercise={ex} options={poolOf(task.options)} onCheck={(a) => lesson.check(card.id, a)} />
+      } else if (isTyping(ex)) {
+        body = <TypeTask {...common} exercise={ex} onCheck={(a) => lesson.check(card.id, a)} />
+      } else {
+        body = <FlipTask {...common} onGrade={(g, outcome, ms) => lesson.gradeFlip(card.id, g, outcome, ms)} />
+      }
+    }
   }
 
   const inLesson = !finished && state !== null && state.queue.length > 0
@@ -79,20 +164,23 @@ export default function LessonScreen() {
       animate={{ opacity: 1, transition: { duration: 0.18 } }}
     >
       {inLesson && (
-        <div className="flex items-center gap-2 pt-[calc(8px+var(--safe-top))] pr-[calc(8px+var(--safe-right))] pl-[calc(8px+var(--safe-left))]">
-          <IconButton label="Выйти из урока" onClick={() => setConfirmExit(true)}>
-            <X size={28} strokeWidth={2.5} />
-          </IconButton>
-          <div className="min-w-0 flex-1">
-            <ProgressBar value={progress} label="Прогресс урока" />
-          </div>
-          {lesson.canUndo ? (
-            <IconButton label="Отменить последнюю оценку" onClick={lesson.undo}>
-              <Undo2 size={26} strokeWidth={2.5} />
+        <div className="pt-[calc(8px+var(--safe-top))] pr-[calc(8px+var(--safe-right))] pl-[calc(8px+var(--safe-left))]">
+          <div className="flex items-center gap-2">
+            <IconButton label="Выйти из урока" onClick={() => setConfirmExit(true)}>
+              <X size={28} strokeWidth={2.5} />
             </IconButton>
-          ) : (
-            <span className="size-11 shrink-0" />
-          )}
+            <div className="min-w-0 flex-1">
+              <ProgressBar value={progress} label="Прогресс урока" />
+            </div>
+            {lesson.canUndo ? (
+              <IconButton label="Отменить последнюю оценку" onClick={lesson.undo}>
+                <Undo2 size={26} strokeWidth={2.5} />
+              </IconButton>
+            ) : (
+              <span className="size-11 shrink-0" />
+            )}
+          </div>
+          <StreakPill streak={shown?.streak ?? 0} />
         </div>
       )}
       {inLesson && <ReactionPill reaction={lesson.reaction} />}
@@ -103,6 +191,7 @@ export default function LessonScreen() {
           </motion.div>
         </AnimatePresence>
       </main>
+      <Banner lesson={lesson} checked={checked} />
       <Sheet open={confirmExit} onClose={() => setConfirmExit(false)} title="Выйти из урока?" text="Ответы уже сохранены.">
         <Button block onClick={() => setConfirmExit(false)}>
           Продолжить урок

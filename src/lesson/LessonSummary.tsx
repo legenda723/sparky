@@ -1,21 +1,26 @@
-import { BookOpen, Target, Timer } from 'lucide-react'
+import { Target, Timer, Zap } from 'lucide-react'
+import { motion } from 'motion/react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { markNudged } from '../backup/backup'
 import { BackupNudge } from '../backup/BackupNudge'
 import { SaveBackupSheet } from '../backup/BackupSheets'
 import { backupAgeText, shouldNudgeAfterLesson } from '../backup/reminder'
 import { db } from '../db/db'
-import { plural } from '../srs/status'
 import { Button } from '../ui/Button'
 import { Mascot } from '../ui/Mascot'
 
-function Tile({ icon, value, label, ink }: { icon: ReactNode; value: string; label: string; ink: string }) {
+function Tile({ icon, value, label, ink, order }: { icon: ReactNode; value: string; label: string; ink: string; order: number }) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-card border-2 border-border bg-surface p-3">
+    <motion.div
+      initial={{ opacity: 0, transform: 'scale(0.9)' }}
+      animate={{ opacity: 1, transform: 'scale(1)' }}
+      transition={{ delay: 0.25 + order * 0.1, duration: 0.35, ease: [0.34, 1.4, 0.64, 1] }}
+      className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-card border-2 border-border bg-surface p-3"
+    >
       <span className={ink}>{icon}</span>
       <span className="text-title font-black text-text">{value}</span>
       <span className="text-caption font-extrabold text-muted">{label}</span>
-    </div>
+    </motion.div>
   )
 }
 
@@ -25,14 +30,17 @@ export function formatDuration(ms: number): string {
 }
 
 interface LessonSummaryProps {
-  words: number
+  /** XP за урок вместе с бонусом за завершение. */
+  xp: number
+  bestStreak: number
   accuracy: number
   elapsedMs: number
   onDone: () => void
 }
 
-/** Итог урока — пока простой (DESIGN.md → «Итог урока»). */
-export function LessonSummary({ words, accuracy, elapsedMs, onDone }: LessonSummaryProps) {
+/** Итог урока (DESIGN.md → «Итог урока»): салют, XP, точность, время. */
+export function LessonSummary({ xp, bestStreak, accuracy, elapsedMs, onDone }: LessonSummaryProps) {
+  useConfetti()
   const nudge = useWeeklyBackupNudge()
   const [saveOpen, setSaveOpen] = useState(false)
   const phrase = accuracy === 100 ? 'Без единой ошибки!' : accuracy >= 80 ? 'Так держать!' : 'Каждый урок — шаг вперёд!'
@@ -43,10 +51,11 @@ export function LessonSummary({ words, accuracy, elapsedMs, onDone }: LessonSumm
         <h1 className="m-0 text-display font-black text-text">Урок пройден!</h1>
         <p className="m-0 text-body font-bold text-muted">{phrase}</p>
         <div className="mt-4 flex w-full gap-3">
-          <Tile icon={<BookOpen size={24} strokeWidth={2.5} />} value={String(words)} label={plural(words, 'Слово', 'Слова', 'Слов')} ink="text-info-ink" />
-          <Tile icon={<Target size={24} strokeWidth={2.5} />} value={`${accuracy}%`} label="Точность" ink="text-primary-ink" />
-          <Tile icon={<Timer size={24} strokeWidth={2.5} />} value={formatDuration(elapsedMs)} label="Время" ink="text-streak-ink" />
+          <Tile order={0} icon={<Zap size={24} strokeWidth={2.5} className="fill-current" />} value={String(xp)} label="XP" ink="text-xp-ink" />
+          <Tile order={1} icon={<Target size={24} strokeWidth={2.5} />} value={`${accuracy}%`} label="Точность" ink="text-primary-ink" />
+          <Tile order={2} icon={<Timer size={24} strokeWidth={2.5} />} value={formatDuration(elapsedMs)} label="Время" ink="text-streak-ink" />
         </div>
+        {bestStreak >= 5 && <p className="m-0 mt-1 text-small font-bold text-muted">Лучшая серия: {bestStreak} подряд</p>}
         {nudge && (
           <div className="mt-4 w-full">
             <BackupNudge age={nudge.age} never={nudge.never} variant="secondary" onSave={() => setSaveOpen(true)} />
@@ -81,4 +90,24 @@ function useWeeklyBackupNudge() {
     }
   }, [])
   return nudge
+}
+
+/** Салют при показе итога (без него — при «Уменьшении движения»). Библиотека грузится только здесь. */
+function useConfetti() {
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    let alive = true
+    void import('canvas-confetti').then(({ default: confetti }) => {
+      if (!alive) return
+      const css = getComputedStyle(document.documentElement)
+      const colors = ['--c-primary', '--c-info', '--c-xp', '--c-gem', '--c-streak'].map((v) => css.getPropertyValue(v).trim())
+      const shot = (x: number, angle: number) =>
+        confetti({ particleCount: 60, spread: 70, startVelocity: 45, angle, origin: { x, y: 0.7 }, colors, disableForReducedMotion: true })
+      shot(0.15, 60)
+      shot(0.85, 120)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
 }

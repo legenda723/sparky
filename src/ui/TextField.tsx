@@ -1,12 +1,13 @@
-import { useId, type InputHTMLAttributes } from 'react'
+import { useId, type InputHTMLAttributes, type Ref } from 'react'
 
 interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'className'> {
   label?: string
   error?: string
+  ref?: Ref<HTMLInputElement>
 }
 
 /** Поле ввода (DESIGN.md → «Поле ввода»). Шрифт 17 — iOS не приближает экран. */
-export function TextField({ label, error, id, ...rest }: TextFieldProps) {
+export function TextField({ label, error, id, ref, ...rest }: TextFieldProps) {
   const autoId = useId()
   const inputId = id ?? autoId
   const errorId = `${inputId}-error`
@@ -19,6 +20,7 @@ export function TextField({ label, error, id, ...rest }: TextFieldProps) {
       )}
       <input
         id={inputId}
+        ref={ref}
         {...rest}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}

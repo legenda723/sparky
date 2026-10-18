@@ -6,7 +6,7 @@ import { outcomes } from '../srs/scheduler'
 import { addCards } from './cards'
 import { SparkyDb } from './db'
 import { createDeck } from './decks'
-import { finishLesson, loadLessonInput, markIntroduced, saveAnswer, undoAnswer } from './review'
+import { finishLesson, loadLessonInput, markIntroduced, saveAnswer, savePractice, undoAnswer } from './review'
 
 let n = 0
 const opened: SparkyDb[] = []
@@ -71,6 +71,27 @@ describe('сохранение ответа', () => {
     expect(logs).toHaveLength(1)
     expect(logs[0].rating).toBe(Rating.Good)
     expect(await db.days.get('2026-10-18')).toEqual(dayMid)
+  })
+
+  it('XP за ответ — в итоги дня и в профиль; «Отменить» забирает его назад', async () => {
+    const { db, cards } = await setup()
+    const before = cards[0]
+    const o = outcomes(before, T, 0.9)[Rating.Good]
+    const undo = await saveAnswer(db, { before, grade: Rating.Good, outcome: o, exerciseType: 'choice-en-ru', durationMs: 1000, xp: 5 })
+    expect((await db.days.get('2026-10-18'))!.xp).toBe(5)
+    expect((await db.profile.get('me'))!.totalXp).toBe(5)
+    await undoAnswer(db, undo)
+    expect((await db.days.get('2026-10-18'))!.xp).toBe(0)
+    expect((await db.profile.get('me'))!.totalXp).toBe(0)
+  })
+
+  it('тренировка и конец урока добавляют XP, журнал оценок не трогают', async () => {
+    const { db } = await setup()
+    await savePractice(db, T, 5, 20_000)
+    await finishLesson(db, T, 15)
+    expect(await db.days.get('2026-10-18')).toMatchObject({ xp: 20, lessons: 1, reviews: 0, msSpent: 20_000 })
+    expect((await db.profile.get('me'))!.totalXp).toBe(20)
+    expect(await db.reviewLogs.count()).toBe(0)
   })
 
   it('знакомство отмечает слово и учитывается в лимите новых на сегодня', async () => {
