@@ -1,7 +1,7 @@
 // Движение листа снизу (DESIGN.md → «Движение»): Web Animations напрямую, без React и Motion.
-// Анимацию запускаем прямо в обработчике касания, а браузер сам ставит ей старт на первый
-// показанный кадр. Поэтому, пока телефон занят (перерисовка экрана), лист не «догоняет»
-// пропущенное время рывком. Двигаем только transform и opacity — это идёт на видеокарте.
+// Отсчёт анимации начинаем в начале кадра, когда телефон уже свободен (выезд — ещё через кадр,
+// когда новый лист нарисован). Иначе iPhone показывает первый кадр уже на трети пути — рывок.
+// Двигаем только transform и opacity — это идёт на видеокарте.
 
 export interface Timing {
   ms: number
@@ -10,12 +10,12 @@ export interface Timing {
 
 /** Выезд: мягкий старт и долгое плавное торможение у верха. */
 export const SHEET_IN: Timing = { ms: 460, ease: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
-/** Уход: трогается сразу и мягко замедляется внизу. */
-export const SHEET_OUT: Timing = { ms: 360, ease: 'cubic-bezier(0.3, 0.55, 0.3, 1)' }
+/** Уход: трогается без толчка, плавно разгоняется и мягко замедляется внизу. */
+export const SHEET_OUT: Timing = { ms: 400, ease: 'cubic-bezier(0.32, 0.3, 0.2, 1)' }
 /** Возврат на место после свайпа: лист «оседает», а не прыгает. */
 export const SHEET_SNAP: Timing = { ms: 480, ease: 'cubic-bezier(0.25, 1, 0.5, 1)' }
 /** Уход с места, где отпустили палец: путь короче — быстрее, но не резче этого. */
-const MIN_OUT_MS = 200
+const MIN_OUT_MS = 260
 /** «Уменьшение движения»: только прозрачность. */
 const FADE: Timing = { ms: 200, ease: 'ease-out' }
 
@@ -48,11 +48,24 @@ export function hide(panel: HTMLElement, dim: HTMLElement | null): void {
 
 type Target = 'open' | 'closed'
 
+/** Номер последней анимации листа: новая отменяет ту, что ещё ждёт своего кадра. */
+const generation = new WeakMap<HTMLElement, number>()
+
+const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()))
+
 /**
  * Довести лист из того места, где он сейчас, до открытого или закрытого положения.
  * true — доехал; false — его перебила другая анимация.
  */
-export function slide(panel: HTMLElement, dim: HTMLElement | null, target: Target, timing?: Timing): Promise<boolean> {
+export async function slide(panel: HTMLElement, dim: HTMLElement | null, target: Target, timing?: Timing): Promise<boolean> {
+  const gen = (generation.get(panel) ?? 0) + 1
+  generation.set(panel, gen)
+  // Ждём кадр: всё, чем занят телефон после касания, успевает закончиться до старта отсчёта.
+  // Новый лист — ещё кадр: сначала он рисуется (под нижним краем), потом едет.
+  await nextFrame()
+  if (target === 'open' && !panel.getAnimations().length && currentShift(panel) >= panel.offsetHeight - 1) await nextFrame()
+  if (generation.get(panel) !== gen) return false
+
   const height = panel.offsetHeight || 1
   const from = currentShift(panel)
   const to = target === 'open' ? 0 : height
