@@ -107,7 +107,7 @@ export default function LessonScreen() {
         <Button block onClick={() => setConfirmExit(false)}>
           Продолжить урок
         </Button>
-        <Button variant="secondary" block className="text-danger-ink" onClick={leave}>
+        <Button variant="secondary" block className="text-danger-ink!" onClick={leave}>
           Выйти
         </Button>
       </Sheet>

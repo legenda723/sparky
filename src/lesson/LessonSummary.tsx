@@ -1,5 +1,6 @@
 import { BookOpen, Target, Timer } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { plural } from '../srs/status'
 import { Button } from '../ui/Button'
 import { Mascot } from '../ui/Mascot'
 
@@ -35,7 +36,7 @@ export function LessonSummary({ words, accuracy, elapsedMs, onDone }: LessonSumm
         <h1 className="m-0 text-display font-black text-text">Урок пройден!</h1>
         <p className="m-0 text-body font-bold text-muted">{phrase}</p>
         <div className="mt-4 flex w-full gap-3">
-          <Tile icon={<BookOpen size={24} strokeWidth={2.5} />} value={String(words)} label="Слов" ink="text-info-ink" />
+          <Tile icon={<BookOpen size={24} strokeWidth={2.5} />} value={String(words)} label={plural(words, 'Слово', 'Слова', 'Слов')} ink="text-info-ink" />
           <Tile icon={<Target size={24} strokeWidth={2.5} />} value={`${accuracy}%`} label="Точность" ink="text-primary-ink" />
           <Tile icon={<Timer size={24} strokeWidth={2.5} />} value={formatDuration(elapsedMs)} label="Время" ink="text-streak-ink" />
         </div>
