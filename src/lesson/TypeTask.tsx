@@ -19,12 +19,15 @@ export function TypeTask(props: TypeTaskProps) {
   const listen = exercise === 'listen-type'
   // Во вводе по переводу слово — это ответ: озвучиваем после проверки.
   const say = useSpeech(props, listen ? 'always' : 'never')
-  const keyboard = useKeyboardInset()
   const shownAt = useRef(performance.now())
   const input = useRef<HTMLInputElement>(null)
   const [value, setValue] = useState('')
   const [hinted, setHinted] = useState(false)
   const [checked, setChecked] = useState(false)
+  const keyboard = useKeyboardInset()
+  // iOS 26: над клавиатурой висит плавающая панель (стрелки и ✓), а страница сдвигается так, чтобы поле было
+  // посередине. Поэтому, пока клавиатура открыта, «ПРОВЕРИТЬ» стоит прямо под полем, а не у края клавиатуры.
+  const keyboardOpen = keyboard > 0 && !checked
 
   const check = () => {
     if (!value.trim() || checked) return
@@ -42,15 +45,14 @@ export function TypeTask(props: TypeTaskProps) {
     })
   }
 
+  const checkButton = (
+    <Button block silent disabled={!value.trim() || checked} onClick={check}>
+      Проверить
+    </Button>
+  )
+
   return (
-    <TaskLayout
-      keyboard={checked ? 0 : keyboard}
-      footer={
-        <Button block silent disabled={!value.trim() || checked} onClick={check}>
-          Проверить
-        </Button>
-      }
-    >
+    <TaskLayout footer={checkButton} hideFooter={keyboardOpen}>
       <div className="flex flex-col items-center gap-4 text-center">
         <TaskLabel>{listen ? 'Напиши, что услышал' : 'Напиши по-английски'}</TaskLabel>
         {listen ? <ListenButtons onSay={say} /> : <h2 className="m-0 text-display leading-tight font-black break-words text-text">{card.back}</h2>}
@@ -76,7 +78,14 @@ export function TypeTask(props: TypeTaskProps) {
             enterKeyHint="done"
           />
         </form>
-        <div className="flex min-h-11 items-center">
+        {keyboardOpen && (
+          // Касание кнопки не должно сначала убирать фокус с поля (иначе клавиатура прыгнет до проверки).
+          <div className="w-full" onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()}>
+            {checkButton}
+          </div>
+        )}
+        {/* «Подсказка» не прячет клавиатуру: фокус остаётся в поле. */}
+        <div className="flex min-h-11 items-center" onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()}>
           {hinted ? (
             <p className="m-0 text-small font-bold text-muted">
               Начинается на «<span lang="en">{typingHint(card.front)}…</span>»

@@ -74,6 +74,15 @@ describe('задание по состоянию слова (6.3)', () => {
     expect(exerciseCandidates(excard(State.Review, 3))).toEqual(['flip', 'type'])
     expect(exerciseCandidates(excard(State.Review, 7, 'img'))).toEqual(['type', 'listen-type', 'flip'])
   })
+  it('слова-созвучия (their / there) — без аудирования', () => {
+    expect(exerciseCandidates({ ...excard(State.Learning), front: 'their' })).toEqual(['choice-en-ru', 'choice-ru-en'])
+    expect(exerciseCandidates({ ...excard(State.Review, 10), front: 'There' })).toEqual(['type', 'flip'])
+    expect(exerciseCandidates({ ...excard(State.Review, 10), front: 'they’re' })).toEqual(['type', 'flip'])
+    expect(exerciseCandidates({ ...excard(State.Review, 10), front: 'the sun' })).toEqual(['type', 'flip'])
+    // обычное слово — как раньше
+    expect(exerciseCandidates({ ...excard(State.Review, 10), front: 'window' })).toEqual(['type', 'listen-type', 'flip'])
+  })
+
   it('в повторениях никогда не выпадает выбор — даже с фото и при любой случайности', () => {
     const rng = seeded(1)
     for (let i = 0; i < 300; i++) {

@@ -14,18 +14,17 @@ export interface TaskProps {
   audio?: Blob
 }
 
-/** Общая раскладка задания: прокручиваемая середина и кнопки внизу (над клавиатурой, если она открыта). */
-export function TaskLayout({ children, footer, keyboard = 0 }: { children: ReactNode; footer: ReactNode; keyboard?: number }) {
+/** Общая раскладка задания: прокручиваемая середина и кнопки внизу (пока открыта клавиатура — без них). */
+export function TaskLayout({ children, footer, hideFooter }: { children: ReactNode; footer: ReactNode; hideFooter?: boolean }) {
   return (
     <div className="flex h-full flex-col">
       {/* Слово прижато к верху: когда появляется ответ, оно не «уезжает». */}
       <div className="flex-1 overflow-y-auto overscroll-none px-[calc(16px+var(--safe-left))] pt-[3vh] pb-4">{children}</div>
-      <div
-        className="flex min-h-[calc(88px+var(--safe-bottom))] flex-col justify-end px-[calc(16px+var(--safe-left))] pt-2 pb-[calc(16px+var(--safe-bottom))]"
-        style={keyboard > 0 ? { paddingBottom: keyboard + 12, minHeight: 0 } : undefined}
-      >
-        {footer}
-      </div>
+      {!hideFooter && (
+        <div className="flex min-h-[calc(88px+var(--safe-bottom))] flex-col justify-end px-[calc(16px+var(--safe-left))] pt-2 pb-[calc(16px+var(--safe-bottom))]">
+          {footer}
+        </div>
+      )}
     </div>
   )
 }
@@ -44,8 +43,7 @@ export function TaskLabel({ children }: { children: ReactNode }) {
  * (аудирование); «never» — не звучать при показе (слово — это ответ). Звук уже разрешён касанием «УЧИТЬ».
  */
 export function useSpeech({ card, settings, audio }: TaskProps, auto: 'setting' | 'always' | 'never' = 'setting') {
-  const say = (slow = false) =>
-    speak(card.front, { voiceURI: settings.voiceURI, rate: settings.speechRate * (slow ? 0.6 : 1) }, slow ? undefined : audio)
+  const say = (slow = false) => speak(card.front, { voiceURI: settings.voiceURI, rate: settings.speechRate, slow }, audio)
   const first = useRef(auto === 'always' || (auto === 'setting' && settings.autoSpeak))
   useEffect(() => {
     if (first.current) say()

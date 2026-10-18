@@ -1,6 +1,7 @@
 // Какое задание дать слову (SPEC 6.3), варианты для выбора и проверка ввода (SPEC 6.3, 6.4). Чистые функции.
 import { State, type Card as FsrsCard } from 'ts-fsrs'
 import type { ChoiceType, ExerciseType } from './grade'
+import { hasHomophone } from './homophones'
 
 /** Повторение «моложе» 7 дней стабильности — ввод без аудирования (ступенька по сроку памяти). */
 export const YOUNG_REVIEW_DAYS = 7
@@ -26,11 +27,22 @@ export interface PoolCard {
 
 export interface ExerciseCard extends FsrsCard {
   id: string
+  /** Английское слово: у слов-созвучий (their / there) нет аудирования. */
+  front?: string
   imageId?: string
 }
 
-/** Задания, подходящие слову по его состоянию. Главное правило: выбор — только для новых и учащихся слов. */
+/**
+ * Задания, подходящие слову по его состоянию. Главное правило: выбор — только для новых и учащихся слов.
+ * Слово, у которого есть созвучие, не дают на слух.
+ */
 export function exerciseCandidates(card: ExerciseCard): ExerciseType[] {
+  const byState = candidatesByState(card)
+  if (!card.front || !hasHomophone(card.front)) return byState
+  return byState.filter((t) => t !== 'listen' && t !== 'listen-type')
+}
+
+function candidatesByState(card: ExerciseCard): ExerciseType[] {
   if (card.state === State.New) return ['choice-en-ru']
   if (card.state === State.Learning || card.state === State.Relearning) {
     return ['choice-en-ru', 'choice-ru-en', 'listen', ...(card.imageId ? (['picture'] as const) : [])]

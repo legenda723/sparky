@@ -10,7 +10,16 @@ export interface SpeakOptions {
   voiceURI?: string
   /** Скорость голоса из настроек, 1 — обычная. */
   rate: number
+  /** Медленно (кнопка с черепахой в аудировании). */
+  slow?: boolean
 }
+
+/**
+ * Голос iPhone почти не замедляется при скорости 0.6 (проверено владельцем), поэтому «медленно» — 0.3.
+ * Своя запись владельца — проигрывается в 0.6 скорости с сохранением высоты голоса.
+ */
+export const SLOW_SPEECH_RATE = 0.3
+const SLOW_PLAYBACK_RATE = 0.6
 
 // Тишина 0,1 с — чтобы «разбудить» общий проигрыватель в момент касания.
 const SILENCE =
@@ -82,7 +91,7 @@ function speakText(text: string, opts: SpeakOptions): void {
     u.voice = voice
     u.lang = voice.lang
   }
-  u.rate = opts.rate
+  u.rate = opts.slow ? opts.rate * SLOW_SPEECH_RATE : opts.rate
   s.speak(u)
 }
 
@@ -96,6 +105,10 @@ export function speak(text: string, opts: SpeakOptions, recording?: Blob): void 
       if (playerUrl) URL.revokeObjectURL(playerUrl)
       playerUrl = URL.createObjectURL(recording)
       p.src = playerUrl
+      // Новая запись сбрасывает скорость к defaultPlaybackRate — задаём обе.
+      p.defaultPlaybackRate = opts.slow ? SLOW_PLAYBACK_RATE : 1
+      p.playbackRate = p.defaultPlaybackRate
+      p.preservesPitch = true
       void p.play().catch(() => speakText(text, opts))
       return
     }
