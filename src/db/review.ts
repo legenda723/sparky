@@ -1,5 +1,5 @@
 // Ответы в уроке. Каждый ответ сохраняется сразу, одной транзакцией: слово + журнал + итоги дня.
-import { State, type Grade } from 'ts-fsrs'
+import { State, type Card as FsrsCard, type Grade } from 'ts-fsrs'
 import { dayKey, dayStart } from '../srs/day'
 import { isCorrect, type ExerciseType } from '../srs/grade'
 import type { LessonLimits } from '../srs/lesson'
@@ -19,6 +19,31 @@ async function addToDay(db: SparkyDb, key: string, delta: DayDelta, sign: 1 | -1
     day[k] = Math.max(0, day[k] + sign * v)
   }
   await db.days.put(day)
+}
+
+const FSRS_KEYS = [
+  'due',
+  'stability',
+  'difficulty',
+  'elapsed_days',
+  'scheduled_days',
+  'learning_steps',
+  'reps',
+  'lapses',
+  'state',
+  'last_review',
+] as const satisfies readonly (keyof FsrsCard)[]
+
+/**
+ * Пишет в слово только поля расписания FSRS. Остальное (отметка знакомства, правки владельца)
+ * берётся из базы: копия в памяти урока могла устареть.
+ */
+async function putSchedule(db: SparkyDb, from: Card): Promise<void> {
+  const stored = await db.cards.get(from.id)
+  if (!stored) return
+  const next: Card = { ...stored }
+  for (const k of FSRS_KEYS) (next as unknown as Record<string, unknown>)[k] = from[k]
+  await db.cards.put(next)
 }
 
 /** Всё, что нужно, чтобы отменить оценку: слово до неё, запись журнала и что прибавилось к дню. */
@@ -49,7 +74,7 @@ export async function saveAnswer(db: SparkyDb, a: AnswerInput): Promise<UndoToke
     msSpent: Math.round(a.durationMs),
   }
   return db.transaction('rw', db.cards, db.reviewLogs, db.days, async () => {
-    await db.cards.put(a.outcome.card)
+    await putSchedule(db, a.outcome.card)
     const logId = await db.reviewLogs.add({
       cardId: a.before.id,
       rating: log.rating,
@@ -70,7 +95,7 @@ export async function saveAnswer(db: SparkyDb, a: AnswerInput): Promise<UndoToke
 /** «Отменить последнюю оценку»: слово — как было, запись журнала — убрать, итоги дня — назад. */
 export async function undoAnswer(db: SparkyDb, u: UndoToken): Promise<void> {
   await db.transaction('rw', db.cards, db.reviewLogs, db.days, async () => {
-    await db.cards.put(u.cardBefore)
+    await putSchedule(db, u.cardBefore)
     await db.reviewLogs.delete(u.logId)
     await addToDay(db, u.dayKey, u.delta, -1)
   })
@@ -113,6 +138,7 @@ export async function loadLessonInput(db: SparkyDb, at: Date): Promise<LessonInp
       newPerDay: settings.newPerDay,
       newToday,
       reviewLimit: settings.reviewLimit,
+      // Все оценки за день (и новых слов, и возвратов) — проще и строже; по умолчанию лимита нет.
       reviewsToday: day?.reviews ?? 0,
       retention: settings.retention,
     }

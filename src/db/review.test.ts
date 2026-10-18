@@ -86,6 +86,32 @@ describe('сохранение ответа', () => {
     expect((await loadLessonInput(db, new Date('2026-10-19T04:00'))).limits.newToday).toBe(0)
   })
 
+  it('знакомство → оценка → отмена: отметка знакомства не теряется, лимит новых работает', async () => {
+    const { db, cards } = await setup()
+    // Копия слова в памяти урока — без отметки знакомства (как в настоящем уроке).
+    const inMemory = cards[0]
+    await markIntroduced(db, inMemory.id, T, 1000)
+    const o = outcomes(inMemory, T, 0.9)[Rating.Good]
+    const undo = await saveAnswer(db, { before: inMemory, grade: Rating.Good, outcome: o, exerciseType: 'flip', durationMs: 1000 })
+    expect((await db.cards.get(inMemory.id))!.introducedAt).toBe(T.getTime())
+    expect((await loadLessonInput(db, T)).limits.newToday).toBe(1)
+    await undoAnswer(db, undo)
+    const back = (await db.cards.get(inMemory.id))!
+    expect(back.introducedAt).toBe(T.getTime())
+    expect(back.state).toBe(State.New)
+  })
+
+  it('оценка не затирает правку слова, сделанную во время урока', async () => {
+    const { db, cards } = await setup()
+    const inMemory = cards[0]
+    await db.cards.update(inMemory.id, { back: 'яблоко (фрукт)' })
+    const o = outcomes(inMemory, T, 0.9)[Rating.Good]
+    await saveAnswer(db, { before: inMemory, grade: Rating.Good, outcome: o, exerciseType: 'flip', durationMs: 1000 })
+    const saved = (await db.cards.get(inMemory.id))!
+    expect(saved.back).toBe('яблоко (фрукт)')
+    expect(saved.state).toBe(State.Learning)
+  })
+
   it('урок завершён — +1 урок к дню', async () => {
     const { db } = await setup()
     await finishLesson(db, T)

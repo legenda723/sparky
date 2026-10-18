@@ -60,7 +60,7 @@ export default function LessonScreen() {
       />
     )
   } else if (task && card && loaded) {
-    key = `task-${state!.index}`
+    key = `task-${state!.index}-${lesson.undoCount}`
     const common = { card, settings: loaded.settings, audio: loaded.audio.get(card.id) }
     body =
       task.kind === 'intro' ? (

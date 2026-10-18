@@ -1,5 +1,6 @@
 // Ход урока на экране: очередь заданий, сохранение каждого ответа сразу и «Отменить оценку».
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { navigate } from '../app/routes'
 import { setUpdateBlocked } from '../app/updates'
 import { db } from '../db/db'
 import { feedback } from '../feedback/feedback'
@@ -7,7 +8,15 @@ import { finishLesson, loadLessonInput, markIntroduced, saveAnswer, undoAnswer, 
 import type { Card, Settings } from '../db/types'
 import { stopSpeech } from '../media/speech'
 import { now } from '../srs/clock'
-import { afterGrade, afterIntro, buildLesson, currentTask, isFinished, startLesson, type LessonState } from '../srs/lesson'
+import {
+  afterGrade,
+  afterIntro,
+  buildLesson,
+  currentTask,
+  isFinished,
+  startLesson,
+  type LessonState,
+} from '../srs/lesson'
 import { Rating, type Grade, type Outcome } from '../srs/scheduler'
 import { useToast } from '../ui/Toast'
 
@@ -31,6 +40,8 @@ export interface LessonApi {
   reaction: Reaction | null
   /** Время урока от начала до конца, мс. */
   elapsedMs: number
+  /** Сколько раз отменяли оценку: часть ключа задания, чтобы вернувшееся задание было новым, а не гаснущим. */
+  undoCount: number
   introDone: (cardId: string, durationMs: number) => void
   grade: (cardId: string, grade: Grade, outcome: Outcome<Card>, durationMs: number) => void
   undo: () => void
@@ -48,6 +59,7 @@ export function useLesson(): LessonApi {
   const [undoSnap, setUndoSnap] = useState<UndoSnapshot | null>(null)
   const [reaction, setReaction] = useState<Reaction | null>(null)
   const [elapsedMs, setElapsedMs] = useState(0)
+  const [undoCount, setUndoCount] = useState(0)
   const startedAt = useRef(Date.now())
   // Записи в базу идут строго по очереди: быстрые касания не обгоняют друг друга.
   const chain = useRef<Promise<unknown>>(Promise.resolve())
@@ -56,10 +68,16 @@ export function useLesson(): LessonApi {
   const actionSeq = useRef(0)
   // Свежее состояние для обработчиков касаний: гаснущее задание держит старые обработчики,
   // и касание по нему не должно откатить урок назад.
-  const live = useRef<{ state: LessonState | null; loaded: Loaded | null }>({ state: null, loaded: null })
+  const live = useRef<{ state: LessonState | null; loaded: Loaded | null }>({
+    state: null,
+    loaded: null,
+  })
 
   const commit = (nextState: LessonState, nextLoaded?: Loaded) => {
-    live.current = { state: nextState, loaded: nextLoaded ?? live.current.loaded }
+    live.current = {
+      state: nextState,
+      loaded: nextLoaded ?? live.current.loaded,
+    }
     setState(nextState)
     if (nextLoaded) setLoaded(nextLoaded)
   }
@@ -72,7 +90,7 @@ export function useLesson(): LessonApi {
   }
 
   const enqueue = useCallback(
-    <T,>(job: () => Promise<T>): Promise<T | undefined> => {
+    <T>(job: () => Promise<T>): Promise<T | undefined> => {
       const p = chain.current.then(job).catch(() => {
         toast({ message: 'Не получилось сохранить ответ' })
         return undefined
@@ -95,22 +113,28 @@ export function useLesson(): LessonApi {
   useEffect(() => {
     let alive = true
     void (async () => {
-      const at = now()
-      const input = await loadLessonInput(db, at)
-      const plan = buildLesson(input.cards, input.deckOrder, at, input.limits)
-      const ids = new Set(plan.tasks.map((t) => t.cardId))
-      const cards = new Map(input.cards.filter((c) => ids.has(c.id)).map((c) => [c.id, c]))
-      // Свои записи произношения — заранее, чтобы озвучка при показе слова звучала сразу.
-      const audioIds = [...cards.values()].flatMap((c) => (c.audioId ? [c.audioId] : []))
-      const media = await db.media.bulkGet(audioIds)
-      const audio = new Map<string, Blob>()
-      for (const c of cards.values()) {
-        const m = media.find((x) => x?.id === c.audioId)
-        if (m) audio.set(c.id, m.blob)
+      try {
+        const at = now()
+        const input = await loadLessonInput(db, at)
+        const plan = buildLesson(input.cards, input.deckOrder, at, input.limits)
+        const ids = new Set(plan.tasks.map((t) => t.cardId))
+        const cards = new Map(input.cards.filter((c) => ids.has(c.id)).map((c) => [c.id, c]))
+        // Свои записи произношения — заранее, чтобы озвучка при показе слова звучала сразу.
+        const audioIds = [...cards.values()].flatMap((c) => (c.audioId ? [c.audioId] : []))
+        const media = await db.media.bulkGet(audioIds)
+        const audio = new Map<string, Blob>()
+        for (const c of cards.values()) {
+          const m = media.find((x) => x?.id === c.audioId)
+          if (m) audio.set(c.id, m.blob)
+        }
+        if (!alive) return
+        startedAt.current = Date.now()
+        commit(startLesson(plan), { cards, audio, settings: input.settings })
+      } catch {
+        if (!alive) return
+        toast({ message: 'Не получилось открыть урок' })
+        navigate('path')
       }
-      if (!alive) return
-      startedAt.current = Date.now()
-      commit(startLesson(plan), { cards, audio, settings: input.settings })
     })()
     return () => {
       alive = false
@@ -145,13 +169,24 @@ export function useLesson(): LessonApi {
     const prev = state
     const at = outcome.log.review
     const next = afterGrade(state, cardId, g, outcome.card.due, at)
-    commit(next, { ...loaded, cards: new Map(loaded.cards).set(cardId, outcome.card) })
+    commit(next, {
+      ...loaded,
+      cards: new Map(loaded.cards).set(cardId, outcome.card),
+    })
     const comesBack = next.queue.length > prev.queue.length
     react(g === Rating.Again ? (comesBack ? 'again' : 'later') : g === Rating.Hard ? 'hard' : 'correct')
     feedback(isFinished(next) ? 'finish' : g === Rating.Again ? 'wrong' : 'correct')
     const seq = ++actionSeq.current
     setUndoSnap(null)
-    void enqueue(() => saveAnswer(db, { before, grade: g, outcome, exerciseType: 'flip', durationMs })).then((token) => {
+    void enqueue(() =>
+      saveAnswer(db, {
+        before,
+        grade: g,
+        outcome,
+        exerciseType: 'flip',
+        durationMs,
+      }),
+    ).then((token) => {
       // Конец урока не отменяется — итог уже показан.
       if (token && seq === actionSeq.current && !isFinished(next)) setUndoSnap({ state: prev, token })
     })
@@ -164,10 +199,24 @@ export function useLesson(): LessonApi {
     const { state: prev, token } = undoSnap
     actionSeq.current++
     setUndoSnap(null)
-    commit(prev, { ...loaded, cards: new Map(loaded.cards).set(token.cardBefore.id, token.cardBefore) })
+    setUndoCount((n) => n + 1)
+    commit(prev, {
+      ...loaded,
+      cards: new Map(loaded.cards).set(token.cardBefore.id, token.cardBefore),
+    })
     react('undo')
     void enqueue(() => undoAnswer(db, token))
   }
 
-  return { loaded, state, canUndo: undoSnap !== null, reaction, elapsedMs, introDone, grade, undo }
+  return {
+    loaded,
+    state,
+    canUndo: undoSnap !== null,
+    reaction,
+    elapsedMs,
+    undoCount,
+    introDone,
+    grade,
+    undo,
+  }
 }
