@@ -11,6 +11,7 @@ import { Sheet } from '../ui/Sheet'
 import { useToast } from '../ui/Toast'
 import { BackupError, exportBackup, markBackedUp, parseBackup, replaceAll, type BackupSummary, type ParsedBackup, type PreparedBackup } from './backup'
 import { formatSize } from './reminder'
+import { prefetchWords } from '../words/prefetch'
 import { saveFile } from './share'
 
 /** «3 колоды · 412 слов · 5 фото · 2 записи» (нулевые фото и записи не пишем). */
@@ -140,7 +141,9 @@ export function useRestore() {
       setStep({ kind: 'error', message: 'Не получилось восстановить. Данные на телефоне не изменились.' })
       return
     }
-    // Данные уже заменены; тема и звук из файла подхватятся и при следующем открытии.
+    // Данные уже заменены: обновляем то, что экраны держат в памяти (колоды, слова), и настройки.
+    // Если не выйдет — всё подхватится при следующем открытии.
+    await prefetchWords().catch(() => {})
     await loadPrefs()
       .then(() => changeTheme(getPrefs().theme))
       .catch(() => {})

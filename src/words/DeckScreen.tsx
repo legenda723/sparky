@@ -46,11 +46,19 @@ export function DeckScreen({ deckId }: { deckId: Id }) {
   const toast = useToast()
   const deckDeleted = useDeckDeletedToast()
 
-  // Колоды нет (удалена или неверный адрес) — назад к списку.
+  // Колоды нет (удалена или неверный адрес) — назад к списку. Решаем по базе, а не по памяти:
+  // в памяти колода могла остаться удалённой, а её уже вернули («Отменить», восстановление из копии).
   const gone = deck === null || (deck !== undefined && deck.deletedAt !== undefined)
   useEffect(() => {
-    if (gone) navigateSub('words')
-  }, [gone])
+    if (!gone) return
+    let alive = true
+    void db.decks.get(deckId).then((fresh) => {
+      if (alive && (!fresh || fresh.deletedAt !== undefined)) navigateSub('words')
+    })
+    return () => {
+      alive = false
+    }
+  }, [gone, deckId])
 
   const openCard = useCallback((id: Id) => setEditing({ kind: 'edit', id }), [])
 
