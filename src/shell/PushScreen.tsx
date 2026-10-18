@@ -27,11 +27,11 @@ function Pane({ open, onClose, children, onGone }: PushScreenProps & { onGone: (
   if (open) shown.current = children
 
   return (
-    <div className="drawer absolute inset-0 z-10 overflow-hidden">
-      <div ref={dimRef} className="drawer-dim pointer-events-none absolute inset-0">
+    <div className="absolute inset-0 z-10 overflow-hidden">
+      <div ref={dimRef} className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-overlay opacity-50" />
       </div>
-      <div ref={scrollerRef} {...scrollerProps} className="drawer-scroll-x absolute inset-0 flex snap-x snap-mandatory overflow-x-scroll overscroll-x-none no-scrollbar">
+      <div ref={scrollerRef} {...scrollerProps} className="absolute inset-0 flex snap-x snap-mandatory overflow-x-scroll overscroll-x-none no-scrollbar">
         <div className="h-full w-full shrink-0 snap-start" />
         <div className="relative h-full w-full shrink-0 snap-end bg-bg">{shown.current}</div>
       </div>

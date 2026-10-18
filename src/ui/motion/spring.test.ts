@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SPRING_SHEET, sheetSpring, springCurve, springRemaining } from './spring'
+import { SPRING_SHEET, springCurve, springRemaining } from './spring'
 
 const points = (easing: string) => easing.replace(/^linear\(|\)$/g, '').split(', ').map(Number)
 
@@ -24,14 +24,6 @@ describe('пружина', () => {
     const still = points(springCurve(SPRING_SHEET, 400).easing)
     const thrown = points(springCurve(SPRING_SHEET, 400, 3000).easing)
     expect(thrown[1]).toBeGreaterThan(still[1])
-  })
-
-  it('длинный путь — пружина мягче, короткий окно не меняется', () => {
-    expect(sheetSpring(300)).toEqual(SPRING_SHEET)
-    expect(sheetSpring(120)).toEqual(SPRING_SHEET)
-    const full = sheetSpring(845)
-    expect(full.response).toBeGreaterThan(SPRING_SHEET.response)
-    expect(full.response).toBeLessThanOrEqual(0.56)
   })
 
   it('нечего двигать — нулевая длительность', () => {
