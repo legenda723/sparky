@@ -1,7 +1,7 @@
 import { MotionConfig } from 'motion/react'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { isStandalone, readContinued, requestPersistentStorage, saveContinued, shouldShowInstall } from './app/install'
-import { usePrefs } from './app/prefs'
+import { loadPrefs, usePrefs } from './app/prefs'
 import { useRoute } from './app/routes'
 import { useApplyTheme } from './app/theme'
 import { Updater } from './app/Updater'
@@ -24,6 +24,11 @@ export default function App() {
   // В веб-приложении просим iPhone не стирать данные при нехватке места (SPEC 8.3).
   useEffect(() => {
     if (isStandalone()) void requestPersistentStorage()
+  }, [])
+
+  // Настройки из базы (тема уже стоит из быстрой копии, здесь — сверка).
+  useEffect(() => {
+    void loadPrefs().catch(() => {})
   }, [])
 
   return (
