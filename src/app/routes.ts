@@ -20,6 +20,24 @@ function subscribe(listener: () => void) {
   return () => window.removeEventListener('hashchange', listener)
 }
 
+/** Хвост адреса после вкладки: «#/words/abc» → «abc». */
+export function parseSubPath(hash: string): string {
+  return hash.replace(/^#\/?/, '').split('?')[0].split('/').slice(1).filter(Boolean).join('/')
+}
+
+export function useSubPath(): string {
+  return useSyncExternalStore(
+    subscribe,
+    () => parseSubPath(window.location.hash),
+    () => '',
+  )
+}
+
+/** Переход внутри вкладки, например navigateSub('words', deckId). */
+export function navigateSub(route: TabRoute, sub = ''): void {
+  window.location.replace(routeHref(route) + (sub ? `/${sub}` : ''))
+}
+
 export function useRoute(): Route {
   return useSyncExternalStore(
     subscribe,

@@ -296,3 +296,11 @@ html.theme-anim *::after {
     transition-duration: 1ms !important;
   }
 }
+
+/* Прокрутка вбок без полосы (ряд фильтров) */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseRoute, routeHref } from './routes'
+import { parseRoute, parseSubPath, routeHref } from './routes'
 
 describe('parseRoute', () => {
   it('пустой адрес → Путь', () => {
@@ -25,5 +25,13 @@ describe('parseRoute', () => {
 
   it('ссылка и разбор согласованы', () => {
     expect(parseRoute(routeHref('stats'))).toBe('stats')
+  })
+})
+
+describe('parseSubPath', () => {
+  it('хвост после вкладки', () => {
+    expect(parseSubPath('#/words')).toBe('')
+    expect(parseSubPath('#/words/deck-1')).toBe('deck-1')
+    expect(parseSubPath('#/words/deck-1?x=1')).toBe('deck-1')
   })
 })

@@ -6,12 +6,15 @@ interface ChoiceChipsProps<T extends string | number> {
   value: T
   onChange: (value: T) => void
   label: string
+  /** Одной строкой с прокруткой вбок (фильтры) */
+  scroll?: boolean
 }
 
 /** Выбор из вариантов (DESIGN.md → «Выбор из вариантов»): ряд чипов-пилюль. */
-export function ChoiceChips<T extends string | number>({ options, value, onChange, label }: ChoiceChipsProps<T>) {
+export function ChoiceChips<T extends string | number>({ options, value, onChange, label, scroll }: ChoiceChipsProps<T>) {
+  const layout = scroll ? 'no-scrollbar -mx-4 flex-nowrap overflow-x-auto px-4 py-1' : 'flex-wrap'
   return (
-    <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">
+    <div role="radiogroup" aria-label={label} className={`flex gap-2 ${layout}`}>
       {options.map((o) => {
         const selected = o.value === value
         return (
@@ -40,7 +43,7 @@ function Chip({ label, selected, onSelect }: { label: string; selected: boolean;
         feedback('tap')
         onSelect()
       }}
-      className={`press-soft h-11 rounded-full border-2 px-4 text-small font-extrabold ${selected ? 'border-info bg-info-tint text-info-ink' : 'border-border bg-bg text-text'}`}
+      className={`press-soft h-11 shrink-0 rounded-full border-2 px-4 text-small font-extrabold ${selected ? 'border-info bg-info-tint text-info-ink' : 'border-border bg-bg text-text'}`}
     >
       {label}
     </button>
