@@ -9,13 +9,13 @@ export interface Timing {
 }
 
 /** Выезд: мягкий старт и долгое плавное торможение у верха. */
-export const SHEET_IN: Timing = { ms: 460, ease: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
+export const SHEET_IN: Timing = { ms: 560, ease: 'cubic-bezier(0.25, 0.75, 0.25, 1)' }
 /** Уход: трогается без толчка, плавно разгоняется и мягко замедляется внизу. */
-export const SHEET_OUT: Timing = { ms: 400, ease: 'cubic-bezier(0.32, 0.3, 0.2, 1)' }
+export const SHEET_OUT: Timing = { ms: 480, ease: 'cubic-bezier(0.36, 0.2, 0.2, 1)' }
 /** Возврат на место после свайпа: лист «оседает», а не прыгает. */
 export const SHEET_SNAP: Timing = { ms: 480, ease: 'cubic-bezier(0.25, 1, 0.5, 1)' }
 /** Уход с места, где отпустили палец: путь короче — быстрее, но не резче этого. */
-const MIN_OUT_MS = 260
+const MIN_OUT_MS = 300
 /** «Уменьшение движения»: только прозрачность. */
 const FADE: Timing = { ms: 200, ease: 'ease-out' }
 
