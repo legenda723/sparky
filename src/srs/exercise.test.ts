@@ -20,6 +20,7 @@ import {
   buildLesson,
   currentTask,
   isFinished,
+  isNewWordBonus,
   prepareCurrent,
   startLesson,
   type LessonCardInput,
@@ -205,7 +206,7 @@ function play(cards: ReturnType<typeof lessonCard>[], answer: (state: LessonStat
     const card = map.get(task.cardId)
     shown.push({ kind: task.kind, exercise: task.exercise, cardId: task.cardId, stateBefore: card?.state })
     t += 10_000
-    if (task.kind === 'intro') s = afterIntro(s)
+    if (task.kind === 'intro') s = afterIntro(s, task.cardId)
     else if (task.kind === 'pairs' || task.kind === 'easy') s = afterPractice(s, 1, task.kind === 'easy' ? true : undefined)
     else {
       const ok = answer(s)
@@ -262,7 +263,7 @@ describe('целый урок', () => {
     expect(last.cardId).not.toBe('c0')
     const before = shown.slice(0, -1).map((x) => x.cardId)
     expect(before).toContain(last.cardId)
-    expect(s.easyAdded).toBe(true)
+    expect(s.easyCount).toBe(1)
   })
 
   it('урок закончился верным выбором — лёгкое задание не добавляется', () => {
@@ -295,6 +296,35 @@ describe('целый урок', () => {
     const s1 = prepareCurrent(startLesson(buildLesson(cards, DECKS, NOW, LIMITS)), { cards: map, pool: ctxPool, rng: seeded(1) })
     const s2 = prepareCurrent(s1, { cards: map, pool: ctxPool, rng: seeded(99) })
     expect(currentTask(s2)).toBe(currentTask(s1))
+  })
+
+  it('ошибка в лёгком задании — ещё одно лёгкое по другому слову, но не больше двух', () => {
+    const cards = mixed()
+    const map = new Map(cards.map((c) => [c.id, c as ExerciseCard]))
+    const ctxPool = cards.map((c) => ({ id: c.id, deckId: c.deckId, front: c.front, back: c.back, introduced: true }))
+    const ctx = { cards: map, pool: ctxPool, rng: seeded(3) }
+    const far = new Date(NOW.getTime() + 86400_000 * 3)
+    let s = startLesson({ tasks: ['c0', 'c1', 'c2'].map((cardId) => ({ kind: 'graded' as const, cardId, exercise: 'flip' as const })), newCount: 0, reviewCount: 3 })
+    for (const id of ['c0', 'c1', 'c2']) s = prepareCurrent(afterGrade(s, id, Rating.Good, far, NOW), ctx)
+    // Закончили переворотом — первое лёгкое задание
+    expect(currentTask(s)?.kind).toBe('easy')
+    const first = currentTask(s)!.cardId
+    s = prepareCurrent(afterPractice(s, 0, false), ctx)
+    expect(currentTask(s)?.kind).toBe('easy')
+    expect(currentTask(s)!.cardId).not.toBe(first)
+    s = prepareCurrent(afterPractice(s, 0, false), ctx)
+    expect(isFinished(s)).toBe(true)
+  })
+
+  it('бонус «новое слово выучено» — за первый верный ответ после знакомства, даже после ошибки', () => {
+    let s = startLesson({ tasks: [{ kind: 'intro', cardId: 'n' }, { kind: 'graded', cardId: 'n' }], newCount: 1, reviewCount: 0 })
+    expect(isNewWordBonus(s, 'n')).toBe(false)
+    s = afterIntro(s, 'n')
+    expect(isNewWordBonus(s, 'n')).toBe(true)
+    s = afterGrade(s, 'n', Rating.Again, new Date(NOW.getTime() + 60_000), NOW)
+    expect(isNewWordBonus(s, 'n')).toBe(true)
+    s = afterGrade(s, 'n', Rating.Good, new Date(NOW.getTime() + 600_000), NOW)
+    expect(isNewWordBonus(s, 'n')).toBe(false)
   })
 
   it('серия верных и XP копятся в состоянии урока, ошибка обнуляет серию', () => {

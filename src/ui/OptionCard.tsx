@@ -15,11 +15,13 @@ interface OptionCardProps {
   state?: OptionState
   disabled?: boolean
   onSelect?: () => void
+  /** Без «тика»: задание само играет звук ответа («Пары»). */
+  silent?: boolean
   children: ReactNode
 }
 
 /** Вариант ответа (DESIGN.md → «Вариант ответа»). */
-export function OptionCard({ state = 'idle', disabled, onSelect, children }: OptionCardProps) {
+export function OptionCard({ state = 'idle', disabled, onSelect, silent, children }: OptionCardProps) {
   const { pressed, pressHandlers } = usePress(disabled)
   return (
     <button
@@ -29,7 +31,7 @@ export function OptionCard({ state = 'idle', disabled, onSelect, children }: Opt
       aria-pressed={state === 'selected'}
       data-pressed={pressed || undefined}
       onClick={() => {
-        feedback('tap')
+        if (!silent) feedback('tap')
         onSelect?.()
       }}
       className={`flex min-h-14 w-full items-center justify-center rounded-card border-2 px-4 py-3 text-center text-body font-extrabold press-3d ${STATES[state]}`}

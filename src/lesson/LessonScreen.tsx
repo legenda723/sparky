@@ -1,6 +1,6 @@
 import { Undo2, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { navigate } from '../app/routes'
 import { speak } from '../media/speech'
 import { screenFade } from '../shell/screenFade'
@@ -100,7 +100,12 @@ export default function LessonScreen() {
   const card = task && loaded ? loaded.cards.get(task.cardId) : undefined
   // Прогресс и серия — уже с учётом проверенного ответа.
   const shown = checked?.next ?? state
-  const progress = shown && shown.queue.length ? shown.index / shown.queue.length : 0
+  const rawProgress = shown && shown.queue.length ? shown.index / shown.queue.length : 0
+  // Возврат слова в конец урока удлиняет очередь — полоска не откатывается назад (кроме «Отменить оценку»).
+  const progressMax = useRef({ value: 0, undo: 0 })
+  if (progressMax.current.undo !== lesson.undoCount) progressMax.current = { value: rawProgress, undo: lesson.undoCount }
+  else progressMax.current.value = Math.max(progressMax.current.value, rawProgress)
+  const progress = progressMax.current.value
   const poolOf = (ids: string[] | undefined): PoolCard[] =>
     (ids ?? []).flatMap((id) => {
       const p = loaded?.poolById.get(id)

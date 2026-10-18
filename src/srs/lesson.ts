@@ -165,10 +165,12 @@ export interface LessonState {
   /** Верных подряд (задания с оценкой и лёгкое задание) — «5 ПОДРЯД!». */
   streak: number
   bestStreak: number
-  /** Последний ответ с оценкой был верным. */
+  /** Последний ответ (с оценкой или лёгкое задание) был верным. */
   lastOk: boolean
-  /** Лёгкое задание в конце уже добавлено (или его не из чего собрать). */
-  easyAdded: boolean
+  /** Сколько лёгких заданий добавлено в конце (больше MAX_EASY — нет: не из чего собрать или уже хватит). */
+  easyCount: number
+  /** Новые слова этого урока, за которые ещё не дан бонус «новое слово выучено» (первый верный ответ). */
+  newPending: string[]
   /** XP за ответы урока (бонус за завершение — отдельно). */
   xp: number
 }
@@ -183,7 +185,8 @@ export function startLesson(plan: LessonPlan): LessonState {
     streak: 0,
     bestStreak: 0,
     lastOk: true,
-    easyAdded: false,
+    easyCount: 0,
+    newPending: [],
     xp: 0,
   }
 }
@@ -196,9 +199,14 @@ export function isFinished(s: LessonState): boolean {
   return s.index >= s.queue.length
 }
 
-/** После знакомства — дальше (оценки нет). */
-export function afterIntro(s: LessonState): LessonState {
-  return { ...s, index: s.index + 1 }
+/** После знакомства — дальше (оценки нет). Слово ждёт первого верного ответа — за него бонус XP. */
+export function afterIntro(s: LessonState, cardId?: string): LessonState {
+  return { ...s, index: s.index + 1, newPending: cardId ? [...s.newPending, cardId] : s.newPending }
+}
+
+/** Верный ответ на это слово будет первым после знакомства — +3 XP «новое слово выучено». */
+export function isNewWordBonus(s: LessonState, cardId: string): boolean {
+  return s.newPending.includes(cardId)
 }
 
 function withStreak(s: LessonState, ok: boolean): Pick<LessonState, 'streak' | 'bestStreak'> {
@@ -220,6 +228,7 @@ export function afterGrade(s: LessonState, cardId: string, grade: Grade, nextDue
     correct: s.correct + (ok ? 1 : 0),
     wrong: s.wrong + (ok ? 0 : 1),
     lastOk: ok,
+    newPending: ok ? s.newPending.filter((id) => id !== cardId) : s.newPending,
     xp: s.xp + xp,
   }
 }
@@ -228,7 +237,7 @@ export function afterGrade(s: LessonState, cardId: string, grade: Grade, nextDue
 export function afterPractice(s: LessonState, xp: number, streakOk?: boolean): LessonState {
   return {
     ...s,
-    ...(streakOk === undefined ? {} : withStreak(s, streakOk)),
+    ...(streakOk === undefined ? {} : { ...withStreak(s, streakOk), lastOk: streakOk }),
     index: s.index + 1,
     xp: s.xp + xp,
   }
@@ -250,11 +259,14 @@ function seenCardIds(s: LessonState): string[] {
   return ids
 }
 
-/** Урок и так закончился верным выбором — лёгкое задание не нужно. */
+/** Лёгких заданий в конце — не больше двух: если на первом ошиблись, даём ещё одно, чтобы выйти с успехом. */
+const MAX_EASY = 2
+
+/** Урок и так закончился верным выбором (или верным лёгким заданием) — ещё одно лёгкое не нужно. */
 function endsEasy(s: LessonState): boolean {
   const last = s.queue[s.index - 1]
-  if (!last || last.kind === 'easy') return true
-  return last.kind === 'graded' && isChoice(last.exercise) && s.lastOk
+  if (!last) return true
+  return (last.kind === 'easy' || (last.kind === 'graded' && isChoice(last.exercise))) && s.lastOk
 }
 
 /**
@@ -305,9 +317,10 @@ export function prepareCurrent(s: LessonState, ctx: PrepareContext): LessonState
   let state = s
   for (;;) {
     if (isFinished(state)) {
-      if (state.easyAdded || endsEasy(state)) return state
+      if (state.easyCount >= MAX_EASY || endsEasy(state)) return state
       const easy = easyTask(state, ctx)
-      return { ...state, queue: easy ? [...state.queue, easy] : state.queue, easyAdded: true }
+      if (!easy) return { ...state, easyCount: MAX_EASY }
+      return { ...state, queue: [...state.queue, easy], easyCount: state.easyCount + 1 }
     }
     const task = state.queue[state.index]
     if (task.kind === 'intro' || task.exercise) return state

@@ -97,8 +97,10 @@ function useConfetti() {
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     let alive = true
+    let reset: (() => void) | undefined
     void import('canvas-confetti').then(({ default: confetti }) => {
       if (!alive) return
+      reset = () => confetti.reset()
       const css = getComputedStyle(document.documentElement)
       const colors = ['--c-primary', '--c-info', '--c-xp', '--c-gem', '--c-streak'].map((v) => css.getPropertyValue(v).trim())
       const shot = (x: number, angle: number) =>
@@ -108,6 +110,8 @@ function useConfetti() {
     })
     return () => {
       alive = false
+      // Ушли с итога раньше, чем салют догорел, — убираем его.
+      reset?.()
     }
   }, [])
 }

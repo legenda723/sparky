@@ -27,6 +27,7 @@ import {
   buildLesson,
   currentTask,
   isFinished,
+  isNewWordBonus,
   prepareCurrent,
   startLesson,
   type LessonState,
@@ -227,7 +228,7 @@ export function useLesson(): LessonApi {
       const pool = loaded.pool.map((x) => (x.id === cardId ? fresh : x))
       l = { ...loaded, pool, poolById: new Map(loaded.poolById).set(cardId, fresh) }
     }
-    const next = prepare(afterIntro(state), l)
+    const next = prepare(afterIntro(state, cardId), l)
     actionSeq.current++
     commit(next, l)
     setUndoSnap(null)
@@ -242,7 +243,7 @@ export function useLesson(): LessonApi {
     const before = loaded.cards.get(cardId)
     if (!before) return null
     const ok = isCorrect(g)
-    const xp = answerXp({ correct: ok, newWord: before.state === State.New, streak: ok ? state.streak + 1 : 0 })
+    const xp = answerXp({ correct: ok, newWord: isNewWordBonus(state, cardId), streak: ok ? state.streak + 1 : 0 })
     const l = { ...loaded, cards: new Map(loaded.cards).set(cardId, outcome.card) }
     const next = prepare(afterGrade(state, cardId, g, outcome.card.due, outcome.log.review, xp), l)
     const token = enqueue(() => saveAnswer(db, { before, grade: g, outcome, exerciseType: exercise, durationMs, xp }))

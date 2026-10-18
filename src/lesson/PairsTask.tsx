@@ -57,11 +57,13 @@ export function PairsTask({ words, settings, audio, onDone }: PairsTaskProps) {
 
   const tap = (p: Pick) => {
     if (done || matched.has(p.id)) return
-    if (p.side === 'front' && settings.autoSpeak) {
+    // Английская плитка озвучивается по касанию (DESIGN.md → «Задание «Пары»»).
+    if (p.side === 'front') {
       const w = words.find((x) => x.id === p.id)
       if (w) speak(w.front, { voiceURI: settings.voiceURI, rate: settings.speechRate }, audio.get(w.id))
     }
     if (!picked || picked.side === p.side) {
+      feedback('tap')
       setPicked(picked?.side === p.side && picked.id === p.id ? null : p)
       return
     }
@@ -90,7 +92,7 @@ export function PairsTask({ words, settings, audio, onDone }: PairsTaskProps) {
         const gone = matched.has(w.id) && !flash?.ids.some((x) => x.side === side && x.id === w.id)
         return (
           <div key={w.id} className={`transition-opacity duration-200 ${gone ? 'opacity-35' : ''}`}>
-            <OptionCard state={stateOf(p)} disabled={gone} onSelect={() => tap(p)}>
+            <OptionCard state={stateOf(p)} disabled={gone} silent onSelect={() => tap(p)}>
               <span lang={side === 'front' ? 'en' : undefined} className="break-words">
                 {w[side]}
               </span>
