@@ -12,7 +12,7 @@ interface ChoiceChipsProps<T extends string | number> {
 
 /** Выбор из вариантов (DESIGN.md → «Выбор из вариантов»): ряд чипов-пилюль. */
 export function ChoiceChips<T extends string | number>({ options, value, onChange, label, scroll }: ChoiceChipsProps<T>) {
-  const layout = scroll ? 'no-scrollbar -mx-4 flex-nowrap overflow-x-auto px-4 py-1' : 'flex-wrap'
+  const layout = scroll ? 'no-scrollbar -mx-4 flex-nowrap overflow-x-auto overscroll-x-contain px-4 py-1' : 'flex-wrap'
   return (
     <div role="radiogroup" aria-label={label} className={`flex gap-2 ${layout}`}>
       {options.map((o) => {
