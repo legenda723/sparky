@@ -1,15 +1,19 @@
-// Выезд листа снизу (DESIGN.md → «Движение»): кривая как у листов iOS, на видеокарте
-// (целая строка transform), поэтому плавно, даже пока телефон занят открытием формы.
+// Выезд листа снизу (DESIGN.md → «Движение»). Целая строка transform — анимация на видеокарте,
+// поэтому плавно, даже пока телефон занят открытием формы.
+// Появление: мягкий старт и долгое плавное торможение у верха — без «выстрела».
+// Уход: плавный разгон и плавное замедление — без рывка в начале и обрыва в конце.
+const IN = { duration: 0.4, ease: [0.2, 0.8, 0.2, 1] as const }
+const OUT = { duration: 0.3, ease: [0.4, 0, 0.6, 1] as const }
+
 export const SHEET_MOTION = {
   initial: { transform: 'translateY(100%)' },
-  animate: { transform: 'translateY(0%)', transition: { duration: 0.42, ease: [0.32, 0.72, 0, 1] as const } },
-  // Уезжает мягко: разгон без рывка в начале.
-  exit: { transform: 'translateY(100%)', transition: { duration: 0.3, ease: [0.5, 0, 0.75, 0.25] as const } },
+  animate: { transform: 'translateY(0%)', transition: IN },
+  exit: { transform: 'translateY(100%)', transition: OUT },
 }
 
 /** Затемнение под листом — в такт выезду. */
 export const OVERLAY_MOTION = {
   initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.32, ease: 'easeOut' as const } },
-  exit: { opacity: 0, transition: { duration: 0.26, ease: 'easeIn' as const } },
+  animate: { opacity: 1, transition: { duration: 0.36, ease: 'easeOut' as const } },
+  exit: { opacity: 0, transition: OUT },
 }

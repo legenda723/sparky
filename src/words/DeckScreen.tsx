@@ -1,5 +1,5 @@
 import { ClipboardList, Pencil, Plus } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { navigateSub } from '../app/routes'
 import { deleteCard, listCards, restoreCard, setSuspended } from '../db/cards'
 import { db } from '../db/db'
@@ -51,6 +51,8 @@ export function DeckScreen({ deckId }: { deckId: Id }) {
   useEffect(() => {
     if (gone) navigateSub('words')
   }, [gone])
+
+  const openCard = useCallback((id: Id) => setEditing({ kind: 'edit', id }), [])
 
   const counts = useMemo(() => {
     const c: Record<StatusFilter, number> = { all: 0, new: 0, learning: 0, known: 0, mastered: 0 }
@@ -120,7 +122,7 @@ export function DeckScreen({ deckId }: { deckId: Id }) {
           ) : (
             <section className="-mx-4 border-t-2 border-border">
               {shown.map((card) => (
-                <CardRow key={card.id} card={card} onOpen={() => setEditing({ kind: 'edit', id: card.id })} />
+                <CardRow key={card.id} card={card} onOpen={openCard} />
               ))}
             </section>
           )}

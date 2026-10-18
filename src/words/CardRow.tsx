@@ -1,4 +1,5 @@
 import { Snowflake } from 'lucide-react'
+import { memo } from 'react'
 import type { Card } from '../db/types'
 import { feedback } from '../feedback/feedback'
 import { cardStatus, type CardStatus } from '../srs/status'
@@ -12,8 +13,11 @@ export const STATUS_LOOK: Record<CardStatus, { dot: string; label: string }> = {
   mastered: { dot: 'bg-xp', label: 'Освоено' },
 }
 
-/** Строка слова (DESIGN.md → «Строка слова»). */
-export function CardRow({ card, onOpen }: { card: Card; onOpen: () => void }) {
+/**
+ * Строка слова (DESIGN.md → «Строка слова»). memo: при открытии и закрытии окна слова
+ * список не перерисовывается — телефон не занят, окно выезжает без рывка.
+ */
+export const CardRow = memo(function CardRow({ card, onOpen }: { card: Card; onOpen: (id: Card['id']) => void }) {
   const { pressed, pressHandlers } = usePress()
   const image = useMediaUrl(card.imageId)
   const status = STATUS_LOOK[cardStatus(card)]
@@ -24,7 +28,7 @@ export function CardRow({ card, onOpen }: { card: Card; onOpen: () => void }) {
       data-pressed={pressed || undefined}
       onClick={() => {
         feedback('tap')
-        onOpen()
+        onOpen(card.id)
       }}
       className="flex min-h-14 w-full items-center gap-3 border-b-2 border-border px-4 py-2 transition-colors duration-200 ease-out data-pressed:bg-surface data-pressed:duration-75"
     >
@@ -42,4 +46,4 @@ export function CardRow({ card, onOpen }: { card: Card; onOpen: () => void }) {
       )}
     </button>
   )
-}
+})

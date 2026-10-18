@@ -1,5 +1,5 @@
 import { Snowflake, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { addCard, updateCard, type CardText, type MediaInput } from '../db/cards'
 import { db } from '../db/db'
 import type { Card, Id } from '../db/types'
@@ -38,14 +38,17 @@ export function CardEditor({ open, deckId, card, existing, onClose, onAdded, onD
   const [saving, setSaving] = useState(false)
   const [recording, setRecording] = useState(false)
 
-  // Каждое открытие — с актуальными значениями. Пока лист открыт, правки карточки снаружи не сбивают ввод.
-  const cardId = card?.id
-  useEffect(() => {
-    if (!open) return
-    setText({ ...EMPTY, ...(card ? pick(card) : {}) })
-    setMedia({})
-    setSaving(false)
-  }, [open, cardId])
+  // Каждое открытие — с актуальными значениями, уже в первом кадре (не после него, иначе
+  // окно выезжает пустым и поля «вспыхивают»). Пока лист открыт, правки снаружи не сбивают ввод.
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) {
+      setText({ ...EMPTY, ...(card ? pick(card) : {}) })
+      setMedia({})
+      setSaving(false)
+    }
+  }
 
   // Показываем только что выбранное, иначе сохранённое (null — владелец убрал).
   const savedImage = useMediaBlob(card?.imageId)
@@ -84,9 +87,13 @@ export function CardEditor({ open, deckId, card, existing, onClose, onAdded, onD
       />
       <TextField label="Перевод" placeholder="яблоко" value={text.back} onChange={set('back')} />
       <TextField label="Транскрипция (необязательно)" placeholder="[ˈæp.əl]" value={text.transcription} onChange={set('transcription')} {...EN} />
-      <ImageField blob={shown(media.image, savedImage)} onChange={(image) => setMedia((m) => ({ ...m, image }))} />
+      <ImageField
+        blob={shown(media.image, savedImage)}
+        pending={media.image === undefined && !!card?.imageId && !savedImage}
+        onChange={(image) => setMedia((m) => ({ ...m, image }))} />
       <AudioField
         blob={shown(media.audio, savedAudio)}
+        pending={media.audio === undefined && !!card?.audioId && !savedAudio}
         onChange={(audio) => setMedia((m) => ({ ...m, audio }))}
         onRecordingChange={setRecording}
       />

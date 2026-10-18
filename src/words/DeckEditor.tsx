@@ -1,5 +1,5 @@
 import { Check, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { db } from '../db/db'
 import { createDeck, deleteDeck, updateDeck } from '../db/decks'
 import type { Deck, DeckColor } from '../db/types'
@@ -29,14 +29,17 @@ export function DeckEditor({ open, deck, defaultTitle = '', onClose, onCreated, 
   const [color, setColor] = useState<DeckColor>('green')
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  // Каждое открытие — с актуальными значениями.
-  useEffect(() => {
-    if (!open) return
-    setTitle(deck?.title ?? defaultTitle)
-    setEmoji(deck?.emoji ?? DECK_EMOJIS[0])
-    setColor(deck?.color ?? 'green')
-    // Только при открытии: обновления колоды из базы не сбивают ввод.
-  }, [open, deck?.id, defaultTitle])
+  // Каждое открытие — с актуальными значениями, уже в первом кадре окна.
+  // Только при открытии: обновления колоды из базы не сбивают ввод.
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) {
+      setTitle(deck?.title ?? defaultTitle)
+      setEmoji(deck?.emoji ?? DECK_EMOJIS[0])
+      setColor(deck?.color ?? 'green')
+    }
+  }
 
   const valid = title.trim().length > 0
 

@@ -14,6 +14,8 @@ import { useBlobUrl } from './useMediaUrl'
 interface FieldProps {
   /** Что сейчас показать: сохранённое или только что выбранное */
   blob: Blob | undefined
+  /** Сохранённое ещё читается из базы — держим место, чтобы форма не прыгала */
+  pending?: boolean
   onChange: (input: MediaInput) => void
 }
 
@@ -22,7 +24,7 @@ function Label({ children }: { children: string }) {
 }
 
 /** Фото карточки (DESIGN.md → «Фото карточки»): галерея/камера, вставка из буфера, замена, «Убрать». */
-export function ImageField({ blob, onChange }: FieldProps) {
+export function ImageField({ blob, pending, onChange }: FieldProps) {
   const input = useRef<HTMLInputElement>(null)
   const url = useBlobUrl(blob)
   const [busy, setBusy] = useState(false)
@@ -65,9 +67,12 @@ export function ImageField({ blob, onChange }: FieldProps) {
           if (file) void take(file)
         }}
       />
-      {url ? (
+      {url || pending ? (
         <>
-          <img src={url} alt="Фото карточки" className="block max-h-[200px] w-full rounded-card border-2 border-border bg-surface object-contain" />
+          {/* Рамка постоянной высоты: фото проявляется внутри, ничего не сдвигая */}
+          <div className="h-[200px] w-full overflow-hidden rounded-card border-2 border-border bg-surface">
+            {url && <FadeImg key={url} src={url} />}
+          </div>
           <div className="mt-1 flex justify-center gap-2">
             <TextButton onClick={() => input.current?.click()}>Заменить</TextButton>
             <TextButton danger onClick={() => onChange(null)}>
@@ -90,7 +95,7 @@ export function ImageField({ blob, onChange }: FieldProps) {
 }
 
 /** Своя запись произношения (DESIGN.md → «Запись произношения»). */
-export function AudioField({ blob, onChange, onRecordingChange }: FieldProps & { onRecordingChange?: (recording: boolean) => void }) {
+export function AudioField({ blob, pending, onChange, onRecordingChange }: FieldProps & { onRecordingChange?: (recording: boolean) => void }) {
   const { state, elapsed, start, stop } = useRecorder((rec) => onChange(rec))
   // Пока идёт запись, «Готово» неактивна — иначе запись потерялась бы.
   useEffect(() => onRecordingChange?.(state === 'recording'), [state, onRecordingChange])
@@ -107,7 +112,7 @@ export function AudioField({ blob, onChange, onRecordingChange }: FieldProps & {
   return (
     <section>
       <Label>Своё произношение (необязательно)</Label>
-      {url && !recording ? (
+      {(url || pending) && !recording ? (
         <div className="flex flex-col items-center gap-1">
           <Button variant="info" block icon={<Volume2 size={22} />} onClick={play}>
             Прослушать
@@ -172,5 +177,18 @@ function RecordButton({ recording, onPress }: { recording: boolean; onPress: () 
         {recording ? <Square size={24} fill="currentColor" /> : <Mic size={28} strokeWidth={2.5} />}
       </button>
     </span>
+  )
+}
+
+/** Фото проявляется за 180 мс, когда загрузилось, — без мигания. */
+function FadeImg({ src }: { src: string }) {
+  const [loaded, setLoaded] = useState(false)
+  return (
+    <img
+      src={src}
+      alt="Фото карточки"
+      onLoad={() => setLoaded(true)}
+      className={`block h-full w-full object-contain transition-opacity duration-200 ease-out ${loaded ? 'opacity-100' : 'opacity-0'}`}
+    />
   )
 }

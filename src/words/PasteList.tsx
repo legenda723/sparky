@@ -1,5 +1,5 @@
 import { ClipboardPaste } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { addCards } from '../db/cards'
 import { db } from '../db/db'
 import type { Card, Id } from '../db/types'
@@ -28,12 +28,16 @@ export function PasteList({ open, deckId, existing, onClose }: PasteListProps) {
   const [saving, setSaving] = useState(false)
   const toast = useToast()
 
-  useEffect(() => {
-    if (!open) return
-    setInput('')
-    setWithDups(false)
-    setSaving(false)
-  }, [open])
+  // Каждое открытие — с чистого листа, уже в первом кадре окна.
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) {
+      setInput('')
+      setWithDups(false)
+      setSaving(false)
+    }
+  }
 
   const parsed = useMemo(() => parseList(input, existing.map((c) => c.front)), [input, existing])
   const toAdd = parsed.cards.filter((c) => withDups || !c.duplicate)
