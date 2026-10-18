@@ -49,7 +49,7 @@ export function LessonSummary({ words, accuracy, elapsedMs, onDone }: LessonSumm
         </div>
         {nudge && (
           <div className="mt-4 w-full">
-            <BackupNudge age={nudge.age} never={nudge.never} onSave={() => setSaveOpen(true)} />
+            <BackupNudge age={nudge.age} never={nudge.never} variant="secondary" onSave={() => setSaveOpen(true)} />
           </div>
         )}
       </div>

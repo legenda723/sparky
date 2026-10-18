@@ -1,15 +1,17 @@
 import { CloudUpload } from 'lucide-react'
-import { Button } from '../ui/Button'
+import { Button, type ButtonVariant } from '../ui/Button'
 
 interface BackupNudgeProps {
   /** «ещё не было», «9 дней назад»… */
   age: string
   never: boolean
   onSave: () => void
+  /** На итоге урока главная кнопка — «ГОТОВО», поэтому здесь второстепенная. */
+  variant?: ButtonVariant
 }
 
 /** Плашка-напоминание о бэкапе (DESIGN.md → «Плашка-напоминание»). Мягкая, без тревоги. */
-export function BackupNudge({ age, never, onSave }: BackupNudgeProps) {
+export function BackupNudge({ age, never, onSave, variant = 'primary' }: BackupNudgeProps) {
   return (
     <div className="flex flex-col gap-3 rounded-card border-2 border-border bg-surface p-4">
       <div className="flex items-start gap-3">
@@ -23,7 +25,7 @@ export function BackupNudge({ age, never, onSave }: BackupNudgeProps) {
           </span>
         </div>
       </div>
-      <Button block onClick={onSave}>
+      <Button block variant={variant} onClick={onSave}>
         Сохранить копию
       </Button>
     </div>
