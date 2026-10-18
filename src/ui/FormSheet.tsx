@@ -1,7 +1,7 @@
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { OVERLAY_MOTION, SHEET_MOTION } from './sheetMotion'
+import { SheetFrame } from './SheetFrame'
 import { TextButton } from './TextButton'
 
 interface FormSheetProps {
@@ -14,35 +14,23 @@ interface FormSheetProps {
   children: ReactNode
 }
 
-/** Полноэкранный лист (DESIGN.md): форма колоды, слова, «Вставить списком». */
+/** Полноэкранный лист (DESIGN.md): форма колоды, слова, «Вставить списком». Закрывается и свайпом вниз. */
 export function FormSheet({ open, title, onCancel, onDone, doneLabel = 'Готово', doneDisabled, children }: FormSheetProps) {
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-30 flex flex-col justify-end">
-          <motion.div
-            className="absolute inset-0 bg-overlay"
-            {...OVERLAY_MOTION}
-          />
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-            {...SHEET_MOTION}
-            className="relative flex h-[calc(100%-8px-var(--safe-top))] flex-col rounded-t-panel bg-bg"
-          >
-            <div className="flex h-14 shrink-0 items-center justify-between border-b-2 border-border px-1">
-              <TextButton onClick={onCancel}>Отмена</TextButton>
-              <h2 className="m-0 min-w-0 flex-1 truncate text-center text-body font-black text-text">{title}</h2>
-              <TextButton onClick={onDone} disabled={doneDisabled}>
-                {doneLabel}
-              </TextButton>
-            </div>
-            <div className="flex-1 overflow-y-auto overscroll-contain px-4 pt-4 pb-[calc(24px+var(--safe-bottom))]">
-              <div className="flex flex-col gap-4">{children}</div>
-            </div>
-          </motion.div>
-        </div>
+        <SheetFrame label={title} onClose={onCancel} layer="z-30" className="flex h-[calc(100%-8px-var(--safe-top))] flex-col">
+          <div data-sheet-handle className="flex h-14 shrink-0 items-center justify-between border-b-2 border-border px-1 pt-1">
+            <TextButton onClick={onCancel}>Отмена</TextButton>
+            <h2 className="m-0 min-w-0 flex-1 truncate text-center text-body font-black text-text">{title}</h2>
+            <TextButton onClick={onDone} disabled={doneDisabled}>
+              {doneLabel}
+            </TextButton>
+          </div>
+          <div data-sheet-scroll className="flex-1 overflow-y-auto overscroll-contain px-4 pt-4 pb-[calc(24px+var(--safe-bottom))]">
+            <div className="flex flex-col gap-4">{children}</div>
+          </div>
+        </SheetFrame>
       )}
     </AnimatePresence>,
     document.body,

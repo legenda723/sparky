@@ -1,7 +1,7 @@
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { OVERLAY_MOTION, SHEET_MOTION } from './sheetMotion'
+import { SheetFrame } from './SheetFrame'
 
 interface SheetProps {
   open: boolean
@@ -12,29 +12,24 @@ interface SheetProps {
   children?: ReactNode
 }
 
-/** Окно подтверждения / нижний лист (DESIGN.md): выезжает снизу, под ним затемнение. */
+/** Окно подтверждения / нижний лист (DESIGN.md): выезжает снизу, под ним затемнение; закрывается касанием мимо или свайпом вниз. */
 export function Sheet({ open, onClose, title, text, children }: SheetProps) {
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-40 flex flex-col justify-end">
-          <motion.div
-            className="absolute inset-0 bg-overlay"
-            {...OVERLAY_MOTION}
-            onClick={onClose}
-          />
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-            {...SHEET_MOTION}
-            className="relative flex flex-col gap-3 rounded-t-panel bg-bg px-4 pt-6 pb-[calc(16px+var(--safe-bottom))]"
-          >
+        <SheetFrame
+          label={title}
+          onClose={onClose}
+          closeOnOverlay
+          layer="z-40"
+          className="flex flex-col gap-3 px-4 pt-6 pb-[calc(16px+var(--safe-bottom))]"
+        >
+          <div data-sheet-handle className="flex flex-col gap-3">
             <h2 className="m-0 text-center text-heading font-black text-text">{title}</h2>
             {text && <p className="m-0 text-center text-small font-semibold text-muted">{text}</p>}
-            {children && <div className="mt-2 flex flex-col gap-3">{children}</div>}
-          </motion.div>
-        </div>
+          </div>
+          {children && <div className="mt-2 flex flex-col gap-3">{children}</div>}
+        </SheetFrame>
       )}
     </AnimatePresence>,
     document.body,
