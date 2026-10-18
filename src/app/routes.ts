@@ -3,11 +3,11 @@ import { useSyncExternalStore } from 'react'
 
 export const TABS = ['path', 'words', 'stats', 'profile'] as const
 export type TabRoute = (typeof TABS)[number]
-export type Route = TabRoute | 'dev'
+export type Route = TabRoute | 'dev' | 'lesson'
 
 export function parseRoute(hash: string): Route {
   const name = hash.replace(/^#\/?/, '').split(/[/?]/)[0]
-  if (name === 'dev') return 'dev'
+  if (name === 'dev' || name === 'lesson') return name
   return (TABS as readonly string[]).includes(name) ? (name as TabRoute) : 'path'
 }
 

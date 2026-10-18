@@ -12,6 +12,7 @@ describe('parseRoute', () => {
     expect(parseRoute('#/stats')).toBe('stats')
     expect(parseRoute('#/profile')).toBe('profile')
     expect(parseRoute('#/dev')).toBe('dev')
+    expect(parseRoute('#/lesson')).toBe('lesson')
   })
 
   it('хвосты адреса не мешают', () => {

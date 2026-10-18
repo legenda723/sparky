@@ -3,6 +3,7 @@ import { useRef, useState, type ReactNode } from 'react'
 import { setPref, usePrefs, type ThemePref } from '../app/prefs'
 import { navigate } from '../app/routes'
 import { feedback, type FeedbackEvent } from '../feedback/feedback'
+import { getDevClockOffset, now, setDevClockOffset } from '../srs/clock'
 import { AnswerBanner } from '../ui/AnswerBanner'
 import { Button } from '../ui/Button'
 import { ChoiceChips } from '../ui/ChoiceChips'
@@ -413,6 +414,32 @@ function SeedSection() {
       >
         Добавить 3 колоды
       </Button>
+      <ClockDemo />
     </Section>
+  )
+}
+
+/** Перемотка времени: проверить, какие слова придут завтра. Только в режиме разработки. */
+function ClockDemo() {
+  const [offset, setOffset] = useState(getDevClockOffset)
+  const shift = (ms: number) => {
+    setDevClockOffset(ms)
+    setOffset(ms)
+  }
+  const days = Math.round(offset / 86_400_000)
+  return (
+    <div className="mt-3 flex flex-col gap-3">
+      <p className="m-0 text-small font-semibold text-muted">
+        Время приложения: {days ? `+${days} дн. — ${now().toLocaleString('ru-RU')}` : 'настоящее'}
+      </p>
+      <Row>
+        <Button variant="secondary" onClick={() => shift(offset + 86_400_000)}>
+          +1 день
+        </Button>
+        <Button variant="secondary" disabled={!offset} onClick={() => shift(0)}>
+          Сбросить
+        </Button>
+      </Row>
+    </div>
   )
 }

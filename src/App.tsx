@@ -13,6 +13,7 @@ import { prefetchWords } from './words/prefetch'
 
 // Витрина грузится отдельно и не замедляет открытие приложения.
 const DevPage = lazy(() => import('./dev/DevPage'))
+const LessonScreen = lazy(() => import('./lesson/LessonScreen'))
 
 export default function App() {
   const prefs = usePrefs()
@@ -46,6 +47,10 @@ export default function App() {
         ) : route === 'dev' ? (
           <Suspense fallback={null}>
             <DevPage />
+          </Suspense>
+        ) : route === 'lesson' ? (
+          <Suspense fallback={null}>
+            <LessonScreen />
           </Suspense>
         ) : (
           <Shell route={route} />

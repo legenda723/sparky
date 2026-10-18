@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 import type { TabRoute } from '../app/routes'
+import { PathScreen } from '../screens/PathScreen'
 import { ProfileScreen } from '../screens/ProfileScreen'
 import { PlaceholderScreen } from './Screen'
 import { screenFade } from './screenFade'
@@ -9,7 +10,7 @@ import { TabBar } from './TabBar'
 function TabScreen({ route }: { route: TabRoute }) {
   switch (route) {
     case 'path':
-      return <PlaceholderScreen title="Путь" text="Скоро здесь будет дорожка уроков. Шаг за шагом!" />
+      return <PathScreen />
     case 'words':
       return <WordsTab />
     case 'stats':
