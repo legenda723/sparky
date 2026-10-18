@@ -95,8 +95,8 @@ export function DeckScreen({ deckId }: { deckId: Id }) {
       title={`${deck.emoji} ${deck.title}`}
       onBack={() => navigateSub('words')}
       action={
-        <IconButton label="Изменить колоду" onClick={() => setEditingDeck(true)}>
-          <Pencil size={22} />
+        <IconButton label="Изменить колоду" large className="-mr-2 text-muted" onClick={() => setEditingDeck(true)}>
+          <Pencil size={26} />
         </IconButton>
       }
     >
