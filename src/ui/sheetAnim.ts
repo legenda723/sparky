@@ -9,7 +9,7 @@ export interface Timing {
 }
 
 /** Выезд: кривая листов iOS — уверенный старт и очень долгое мягкое «причаливание» у верха. */
-export const SHEET_IN: Timing = { ms: 560, ease: 'cubic-bezier(0.32, 0.72, 0, 1)' }
+export const SHEET_IN: Timing = { ms: 640, ease: 'cubic-bezier(0.32, 0.72, 0, 1)' }
 /** Уход: трогается без толчка, плавно разгоняется и мягко замедляется внизу. */
 export const SHEET_OUT: Timing = { ms: 480, ease: 'cubic-bezier(0.4, 0.1, 0.15, 1)' }
 /** Возврат на место после свайпа: лист «оседает», а не прыгает. */
