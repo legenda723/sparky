@@ -1,5 +1,5 @@
 import { Check, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { db } from '../db/db'
 import { createDeck, deleteDeck, updateDeck } from '../db/decks'
 import type { Deck, DeckColor } from '../db/types'
@@ -7,6 +7,7 @@ import { feedback } from '../feedback/feedback'
 import { Button } from '../ui/Button'
 import { FormSheet } from '../ui/FormSheet'
 import { Sheet } from '../ui/Sheet'
+import type { SheetHandle } from '../ui/SheetFrame'
 import { TextField } from '../ui/TextField'
 import { usePress } from '../ui/usePress'
 import { DECK_COLOR_ORDER, DECK_COLORS, DECK_EMOJIS } from './deckLook'
@@ -28,6 +29,7 @@ export function DeckEditor({ open, deck, defaultTitle = '', onClose, onCreated, 
   const [emoji, setEmoji] = useState(DECK_EMOJIS[0])
   const [color, setColor] = useState<DeckColor>('green')
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const sheet = useRef<SheetHandle>(null)
 
   // Каждое открытие — с актуальными значениями, уже в первом кадре окна.
   // Только при открытии: обновления колоды из базы не сбивают ввод.
@@ -47,10 +49,11 @@ export function DeckEditor({ open, deck, defaultTitle = '', onClose, onCreated, 
     if (!valid) return
     if (deck) {
       await updateDeck(db, deck.id, { title, emoji, color })
-      onClose()
+      void sheet.current?.dismiss()
     } else {
       const created = await createDeck(db, { title, emoji, color })
-      onClose()
+      // Сначала лист уезжает, потом — переход в новую колоду или тост.
+      await sheet.current?.dismiss()
       onCreated?.(created)
     }
   }
@@ -66,6 +69,7 @@ export function DeckEditor({ open, deck, defaultTitle = '', onClose, onCreated, 
   return (
     <>
       <FormSheet
+        ref={sheet}
         open={open}
         title={deck ? 'Колода' : 'Новая колода'}
         onCancel={onClose}

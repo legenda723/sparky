@@ -1,11 +1,12 @@
 import { ClipboardPaste } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { addCards } from '../db/cards'
 import { db } from '../db/db'
 import type { Card, Id } from '../db/types'
 import { plural } from '../srs/status'
 import { Button } from '../ui/Button'
 import { FormSheet } from '../ui/FormSheet'
+import type { SheetHandle } from '../ui/SheetFrame'
 import { ListRow } from '../ui/ListRow'
 import { Switch } from '../ui/Switch'
 import { TextButton } from '../ui/TextButton'
@@ -27,6 +28,7 @@ export function PasteList({ open, deckId, existing, onClose }: PasteListProps) {
   const [withDups, setWithDups] = useState(false)
   const [saving, setSaving] = useState(false)
   const toast = useToast()
+  const sheet = useRef<SheetHandle>(null)
 
   // Каждое открытие — с чистого листа, уже в первом кадре окна.
   const [wasOpen, setWasOpen] = useState(open)
@@ -50,7 +52,7 @@ export function PasteList({ open, deckId, existing, onClose }: PasteListProps) {
     if (!n || saving) return
     setSaving(true)
     await addCards(db, deckId, toAdd.map((c) => c.text))
-    onClose()
+    void sheet.current?.dismiss()
     toast({ message: `Добавлено: ${n} ${plural(n, 'слово', 'слова', 'слов')}` })
   }
 
@@ -64,7 +66,7 @@ export function PasteList({ open, deckId, existing, onClose }: PasteListProps) {
   }
 
   return (
-    <FormSheet open={open} title="Вставить списком" onCancel={onClose} onDone={() => void save()} doneLabel="Добавить" doneDisabled={!n || saving}>
+    <FormSheet ref={sheet} open={open} title="Вставить списком" onCancel={onClose} onDone={() => void save()} doneLabel="Добавить" doneDisabled={!n || saving}>
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
           <label htmlFor="paste-list" className="text-small font-bold text-muted">

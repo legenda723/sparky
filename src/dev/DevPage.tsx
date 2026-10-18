@@ -12,10 +12,12 @@ import { Mascot, type MascotMood } from '../ui/Mascot'
 import { OptionCard, type OptionState } from '../ui/OptionCard'
 import { Popover } from '../ui/Popover'
 import { ProgressBar } from '../ui/ProgressBar'
+import { FormSheet } from '../ui/FormSheet'
 import { Sheet } from '../ui/Sheet'
 import { Switch } from '../ui/Switch'
 import { TextField } from '../ui/TextField'
 import { useToast } from '../ui/Toast'
+import { clearResults, setLabFlag, useLab } from './sheetLab'
 
 /** Витрина #/dev: все детали интерфейса, их можно потрогать. */
 export default function DevPage() {
@@ -55,6 +57,7 @@ export default function DevPage() {
           />
         </Section>
 
+        <SheetLabSection />
         {import.meta.env.DEV && <SeedSection />}
         <MascotSection />
         <ButtonsSection />
@@ -390,6 +393,56 @@ function TypeSection() {
       <p className="m-0 text-body font-bold">17 · Основной текст, пример: I like apples.</p>
       <p className="m-0 text-small font-semibold">15 · Пояснение и подписи</p>
       <p className="m-0 text-caption font-semibold text-muted">13 · Мелкая подпись</p>
+    </Section>
+  )
+}
+
+/** Занять телефон на ms — как перерисовка большого экрана под листом. */
+function busy(ms: number) {
+  const until = performance.now() + ms
+  while (performance.now() < until) {
+    // ждём
+  }
+}
+
+function Heavy({ tick }: { tick: number }) {
+  if (tick) busy(250)
+  return null
+}
+
+/** ВРЕМЕННО: замер листов на iPhone, сравнение старых (Motion) и новых. */
+function SheetLabSection() {
+  const lab = useLab()
+  const [open, setOpen] = useState(false)
+  const [tick, setTick] = useState(0)
+  const toggle = (v: boolean) => {
+    setOpen(v)
+    setTick((t) => t + 1)
+  }
+  return (
+    <Section title="Замер листов">
+      <Row>
+        <span className="flex-1 text-body font-bold">Показывать замер</span>
+        <Switch label="Показывать замер" checked={lab.probe} onChange={(v) => setLabFlag('probe', v)} />
+      </Row>
+      <Row>
+        <span className="flex-1 text-body font-bold">Старые листы (Motion)</span>
+        <Switch label="Старые листы" checked={lab.legacy} onChange={(v) => setLabFlag('legacy', v)} />
+      </Row>
+      <p className="m-0 text-small font-semibold text-muted">
+        Замер сверху экрана работает и в колодах. «Лист с нагрузкой» занимает телефон на 0,25 с при открытии и закрытии — как большой экран под листом.
+      </p>
+      <Button block variant="secondary" onClick={() => toggle(true)}>
+        Лист с нагрузкой
+      </Button>
+      <Button block variant="secondary" onClick={clearResults}>
+        Стереть цифры
+      </Button>
+      <Heavy tick={tick} />
+      <FormSheet open={open} title="Проверка листа" onCancel={() => toggle(false)} onDone={() => toggle(false)}>
+        <TextField label="Поле" placeholder="Что-нибудь" />
+        <p className="m-0 text-body font-bold text-text">Закрой «Отменой», «Готово» или свайпом вниз.</p>
+      </FormSheet>
     </Section>
   )
 }

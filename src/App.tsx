@@ -4,6 +4,7 @@ import { isStandalone, readContinued, requestPersistentStorage, saveContinued, s
 import { loadPrefs, usePrefs } from './app/prefs'
 import { useRoute } from './app/routes'
 import { useApplyTheme } from './app/theme'
+import { ProbeOverlay } from './dev/ProbeOverlay'
 import { Updater } from './app/Updater'
 import { InstallScreen } from './screens/InstallScreen'
 import { IphoneSim } from './shell/IphoneSim'
@@ -51,6 +52,7 @@ export default function App() {
           <Shell route={route} />
         )}
         {prefs.simIphone && <IphoneSim />}
+        <ProbeOverlay />
         <Updater />
       </ToastProvider>
     </MotionConfig>

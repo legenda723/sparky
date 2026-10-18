@@ -1,16 +1,12 @@
 // Закрытие листа свайпом вниз (как окна iPhone): тянуть за шапку или за содержимое,
 // когда оно прокручено до самого верха. Отпустил далеко или быстро — лист уезжает, иначе
-// мягко возвращается. Сдвиг пальцем — CSS-свойство translate: оно складывается с анимацией
-// выезда (transform) и не мешает ей.
+// мягко возвращается. Сам лист двигает тот, кто зовёт хук (onMove / onRelease).
 import { useEffect, useRef, type RefObject } from 'react'
 
 /** Закрыть, если утянули дальше этой доли высоты листа… */
 const CLOSE_SHARE = 0.25
 /** …или отпустили быстрее этого (px/мс). */
 const CLOSE_SPEED = 0.5
-// Возврат на место: дольше и с долгим мягким торможением — лист «оседает», а не прыгает.
-const SNAP_MS = 480
-const SNAP_EASE = 'cubic-bezier(0.25, 1, 0.5, 1)'
 
 /** Решение по первому движению: тянуть лист или отдать жест прокрутке. */
 export function shouldDrag(dx: number, dy: number, atTop: boolean, onHandle: boolean): boolean | null {
@@ -23,13 +19,18 @@ export function shouldClose(offset: number, height: number, speed: number): bool
   return offset > height * CLOSE_SHARE || speed > CLOSE_SPEED
 }
 
-export function useSheetDrag(
-  panelRef: RefObject<HTMLElement | null>,
-  dimRef: RefObject<HTMLElement | null>,
-  onClose: () => void,
-): void {
-  const closeRef = useRef(onClose)
-  closeRef.current = onClose
+export interface SheetDragHandlers {
+  /** Палец тянет лист: сдвиг вниз, px */
+  onMove: (px: number) => void
+  /** Отпустили: close — увезти вниз, иначе вернуть на место */
+  onRelease: (px: number, close: boolean) => void
+  /** Можно ли сейчас тянуть (не тянем, пока лист выезжает или уже уезжает) */
+  canDrag: () => boolean
+}
+
+export function useSheetDrag(panelRef: RefObject<HTMLElement | null>, handlers: SheetDragHandlers): void {
+  const h = useRef(handlers)
+  h.current = handlers
 
   useEffect(() => {
     const panel = panelRef.current
@@ -45,18 +46,6 @@ export function useSheetDrag(
     let onHandle = false
     let decided = false
     let dragging = false
-    let closing = false
-
-    const apply = (px: number, animate: boolean) => {
-      const t = animate ? `${SNAP_MS}ms ${SNAP_EASE}` : 'none'
-      panel.style.transition = animate ? `translate ${t}` : 'none'
-      panel.style.translate = px ? `0 ${px}px` : ''
-      const dim = dimRef.current
-      if (dim) {
-        dim.style.transition = animate ? `opacity ${t}` : 'none'
-        dim.style.opacity = String(1 - Math.min(1, px / panel.offsetHeight))
-      }
-    }
 
     const begin = (x: number, y: number, target: EventTarget | null) => {
       const el = target instanceof Element ? target : null
@@ -75,12 +64,11 @@ export function useSheetDrag(
 
     /** true — движение забрал лист (прокрутку надо отменить). */
     const move = (x: number, y: number): boolean => {
-      if (closing) return true
       if (!decided) {
         const verdict = shouldDrag(x - startX, y - startY, atTop, onHandle)
         if (verdict === null) return false
         decided = true
-        dragging = verdict
+        dragging = verdict && h.current.canDrag()
         if (dragging) {
           startY = y // без скачка на первые пиксели
           lastY = y
@@ -92,7 +80,7 @@ export function useSheetDrag(
       lastY = y
       lastT = now
       offset = Math.max(0, y - startY)
-      apply(offset, false)
+      h.current.onMove(offset)
       return true
     }
 
@@ -101,12 +89,7 @@ export function useSheetDrag(
       dragging = false
       // Палец давно стоит — скорость не считаем.
       if (performance.now() - lastT > 80) speed = 0
-      if (offset > 0 && shouldClose(offset, panel.offsetHeight, speed)) {
-        closing = true
-        closeRef.current() // лист уезжает дальше с того места, где его отпустили
-      } else {
-        apply(0, true)
-      }
+      if (offset > 0) h.current.onRelease(offset, shouldClose(offset, panel.offsetHeight, speed))
     }
 
     const onTouchStart = (e: TouchEvent) => {
@@ -146,5 +129,5 @@ export function useSheetDrag(
       panel.removeEventListener('touchcancel', end)
       panel.removeEventListener('pointerdown', onPointerDown)
     }
-  }, [panelRef, dimRef])
+  }, [panelRef])
 }

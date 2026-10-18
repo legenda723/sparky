@@ -1,11 +1,12 @@
 import { Snowflake, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { addCard, updateCard, type CardText, type MediaInput } from '../db/cards'
 import { db } from '../db/db'
 import type { Card, Id } from '../db/types'
 import { cardStatus, inHuman, recallChance } from '../srs/status'
 import { Button } from '../ui/Button'
 import { FormSheet } from '../ui/FormSheet'
+import type { SheetHandle } from '../ui/SheetFrame'
 import { ListRow } from '../ui/ListRow'
 import { Switch } from '../ui/Switch'
 import { TextField } from '../ui/TextField'
@@ -37,6 +38,7 @@ export function CardEditor({ open, deckId, card, existing, onClose, onAdded, onD
   const [media, setMedia] = useState<{ image?: MediaInput; audio?: MediaInput }>({})
   const [saving, setSaving] = useState(false)
   const [recording, setRecording] = useState(false)
+  const sheet = useRef<SheetHandle>(null)
 
   // Каждое открытие — с актуальными значениями, уже в первом кадре (не после него, иначе
   // окно выезжает пустым и поля «вспыхивают»). Пока лист открыт, правки снаружи не сбивают ввод.
@@ -64,18 +66,19 @@ export function CardEditor({ open, deckId, card, existing, onClose, onAdded, onD
     // Двойное касание не должно добавить слово дважды.
     if (!valid || saving) return
     setSaving(true)
+    // Сохранили — лист уезжает сам и потом закрывается (без паузы перед уходом).
     if (card) {
       await updateCard(db, card.id, text, media)
-      onClose()
+      void sheet.current?.dismiss()
     } else {
       const added = await addCard(db, deckId, text, media)
-      onClose()
+      void sheet.current?.dismiss()
       onAdded?.(added)
     }
   }
 
   return (
-    <FormSheet open={open} title={card ? 'Слово' : 'Новое слово'} onCancel={onClose} onDone={() => void save()} doneDisabled={!valid || saving || recording}>
+    <FormSheet ref={sheet} open={open} title={card ? 'Слово' : 'Новое слово'} onCancel={onClose} onDone={() => void save()} doneDisabled={!valid || saving || recording}>
       {card && <CardInfo card={card} />}
       <TextField
         label="Английский"
