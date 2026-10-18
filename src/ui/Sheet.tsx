@@ -21,7 +21,7 @@ export function Sheet({ open, onClose, title, text, children }: SheetProps) {
       layer="z-40"
       className="flex flex-col gap-3 px-4 pt-6 pb-[calc(16px+var(--safe-bottom))]"
     >
-      <div data-sheet-handle className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
         <h2 className="m-0 text-center text-heading font-black text-text">{title}</h2>
         {text && <p className="m-0 text-center text-small font-semibold text-muted">{text}</p>}
       </div>
