@@ -6,7 +6,7 @@
 // Наш код двигает шторку, только когда она открывается или закрывается кнопкой:
 // пружиной на видеокарте (Web Animations), сдвигом всей прокрутки. Эту анимацию можно
 // поймать пальцем — шторка останавливается там, где она сейчас, и дальше её тянет прокрутка.
-import { SPRING_SHEET, springCurve, type Spring } from './spring'
+import { sheetSpring, springCurve, type Spring } from './spring'
 
 export type Axis = 'x' | 'y'
 
@@ -48,9 +48,23 @@ function openness(d: Drawer): number {
   return Math.min(1, Math.max(0, (pos(d) - currentShift(d)) / s))
 }
 
+/**
+ * Safari 26+: затемнение само следует за прокруткой на видеокарте (CSS scroll-timeline,
+ * классы drawer-* в index.css) — ровно и в энергосбережении. Иначе — из JavaScript.
+ */
+const dimFollowsScroll =
+  typeof CSS !== 'undefined' && CSS.supports('animation-timeline: --a') && CSS.supports('timeline-scope: --a')
+
+/** Затемнение следует за прокруткой (палец тянет шторку) — только когда шторка не едет сама. */
+function follow(d: Drawer, on: boolean): void {
+  if (!d.dim || !dimFollowsScroll) return
+  if (on) d.dim.setAttribute('data-follow', '')
+  else d.dim.removeAttribute('data-follow')
+}
+
 /** Затемнение — в такт прокрутке (палец тянет шторку). */
 export function syncDim(d: Drawer): void {
-  if (d.dim && !isAnimating(d)) d.dim.style.opacity = String(openness(d))
+  if (d.dim && !dimFollowsScroll && !isAnimating(d)) d.dim.style.opacity = String(openness(d))
 }
 
 /** Закрыта ли шторка пальцем (доехала до «пустого места»). */
@@ -67,7 +81,7 @@ export function placeClosed(d: Drawer): void {
 /** Номер последней анимации: новая отменяет ту, что ещё ждёт своего кадра. */
 const generation = new WeakMap<HTMLElement, number>()
 
-async function run(d: Drawer, target: 'open' | 'closed', spring: Spring): Promise<boolean> {
+async function run(d: Drawer, target: 'open' | 'closed', spring?: Spring): Promise<boolean> {
   const gen = (generation.get(d.scroller) ?? 0) + 1
   generation.set(d.scroller, gen)
   // Отсчёт — с кадра, когда телефон уже свободен после касания (новая шторка — ещё через кадр,
@@ -83,8 +97,10 @@ async function run(d: Drawer, target: 'open' | 'closed', spring: Spring): Promis
   const scrollerOpacity = getComputedStyle(d.scroller).opacity
   const dimFrom = d.dim ? getComputedStyle(d.dim).opacity : '0'
   for (const a of animations(d)) a.cancel()
+  follow(d, false)
+  if (d.dim) d.dim.style.opacity = dimFrom
 
-  const curve = reduce ? { ms: 200, easing: 'ease-out' } : springCurve(spring, to - from)
+  const curve = reduce ? { ms: 200, easing: 'ease-out' } : springCurve(spring ?? sheetSpring(span(d)), to - from)
   const opts: KeyframeAnimationOptions = { duration: curve.ms, easing: curve.easing, fill: 'forwards' }
   const anims: Animation[] = []
   if (reduce) {
@@ -102,6 +118,7 @@ async function run(d: Drawer, target: 'open' | 'closed', spring: Spring): Promis
         a.commitStyles()
         a.cancel()
       }
+      if (target === 'open') follow(d, true)
       return true
     },
     () => false,
@@ -109,9 +126,9 @@ async function run(d: Drawer, target: 'open' | 'closed', spring: Spring): Promis
 }
 
 /** Выехать из того места, где шторка сейчас. true — доехала, false — перебили или поймали. */
-export const openDrawer = (d: Drawer, spring = SPRING_SHEET) => run(d, 'open', spring)
+export const openDrawer = (d: Drawer, spring?: Spring) => run(d, 'open', spring)
 /** Уехать за край. true — уехала, false — перебили или поймали пальцем. */
-export const closeDrawer = (d: Drawer, spring = SPRING_SHEET) => run(d, 'closed', spring)
+export const closeDrawer = (d: Drawer, spring?: Spring) => run(d, 'closed', spring)
 
 /**
  * Палец коснулся шторки, пока она едет: остановить её там, где она сейчас, и отдать прокрутке —
@@ -126,4 +143,5 @@ export function catchDrawer(d: Drawer): void {
   d.scroller.style.transform = ''
   setPos(d, Math.max(0, pos(d) - s))
   if (d.dim) d.dim.style.opacity = dimNow
+  follow(d, true)
 }

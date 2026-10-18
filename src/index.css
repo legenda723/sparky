@@ -293,6 +293,30 @@ html.theme-anim *::after {
   }
 }
 
+/* Шторка (src/ui/motion/drawer.ts): затемнение следует за прокруткой на видеокарте
+   (Safari 26+). data-follow ставит код, когда шторка не едет сама. */
+.drawer {
+  timeline-scope: --drawer;
+}
+.drawer-scroll-y {
+  scroll-timeline: --drawer y;
+}
+.drawer-scroll-x {
+  scroll-timeline: --drawer x;
+}
+.drawer-dim[data-follow] {
+  animation: drawer-dim linear both;
+  animation-timeline: --drawer;
+}
+@keyframes drawer-dim {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Уменьшение движения: CSS-анимации и переходы становятся мгновенными */
 @media (prefers-reduced-motion: reduce) {
   *,

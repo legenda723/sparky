@@ -43,9 +43,9 @@ function Panel({ open, label, onClose, closeOnOverlay, layer, className, childre
   if (open) shown.current = children
 
   return (
-    <div className={`fixed inset-0 ${layer} overflow-hidden`}>
-      <div ref={dimRef} className="pointer-events-none absolute inset-0 bg-overlay" />
-      <div ref={scrollerRef} {...scrollerProps} className="absolute inset-0 snap-y snap-mandatory overflow-y-scroll overscroll-y-none no-scrollbar">
+    <div className={`drawer fixed inset-0 ${layer} overflow-hidden`}>
+      <div ref={dimRef} className="drawer-dim pointer-events-none absolute inset-0 bg-overlay" />
+      <div ref={scrollerRef} {...scrollerProps} className="drawer-scroll-y absolute inset-0 snap-y snap-mandatory overflow-y-scroll overscroll-y-none no-scrollbar">
         <div className="h-full snap-start" onClick={closeOnOverlay ? () => void dismiss() : undefined} />
         <div role="dialog" aria-modal="true" aria-label={label} className={`relative snap-end rounded-t-panel bg-bg ${className}`}>
           {shown.current}

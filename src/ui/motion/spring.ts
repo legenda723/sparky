@@ -13,6 +13,20 @@ export interface Spring {
 /** Листы и переходы: быстро трогается и мягко тормозит без отскока. */
 export const SPRING_SHEET: Spring = { response: 0.42, damping: 1 }
 
+/** Путь, для которого подобрана SPRING_SHEET (окно подтверждения, ~300 px). */
+const SHEET_BASE_PX = 300
+/** Самая мягкая пружина — для полноэкранного листа. */
+const SHEET_MAX_RESPONSE = 0.56
+
+/**
+ * Пружина шторки под длину пути: длинный путь (полноэкранный лист) — чуть мягче,
+ * иначе он пролетает экран заметно быстрее короткого окна (отзыв владельца).
+ */
+export function sheetSpring(distance: number): Spring {
+  const k = Math.max(1, Math.abs(distance) / SHEET_BASE_PX) ** 0.25
+  return { ...SPRING_SHEET, response: Math.min(SHEET_MAX_RESPONSE, SPRING_SHEET.response * k) }
+}
+
 /**
  * Сколько пути ещё осталось (1 → 0) через t секунд. v0 — начальная скорость
  * в долях пути в секунду (к цели — положительная).
