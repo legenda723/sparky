@@ -89,6 +89,22 @@ export interface Profile {
   achievements: string[]
   chestsClaimed: string[]
   lastBackupAt?: number
+  /** Когда последний раз после урока напоминали о бэкапе (не чаще раза в неделю). */
+  backupNudgeAt?: number
+}
+
+export const DEFAULT_PROFILE: Profile = {
+  id: 'me',
+  totalXp: 0,
+  level: 1,
+  gems: 0,
+  streak: 0,
+  bestStreak: 0,
+  freezes: 0,
+  mascotItems: [],
+  unlockedThemes: [],
+  achievements: [],
+  chestsClaimed: [],
 }
 
 export interface QuestDay {

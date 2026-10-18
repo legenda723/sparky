@@ -1,0 +1,205 @@
+{
+ "app": "sparky",
+ "format": 1,
+ "exportedAt": "2026-10-18T12:00:00.000Z",
+ "tables": {
+  "decks": [
+   {
+    "id": "6916b23a-c9c5-4111-9f4b-11c5ab5bd2ab",
+    "title": "Еда",
+    "emoji": "🍎",
+    "color": "green",
+    "order": 0,
+    "createdAt": 1791612000000,
+    "archived": false
+   },
+   {
+    "id": "8dadfe83-7a66-4f6b-a98b-1a985f1ffb14",
+    "title": "Дом",
+    "emoji": "🏠",
+    "color": "blue",
+    "order": 1,
+    "createdAt": 1791612000000,
+    "archived": false
+   }
+  ],
+  "cards": [
+   {
+    "due": "2026-10-10T06:00:00.000Z",
+    "stability": 0,
+    "difficulty": 0,
+    "elapsed_days": 0,
+    "scheduled_days": 0,
+    "reps": 0,
+    "lapses": 0,
+    "learning_steps": 0,
+    "state": 0,
+    "front": "chair",
+    "back": "стул",
+    "id": "30c2ad5e-a07a-4280-804a-1840079bfaab",
+    "deckId": "8dadfe83-7a66-4f6b-a98b-1a985f1ffb14",
+    "order": 0,
+    "createdAt": 1791612000000,
+    "updatedAt": 1791612000000,
+    "suspended": false,
+    "deletedAt": 1791612000001
+   },
+   {
+    "due": "2026-10-10T06:00:00.000Z",
+    "stability": 0,
+    "difficulty": 0,
+    "elapsed_days": 0,
+    "scheduled_days": 0,
+    "reps": 0,
+    "lapses": 0,
+    "learning_steps": 0,
+    "state": 0,
+    "front": "milk",
+    "back": "молоко",
+    "id": "b4c128d9-05b2-4530-ab90-2f37e04d4eff",
+    "deckId": "6916b23a-c9c5-4111-9f4b-11c5ab5bd2ab",
+    "order": 2,
+    "createdAt": 1791612000000,
+    "updatedAt": 1791612000000,
+    "suspended": false
+   },
+   {
+    "due": "2026-10-10T06:00:00.000Z",
+    "stability": 0,
+    "difficulty": 0,
+    "elapsed_days": 0,
+    "scheduled_days": 0,
+    "reps": 0,
+    "lapses": 0,
+    "learning_steps": 0,
+    "state": 0,
+    "front": "bread",
+    "back": "хлеб",
+    "id": "b8ead61a-b6c6-4e29-afad-77f27b81e67e",
+    "deckId": "6916b23a-c9c5-4111-9f4b-11c5ab5bd2ab",
+    "order": 1,
+    "createdAt": 1791612000000,
+    "updatedAt": 1791612000000,
+    "suspended": false
+   },
+   {
+    "due": "2026-10-10T06:11:00.000Z",
+    "stability": 2.3065,
+    "difficulty": 2.11810397,
+    "elapsed_days": 0,
+    "scheduled_days": 0,
+    "reps": 1,
+    "lapses": 0,
+    "learning_steps": 1,
+    "state": 1,
+    "last_review": "2026-10-10T06:01:00.000Z",
+    "front": "apple",
+    "back": "яблоко",
+    "transcription": "ˈæp.əl",
+    "example": "An apple a day",
+    "exampleTranslation": "Яблоко в день",
+    "note": "фрукт",
+    "id": "d40c89db-44da-4a19-b67f-9bb7d72e7030",
+    "deckId": "6916b23a-c9c5-4111-9f4b-11c5ab5bd2ab",
+    "order": 0,
+    "createdAt": 1791612000000,
+    "updatedAt": 1791612000000,
+    "suspended": false,
+    "imageId": "e4d081fc-e4b6-47d8-85d1-5dfc6877bb17",
+    "audioId": "5d45515a-9e57-43c1-acf6-b845be9465cf",
+    "introducedAt": 1791612000000
+   }
+  ],
+  "media": [
+   {
+    "kind": "audio",
+    "mime": "audio/mp4",
+    "durationMs": 1200,
+    "id": "5d45515a-9e57-43c1-acf6-b845be9465cf",
+    "createdAt": 1791612000000,
+    "data": "CQgH"
+   },
+   {
+    "kind": "image",
+    "mime": "image/jpeg",
+    "width": 800,
+    "height": 600,
+    "id": "e4d081fc-e4b6-47d8-85d1-5dfc6877bb17",
+    "createdAt": 1791612000000,
+    "data": "/9gAAQL6"
+   }
+  ],
+  "reviewLogs": [
+   {
+    "cardId": "d40c89db-44da-4a19-b67f-9bb7d72e7030",
+    "rating": 3,
+    "state": 0,
+    "due": "2026-10-10T06:00:00.000Z",
+    "stability": 0,
+    "difficulty": 0,
+    "elapsed_days": 0,
+    "review": "2026-10-10T06:01:00.000Z",
+    "exerciseType": "flip",
+    "durationMs": 3500,
+    "id": 1
+   }
+  ],
+  "days": [
+   {
+    "dayKey": "2026-10-10",
+    "xp": 0,
+    "lessons": 1,
+    "reviews": 1,
+    "newLearned": 1,
+    "correct": 1,
+    "wrong": 0,
+    "msSpent": 7500,
+    "goalMet": false,
+    "freezeUsed": false
+   }
+  ],
+  "profile": {
+   "id": "me",
+   "totalXp": 42,
+   "level": 1,
+   "gems": 15,
+   "streak": 3,
+   "bestStreak": 0,
+   "freezes": 0,
+   "mascotItems": [],
+   "unlockedThemes": [],
+   "achievements": [
+    "first-word"
+   ],
+   "chestsClaimed": []
+  },
+  "quests": [
+   {
+    "dayKey": "2026-10-10",
+    "quests": [
+     {
+      "kind": "xp",
+      "target": 50,
+      "progress": 12,
+      "done": false
+     }
+    ],
+    "chestClaimed": false
+   }
+  ],
+  "settings": {
+   "id": "me",
+   "theme": "dark",
+   "sound": true,
+   "haptics": true,
+   "dailyGoalXp": 50,
+   "newPerDay": 7,
+   "lessonSize": 15,
+   "reviewLimit": 0,
+   "retention": 0.9,
+   "speechRate": 1,
+   "autoSpeak": true,
+   "voiceURI": "com.apple.voice.Samantha"
+  }
+ }
+}

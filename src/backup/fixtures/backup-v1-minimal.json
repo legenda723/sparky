@@ -1,0 +1,15 @@
+{
+  "app": "sparky",
+  "format": 1,
+  "exportedAt": "2026-10-18T12:00:00.000Z",
+  "tables": {
+    "decks": [{ "id": "d1", "title": "Старая колода" }],
+    "cards": [
+      { "id": "c1", "deckId": "d1", "front": "cat", "back": "кошка", "createdAt": 1760000000000 },
+      { "id": "c2", "deckId": "d1", "front": "dog", "back": "собака", "createdAt": 1760000000000, "due": "2026-10-20T04:00:00.000Z", "state": 2, "stability": 5, "reps": 3 }
+    ],
+    "reviewLogs": [{ "cardId": "c2", "rating": 3, "state": 2, "due": "2026-10-15T04:00:00.000Z", "stability": 5, "difficulty": 5, "review": "2026-10-15T09:00:00.000Z" }],
+    "days": [{ "dayKey": "2026-10-15", "lessons": 1 }],
+    "settings": { "theme": "dark" }
+  }
+}
