@@ -182,3 +182,11 @@ export async function markBackedUp(db: SparkyDb, at = Date.now()): Promise<void>
     await db.profile.put({ ...DEFAULT_PROFILE, ...p, lastBackupAt: at })
   })
 }
+
+/** Отметить, что после урока напомнили о копии (следующее напоминание — через неделю). */
+export async function markNudged(db: SparkyDb, at = Date.now()): Promise<void> {
+  await db.transaction('rw', db.profile, async () => {
+    const p = await db.profile.get('me')
+    await db.profile.put({ ...DEFAULT_PROFILE, ...p, backupNudgeAt: at })
+  })
+}

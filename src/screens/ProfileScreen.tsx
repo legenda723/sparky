@@ -1,9 +1,12 @@
-import { Download, Info, Palette, ShieldAlert, ShieldCheck, Sparkles, Volume2 } from 'lucide-react'
-import { useSyncExternalStore } from 'react'
+import { ArchiveRestore, CloudUpload, Download, Info, Palette, ShieldAlert, ShieldCheck, Sparkles, Volume2 } from 'lucide-react'
+import { useState, useSyncExternalStore } from 'react'
 import { useStorageStatus, type StorageStatus } from '../app/install'
 import { getPendingUpdate, subscribePendingUpdate } from '../app/updates'
 import { setPref, usePrefs, type ThemePref } from '../app/prefs'
 import { navigate } from '../app/routes'
+import { BackupNudge } from '../backup/BackupNudge'
+import { SaveBackupSheet, useBackupStatus, useRestore } from '../backup/BackupSheets'
+import { backupAgeText, isBackupStale } from '../backup/reminder'
 import { changeTheme } from '../app/theme'
 import { Screen } from '../shell/Screen'
 import { ChoiceChips } from '../ui/ChoiceChips'
@@ -48,6 +51,8 @@ export function ProfileScreen() {
         />
       </section>
 
+      <BackupSection />
+
       <section className="-mx-4 mb-6 border-t-2 border-border">
         <ListRow
           icon={
@@ -77,7 +82,7 @@ export function ProfileScreen() {
       </section>
 
       <p className="m-0 mb-2 text-small font-semibold text-muted">
-        Скоро здесь будут уровень, достижения, магазин и бэкап.
+        Скоро здесь будут уровень, достижения и магазин.
       </p>
 
       <section className="-mx-4 border-t-2 border-border">
@@ -89,5 +94,43 @@ export function ProfileScreen() {
         />
       </section>
     </Screen>
+  )
+}
+
+/** Бэкап (SPEC → 7.5, 8.3): сохранить копию, восстановить, давность последней копии, напоминание. */
+function BackupSection() {
+  const status = useBackupStatus()
+  const [saveOpen, setSaveOpen] = useState(false)
+  const restore = useRestore()
+  const now = Date.now()
+  const age = backupAgeText(status?.lastBackupAt, now)
+  const stale = status !== undefined && isBackupStale(status.lastBackupAt, status.hasCards, now)
+  return (
+    <>
+      <h2 className="m-0 mb-3 flex items-center gap-2 text-heading font-black text-text">
+        <CloudUpload size={22} className="text-info" /> Бэкап
+      </h2>
+      {stale && (
+        <div className="mb-3">
+          <BackupNudge age={age} never={status.lastBackupAt === undefined} onSave={() => setSaveOpen(true)} />
+        </div>
+      )}
+      <section className="-mx-4 mb-6 border-t-2 border-border">
+        <ListRow
+          icon={<CloudUpload size={24} className="text-info" />}
+          title="Сохранить копию"
+          subtitle={`Последняя копия: ${age}`}
+          onClick={() => setSaveOpen(true)}
+        />
+        <ListRow
+          icon={<ArchiveRestore size={24} className="text-gem" />}
+          title="Восстановить из копии"
+          subtitle="Заменит всё на телефоне данными из файла"
+          onClick={restore.pick}
+        />
+      </section>
+      <SaveBackupSheet open={saveOpen} onClose={() => setSaveOpen(false)} />
+      {restore.ui}
+    </>
   )
 }
