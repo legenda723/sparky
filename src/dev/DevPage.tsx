@@ -55,6 +55,7 @@ export default function DevPage() {
           />
         </Section>
 
+        {import.meta.env.DEV && <SeedSection />}
         <MascotSection />
         <ButtonsSection />
         <OptionsSection />
@@ -389,6 +390,27 @@ function TypeSection() {
       <p className="m-0 text-body font-bold">17 · Основной текст, пример: I like apples.</p>
       <p className="m-0 text-small font-semibold">15 · Пояснение и подписи</p>
       <p className="m-0 text-caption font-semibold text-muted">13 · Мелкая подпись</p>
+    </Section>
+  )
+}
+
+/** Кнопка тестовых данных — только в режиме разработки (SPEC → «Решения»). */
+function SeedSection() {
+  const toast = useToast()
+  return (
+    <Section title="Тестовые данные">
+      <Button
+        variant="secondary"
+        block
+        icon={<Plus size={22} strokeWidth={3} />}
+        onClick={async () => {
+          const { seedTestData } = await import('./seed')
+          await seedTestData()
+          toast({ message: 'Добавлено 3 колоды' })
+        }}
+      >
+        Добавить 3 колоды
+      </Button>
     </Section>
   )
 }
