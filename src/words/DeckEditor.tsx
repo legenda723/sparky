@@ -152,7 +152,7 @@ function ColorDot({ color, selected, onSelect }: { color: DeckColor; selected: b
           background: c.fill,
           boxShadow: selected ? `0 0 0 3px var(--c-bg), 0 0 0 5px ${c.fill}` : undefined,
           scale: selected ? '0.8' : '1',
-          transition: 'scale 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms',
+          transition: 'scale 340ms cubic-bezier(0.34, 1.4, 0.64, 1), box-shadow 200ms ease-out',
         }}
       >
         {selected && <Check size={22} strokeWidth={3} />}

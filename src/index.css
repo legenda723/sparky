@@ -232,17 +232,24 @@
     transition-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
   }
 
-  /* Плоский элемент (чип): лёгкое сжатие */
+  /* Плоский элемент (чип, эмодзи, цвет): сжатие сразу при касании, обратно — мягкая пружинка
+     с едва заметным перелётом; цвет выбора меняется быстро. */
   .press-soft {
     transition:
-      scale 200ms cubic-bezier(0.25, 0.1, 0.25, 1),
-      background-color 200ms cubic-bezier(0.25, 0.1, 0.25, 1),
-      border-color 200ms cubic-bezier(0.25, 0.1, 0.25, 1),
-      color 200ms cubic-bezier(0.25, 0.1, 0.25, 1);
+      scale 340ms cubic-bezier(0.34, 1.4, 0.64, 1),
+      background-color 160ms ease-out,
+      border-color 160ms ease-out,
+      color 160ms ease-out,
+      box-shadow 160ms ease-out;
   }
   .press-soft[data-pressed] {
-    scale: 0.96;
-    transition-duration: 90ms;
+    scale: 0.93;
+    transition:
+      scale 70ms ease-out,
+      background-color 160ms ease-out,
+      border-color 160ms ease-out,
+      color 160ms ease-out,
+      box-shadow 160ms ease-out;
   }
 
   /* Кружок переключателя: сдвиг 20 px, при касании вытягивается на 6 px к центру */

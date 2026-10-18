@@ -4,7 +4,8 @@ import { screenFade } from '../shell/screenFade'
 import { DeckList } from './DeckList'
 import { DeckScreen } from './DeckScreen'
 
-const FADE = screenFade(() => 0.18)
+// Чуть дольше, чем у вкладок: экран колоды плотный, быстрое проявление выглядит резко.
+const FADE = screenFade(() => 0.26)
 
 /** Вкладка «Слова»: список колод ↔ колода (адрес #/words/<id>). */
 export function WordsTab() {
