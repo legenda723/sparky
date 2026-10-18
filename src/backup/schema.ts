@@ -146,8 +146,10 @@ export const backupSchema = z.looseObject({
   format: z.literal(BACKUP_FORMAT),
   exportedAt: date,
   tables: z.looseObject({
-    decks: z.array(deck).default([]),
-    cards: z.array(card).default([]),
+    // Колоды и слова есть в любом настоящем файле (пусть и пустыми списками): без них это не бэкап,
+    // и «Заменить всё» стёрло бы телефон. Таблицы, которые появятся позже, — с .default([]).
+    decks: z.array(deck),
+    cards: z.array(card),
     media: z.array(media).default([]),
     reviewLogs: z.array(reviewLog).default([]),
     days: z.array(dayRecord).default([]),

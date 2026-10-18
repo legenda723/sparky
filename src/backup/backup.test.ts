@@ -142,6 +142,8 @@ describe('бэкап: проверка файла', () => {
     expect(bad('привет')).toThrow(BackupError)
     expect(bad('{"hello":1}')).toThrow('не файл бэкапа')
     expect(bad('[1,2]')).toThrow(BackupError)
+    // Без колод и слов — не бэкап (иначе «Заменить всё» стёрло бы телефон).
+    expect(bad(JSON.stringify({ app: 'sparky', format: 1, exportedAt: '2026-10-10', tables: {} }))).toThrow('повреждён')
   })
 
   it('файл из более новой версии — просим обновиться', () => {

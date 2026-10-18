@@ -97,6 +97,9 @@ export function SaveBackupSheet({ open, onClose }: SaveBackupSheetProps) {
   )
 }
 
+/** Пауза между закрытием одного нижнего окна и открытием другого (основная часть пути шторки). */
+const SHEET_SWAP_MS = 280
+
 type RestoreStep = { kind: 'error'; message: string } | { kind: 'preview' | 'confirm' | 'busy'; parsed: ParsedBackup }
 
 const fileDate = (d: Date) =>
@@ -132,15 +135,18 @@ export function useRestore() {
     setStep({ kind: 'busy', parsed })
     try {
       await replaceAll(db, parsed.file)
-      await loadPrefs()
-      changeTheme(getPrefs().theme)
-      feedback('finish')
-      toast({ message: 'Готово! Всё восстановлено из копии' })
-      setOpen(false)
     } catch {
       feedback('wrong')
       setStep({ kind: 'error', message: 'Не получилось восстановить. Данные на телефоне не изменились.' })
+      return
     }
+    // Данные уже заменены; тема и звук из файла подхватятся и при следующем открытии.
+    await loadPrefs()
+      .then(() => changeTheme(getPrefs().theme))
+      .catch(() => {})
+    feedback('finish')
+    toast({ message: 'Готово! Всё восстановлено из копии' })
+    setOpen(false)
   }
 
   const pick = () => input.current?.click()
@@ -171,8 +177,9 @@ export function useRestore() {
           variant="secondary"
           icon={<CloudUpload size={22} strokeWidth={2.75} />}
           onClick={() => {
+            // Второе окно — после того, как первое уехало: два выезжающих окна сразу не накладываем.
             setOpen(false)
-            setSaveOpen(true)
+            window.setTimeout(() => setSaveOpen(true), SHEET_SWAP_MS)
           }}
         >
           Сохранить текущее
@@ -220,7 +227,7 @@ export function useRestore() {
         onClose={() => {
           setSaveOpen(false)
           // После копии текущих данных — назад к восстановлению.
-          if (step?.kind === 'preview') setOpen(true)
+          if (step?.kind === 'preview') window.setTimeout(() => setOpen(true), SHEET_SWAP_MS)
         }}
       />
     </>
