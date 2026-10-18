@@ -59,8 +59,14 @@ export async function deleteDeck(db: SparkyDb, id: Id, now = Date.now()): Promis
 
 export async function restoreDeck(db: SparkyDb, id: Id, deletedAt: number): Promise<void> {
   await db.transaction('rw', db.decks, db.cards, async () => {
+    // Колода возвращается на своё место. Если, пока она была удалена, порядок поменяли
+    // и место занято — в конец, чтобы у двух колод не было одного номера.
+    const live = await listDecks(db)
+    const deck = await db.decks.get(id)
+    const taken = live.some((d) => d.order === deck?.order)
     await db.decks.where('id').equals(id).modify((d) => {
       delete d.deletedAt
+      if (taken) d.order = (live.at(-1)?.order ?? -1) + 1
     })
     await db.cards
       .where('deckId')

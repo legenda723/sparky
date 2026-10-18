@@ -35,6 +35,8 @@ export function useRecorder(onDone: (rec: Recording) => void) {
   )
   const [elapsed, setElapsed] = useState(0)
   const recorder = useRef<MediaRecorder | null>(null)
+  const starting = useRef(false)
+  const mounted = useRef(true)
   const timers = useRef<number[]>([])
   const doneRef = useRef(onDone)
   doneRef.current = onDone
@@ -50,25 +52,45 @@ export function useRecorder(onDone: (rec: Recording) => void) {
   }, [])
 
   const start = useCallback(async () => {
+    // Двойное касание, пока iPhone спрашивает доступ к микрофону, — вторую запись не начинаем.
+    if (starting.current || recorder.current) return
+    starting.current = true
     let stream: MediaStream
     try {
       setSession('play-and-record')
       stream = await navigator.mediaDevices.getUserMedia({ audio: true })
     } catch {
       setSession('ambient')
-      setState('denied')
+      if (mounted.current) setState('denied')
+      return
+    } finally {
+      starting.current = false
+    }
+    const release = () => {
+      stream.getTracks().forEach((t) => t.stop())
+      setSession('ambient')
+    }
+    // Окно закрыли, пока шёл запрос доступа, — сразу отпускаем микрофон.
+    if (!mounted.current) {
+      release()
       return
     }
     const mimeType = pickMimeType((t) => MediaRecorder.isTypeSupported(t))
-    const rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+    let rec: MediaRecorder
+    try {
+      rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+    } catch {
+      release()
+      setState('unsupported')
+      return
+    }
     const chunks: Blob[] = []
     const startedAt = performance.now()
     rec.ondataavailable = (e) => {
       if (e.data.size > 0) chunks.push(e.data)
     }
     rec.onstop = () => {
-      stream.getTracks().forEach((t) => t.stop())
-      setSession('ambient')
+      release()
       recorder.current = null
       setState('idle')
       const mime = rec.mimeType || mimeType || 'audio/mp4'
@@ -90,7 +112,13 @@ export function useRecorder(onDone: (rec: Recording) => void) {
   }, [stop])
 
   // Закрыли окно посреди записи — останавливаем и отпускаем микрофон.
-  useEffect(() => () => stop(), [stop])
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      stop()
+    }
+  }, [stop])
 
   return { state, elapsed, start, stop }
 }

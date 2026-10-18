@@ -1,6 +1,6 @@
 import { ClipboardPaste, ImagePlus, Mic, Square, Volume2 } from 'lucide-react'
 import { motion, useReducedMotion } from 'motion/react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { MediaInput } from '../db/cards'
 import { feedback } from '../feedback/feedback'
 import { compressImage, readClipboardImage } from '../media/image'
@@ -90,8 +90,10 @@ export function ImageField({ blob, onChange }: FieldProps) {
 }
 
 /** Своя запись произношения (DESIGN.md → «Запись произношения»). */
-export function AudioField({ blob, onChange }: FieldProps) {
+export function AudioField({ blob, onChange, onRecordingChange }: FieldProps & { onRecordingChange?: (recording: boolean) => void }) {
   const { state, elapsed, start, stop } = useRecorder((rec) => onChange(rec))
+  // Пока идёт запись, «Готово» неактивна — иначе запись потерялась бы.
+  useEffect(() => onRecordingChange?.(state === 'recording'), [state, onRecordingChange])
   const url = useBlobUrl(blob)
   const reduce = useReducedMotion()
   const recording = state === 'recording'

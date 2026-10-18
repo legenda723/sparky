@@ -35,7 +35,8 @@ export function DeckEditor({ open, deck, defaultTitle = '', onClose, onCreated, 
     setTitle(deck?.title ?? defaultTitle)
     setEmoji(deck?.emoji ?? DECK_EMOJIS[0])
     setColor(deck?.color ?? 'green')
-  }, [open, deck, defaultTitle])
+    // Только при открытии: обновления колоды из базы не сбивают ввод.
+  }, [open, deck?.id, defaultTitle])
 
   const valid = title.trim().length > 0
 

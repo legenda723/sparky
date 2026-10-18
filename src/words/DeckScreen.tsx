@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { ClipboardList, Pencil, Plus } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { navigateSub } from '../app/routes'
 import { deleteCard, listCards, restoreCard, setSuspended } from '../db/cards'
 import { db } from '../db/db'
@@ -40,6 +40,8 @@ export function DeckScreen({ deckId }: { deckId: Id }) {
   const [editing, setEditing] = useState<Editing>(null)
   const [editingDeck, setEditingDeck] = useState(false)
   const [pasting, setPasting] = useState(false)
+  // Пока лист слова уезжает вниз, в нём остаётся то же слово, а не пустая форма.
+  const lastCard = useRef<Card | undefined>(undefined)
   const toast = useToast()
   const deckDeleted = useDeckDeletedToast()
 
@@ -67,7 +69,9 @@ export function DeckScreen({ deckId }: { deckId: Id }) {
   }
 
   const shown = filterCards(cards, filter, query)
-  const editingCard = editing?.kind === 'edit' ? cards.find((c) => c.id === editing.id) : undefined
+  if (editing?.kind === 'edit') lastCard.current = cards.find((c) => c.id === editing.id) ?? lastCard.current
+  else if (editing?.kind === 'new') lastCard.current = undefined
+  const editingCard = lastCard.current
 
   const removeCard = async (card: Card) => {
     await deleteCard(db, card.id)

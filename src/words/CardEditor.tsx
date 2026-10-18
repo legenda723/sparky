@@ -35,6 +35,8 @@ const EN = { lang: 'en', autoCapitalize: 'off', autoCorrect: 'off', spellCheck: 
 export function CardEditor({ open, deckId, card, existing, onClose, onAdded, onDelete, onSuspend }: CardEditorProps) {
   const [text, setText] = useState(EMPTY)
   const [media, setMedia] = useState<{ image?: MediaInput; audio?: MediaInput }>({})
+  const [saving, setSaving] = useState(false)
+  const [recording, setRecording] = useState(false)
 
   // Каждое открытие — с актуальными значениями. Пока лист открыт, правки карточки снаружи не сбивают ввод.
   const cardId = card?.id
@@ -42,6 +44,7 @@ export function CardEditor({ open, deckId, card, existing, onClose, onAdded, onD
     if (!open) return
     setText({ ...EMPTY, ...(card ? pick(card) : {}) })
     setMedia({})
+    setSaving(false)
   }, [open, cardId])
 
   // Показываем только что выбранное, иначе сохранённое (null — владелец убрал).
@@ -55,7 +58,9 @@ export function CardEditor({ open, deckId, card, existing, onClose, onAdded, onD
     text.front.trim() !== '' && existing.some((c) => c.id !== card?.id && normalizeWord(c.front) === normalizeWord(text.front))
 
   const save = async () => {
-    if (!valid) return
+    // Двойное касание не должно добавить слово дважды.
+    if (!valid || saving) return
+    setSaving(true)
     if (card) {
       await updateCard(db, card.id, text, media)
       onClose()
@@ -67,7 +72,7 @@ export function CardEditor({ open, deckId, card, existing, onClose, onAdded, onD
   }
 
   return (
-    <FormSheet open={open} title={card ? 'Слово' : 'Новое слово'} onCancel={onClose} onDone={() => void save()} doneDisabled={!valid}>
+    <FormSheet open={open} title={card ? 'Слово' : 'Новое слово'} onCancel={onClose} onDone={() => void save()} doneDisabled={!valid || saving || recording}>
       {card && <CardInfo card={card} />}
       <TextField
         label="Английский"
@@ -80,7 +85,11 @@ export function CardEditor({ open, deckId, card, existing, onClose, onAdded, onD
       <TextField label="Перевод" placeholder="яблоко" value={text.back} onChange={set('back')} />
       <TextField label="Транскрипция (необязательно)" placeholder="[ˈæp.əl]" value={text.transcription} onChange={set('transcription')} {...EN} />
       <ImageField blob={shown(media.image, savedImage)} onChange={(image) => setMedia((m) => ({ ...m, image }))} />
-      <AudioField blob={shown(media.audio, savedAudio)} onChange={(audio) => setMedia((m) => ({ ...m, audio }))} />
+      <AudioField
+        blob={shown(media.audio, savedAudio)}
+        onChange={(audio) => setMedia((m) => ({ ...m, audio }))}
+        onRecordingChange={setRecording}
+      />
       <TextField label="Пример (необязательно)" value={text.example} onChange={set('example')} lang="en" />
       <TextField label="Перевод примера (необязательно)" value={text.exampleTranslation} onChange={set('exampleTranslation')} />
       <TextField label="Заметка (необязательно)" value={text.note} onChange={set('note')} />

@@ -57,6 +57,23 @@ describe('колоды', () => {
   })
 })
 
+describe('возврат колоды', () => {
+  it('на своё место; если место заняли — в конец', async () => {
+    const d = freshDb()
+    const a = await createDeck(d, { title: 'A', emoji: '🅰️', color: 'green' })
+    const b = await createDeck(d, { title: 'B', emoji: '🅱️', color: 'green' })
+    const c = await createDeck(d, { title: 'C', emoji: '©️', color: 'green' })
+    let stamp = await deleteDeck(d, a.id)
+    await restoreDeck(d, a.id, stamp)
+    expect((await listDecks(d)).map((x) => x.title)).toEqual(['A', 'B', 'C'])
+
+    stamp = await deleteDeck(d, a.id)
+    await reorderDecks(d, [c.id, b.id]) // C получает место 0, которое было у A
+    await restoreDeck(d, a.id, stamp)
+    expect((await listDecks(d)).map((x) => x.title)).toEqual(['C', 'B', 'A'])
+  })
+})
+
 describe('карточки', () => {
   it('новая карточка: чистые поля и состояние «новое» FSRS', async () => {
     const d = freshDb()

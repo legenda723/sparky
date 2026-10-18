@@ -25,12 +25,14 @@ const HINT = 'apple - яблоко\nrun | бежать | [rʌn] | I run every da
 export function PasteList({ open, deckId, existing, onClose }: PasteListProps) {
   const [input, setInput] = useState('')
   const [withDups, setWithDups] = useState(false)
+  const [saving, setSaving] = useState(false)
   const toast = useToast()
 
   useEffect(() => {
     if (!open) return
     setInput('')
     setWithDups(false)
+    setSaving(false)
   }, [open])
 
   const parsed = useMemo(() => parseList(input, existing.map((c) => c.front)), [input, existing])
@@ -40,7 +42,9 @@ export function PasteList({ open, deckId, existing, onClose }: PasteListProps) {
   const label = n ? `Добавить ${n} ${plural(n, 'слово', 'слова', 'слов')}` : 'Добавить'
 
   const save = async () => {
-    if (!n) return
+    // Двойное касание (или обе кнопки «Добавить») не должно добавить список дважды.
+    if (!n || saving) return
+    setSaving(true)
     await addCards(db, deckId, toAdd.map((c) => c.text))
     onClose()
     toast({ message: `Добавлено: ${n} ${plural(n, 'слово', 'слова', 'слов')}` })
@@ -56,7 +60,7 @@ export function PasteList({ open, deckId, existing, onClose }: PasteListProps) {
   }
 
   return (
-    <FormSheet open={open} title="Вставить списком" onCancel={onClose} onDone={() => void save()} doneLabel="Добавить" doneDisabled={!n}>
+    <FormSheet open={open} title="Вставить списком" onCancel={onClose} onDone={() => void save()} doneLabel="Добавить" doneDisabled={!n || saving}>
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between">
           <label htmlFor="paste-list" className="text-small font-bold text-muted">
@@ -124,7 +128,7 @@ export function PasteList({ open, deckId, existing, onClose }: PasteListProps) {
         </section>
       )}
 
-      <Button block disabled={!n} onClick={() => void save()}>
+      <Button block disabled={!n || saving} onClick={() => void save()}>
         {label}
       </Button>
     </FormSheet>
