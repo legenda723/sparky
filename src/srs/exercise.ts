@@ -115,7 +115,9 @@ export function pickExercise(
   const ready: PreparedExercise[] = []
   for (const exercise of exerciseCandidates(card)) {
     if (exercise === 'choice-en-ru' || exercise === 'choice-ru-en' || exercise === 'listen' || exercise === 'picture') {
-      const options = target && pickOptions(target, pool, answerSide(exercise), rng)
+      // В аудировании слова-созвучия не бывают и вариантами: their / there вообще не звучат в этом задании.
+      const from = exercise === 'listen' ? pool.filter((c) => !hasHomophone(c.front)) : pool
+      const options = target && pickOptions(target, from, answerSide(exercise), rng)
       if (options) ready.push({ exercise, options })
     } else {
       ready.push({ exercise })

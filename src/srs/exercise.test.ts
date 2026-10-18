@@ -83,6 +83,23 @@ describe('задание по состоянию слова (6.3)', () => {
     expect(exerciseCandidates({ ...excard(State.Review, 10), front: 'window' })).toEqual(['type', 'listen-type', 'flip'])
   })
 
+  it('their / there в уроке не попадают в аудирование — ни заданием, ни вариантом', () => {
+    const words: [string, string][] = [['their', 'их'], ['there', 'там'], ['cat', 'кошка'], ['dog', 'собака'], ['house', 'дом'], ['water', 'вода'], ['bread', 'хлеб']]
+    for (const seed of [1, 2, 3, 4, 5, 6]) {
+      const rng = seeded(seed)
+      const learning = (i: number) => ({ ...createEmptyCard(NOW), state: State.Learning, stability: 0.5, difficulty: 5, reps: 1, id: `h${i}`, front: words[i][0] })
+      const p: PoolCard[] = words.map(([front, back], i) => ({ id: `h${i}`, deckId: 'd1', front, back, introduced: true }))
+      for (const i of words.keys()) {
+        const r = pickExercise(learning(i), p, undefined, rng)
+        if (r.exercise === 'listen') {
+          expect(i).toBeGreaterThan(1)
+          expect(r.options).not.toContain('h0')
+          expect(r.options).not.toContain('h1')
+        }
+      }
+    }
+  })
+
   it('в повторениях никогда не выпадает выбор — даже с фото и при любой случайности', () => {
     const rng = seeded(1)
     for (let i = 0; i < 300; i++) {
