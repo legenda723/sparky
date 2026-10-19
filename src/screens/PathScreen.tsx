@@ -2,7 +2,7 @@
 import { useReducedMotion } from 'motion/react'
 import { RotateCcw } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { navigate, openLesson, type LessonTarget } from '../app/routes'
+import { navigate, navigateSub, openLesson, type LessonTarget } from '../app/routes'
 import { db } from '../db/db'
 import { useCachedLiveQuery } from '../db/liveCache'
 import { loadPath, openChest, PATH_KEY, type PathData } from '../db/path'
@@ -19,6 +19,7 @@ import { Button } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { Mascot } from '../ui/Mascot'
 import { Popover } from '../ui/Popover'
+import { TextButton } from '../ui/TextButton'
 
 /** Сдвиг вбок по волне (DESIGN.md → «Дорожка пути»). */
 const WAVE = [0, 44, 70, 44, 0, -44, -70, -44]
@@ -78,7 +79,12 @@ function Track({ section, burst, setRef, onSelect }: TrackProps) {
   const sign = section.number % 2 === 0 ? -1 : 1
   const nodeCount = section.items.filter((x) => x.kind === 'node').length
   if (section.items.length === 0) {
-    return <p className="m-0 mt-4 text-center text-small font-semibold text-muted">В колоде пока нет слов</p>
+    return (
+      <div className="mt-4 flex flex-col items-center gap-1">
+        <p className="m-0 text-center text-small font-semibold text-muted">В колоде пока нет слов</p>
+        <TextButton onClick={() => navigateSub('words', section.deck.id)}>Добавить слова</TextButton>
+      </div>
+    )
   }
   return (
     <div className="mt-6 flex flex-col">
@@ -147,6 +153,8 @@ export function PathScreen() {
     const box = scrollRef.current
     if (!currentKey || currentKey === scrolledTo.current || !box) return
     scrolledTo.current = currentKey
+    // Путь едет — всплывашка осталась бы висеть над прежним местом.
+    setSelected(null)
     const el = box.querySelector('[data-current]')
     if (!el) return
     const r = el.getBoundingClientRect()
