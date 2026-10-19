@@ -1,5 +1,5 @@
 import { ChevronLeft } from 'lucide-react'
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { IconButton } from '../ui/IconButton'
 import { Mascot } from '../ui/Mascot'
 
@@ -10,12 +10,14 @@ interface ScreenProps {
   /** Кнопка справа от заголовка */
   action?: ReactNode
   children: ReactNode
+  /** Прокручиваемая область — например, чтобы доехать до нужного места. */
+  scrollRef?: Ref<HTMLDivElement>
 }
 
 /** Прокручиваемая область экрана с отступами от «острова». */
-export function Screen({ title, onBack, action, children }: ScreenProps) {
+export function Screen({ title, onBack, action, children, scrollRef }: ScreenProps) {
   return (
-    <div className="h-full overflow-y-auto overscroll-contain pt-[calc(12px+var(--safe-top))] pr-[calc(16px+var(--safe-right))] pb-6 pl-[calc(16px+var(--safe-left))]">
+    <div ref={scrollRef} className="h-full overflow-y-auto overscroll-contain pt-[calc(12px+var(--safe-top))] pr-[calc(16px+var(--safe-right))] pb-6 pl-[calc(16px+var(--safe-left))]">
       <div className="mb-4 flex min-h-11 items-center gap-1">
         {onBack && (
           <IconButton label="Назад" onClick={onBack} className="-ml-3 text-text">

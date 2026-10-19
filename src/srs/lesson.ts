@@ -13,6 +13,10 @@ export const MAX_RETURNS = 3
 export const MAX_NEW_PER_LESSON = 5
 /** Новое слово занимает в уроке ~3 задания: знакомство, выбор и возврат. */
 export const NEW_WORD_COST = 3
+/** Сколько новых слов помещается в урок такого размера (5 при 15 заданиях, 3 при 10). */
+export function newPerLesson(size: number): number {
+  return Math.min(MAX_NEW_PER_LESSON, Math.floor(size / NEW_WORD_COST))
+}
 /** Новое слово — через каждые 2 повторения. */
 const NEW_EVERY = 3
 
@@ -148,7 +152,7 @@ export function buildLesson(
   } else if (mode?.kind === 'node') {
     const blocked = todayCounts(cards, deckOrder, at, limits).dueNow > 0
     const ids = new Set(mode.cardIds)
-    const room = blocked ? 0 : Math.min(MAX_NEW_PER_LESSON, newRoom(limits), Math.floor(limits.size / NEW_WORD_COST))
+    const room = blocked ? 0 : Math.min(newPerLesson(limits.size), newRoom(limits))
     newCards = fresh.filter((c) => ids.has(c.id)).slice(0, room)
     old = due.slice(0, Math.max(0, limits.size - newCards.length * NEW_WORD_COST))
   } else {

@@ -22,6 +22,7 @@
   --c-on-color: #ffffff;
   --c-on-xp: #3c3c3c;
   --c-disabled: #e5e5e5;
+  --c-disabled-shadow: #c9ccd1;
   --c-overlay: rgba(0, 0, 0, 0.4);
   --c-primary-tint: #e3f7e1;
   --c-danger-tint: #ffe6e7;
@@ -71,6 +72,7 @@
     --c-surface: #1c2832;
     --c-bg: #121a21;
     --c-disabled: #37464f;
+    --c-disabled-shadow: #273640;
     --c-overlay: rgba(0, 0, 0, 0.6);
     --c-primary-tint: #1c3627;
     --c-danger-tint: #36262d;
@@ -103,6 +105,7 @@
   --c-surface: #1c2832;
   --c-bg: #121a21;
   --c-disabled: #37464f;
+  --c-disabled-shadow: #273640;
   --c-overlay: rgba(0, 0, 0, 0.6);
   --c-primary-tint: #1c3627;
   --c-danger-tint: #36262d;
@@ -227,14 +230,15 @@
 /* ===== Нажатие (DESIGN.md → «Движение → Нажатие») ===== */
 @layer components {
   /* Объёмный элемент: тень своего цвета складывается под него, вниз быстро, вверх мягко. */
+  /* Глубина задаётся --press-depth: у кнопок 4 px, у узла пути 6 px. */
   .press-3d {
-    box-shadow: 0 4px 0 var(--press-shadow);
+    box-shadow: 0 var(--press-depth, 4px) 0 var(--press-shadow);
     transition-property: translate, box-shadow, background-color, border-color, color;
     transition-duration: 130ms;
     transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
   .press-3d[data-pressed] {
-    translate: 0 4px;
+    translate: 0 var(--press-depth, 4px);
     box-shadow: 0 0 0 var(--press-shadow);
     transition-duration: 50ms;
     transition-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
@@ -300,6 +304,26 @@ html.theme-anim *::after {
     height: min(100lvh, calc(100dvh + env(safe-area-inset-top)));
   }
 }
+
+/* Путь (DESIGN.md → «Узел пути», «Сундук пути», «Кнопка «ПОВТОРИТЬ · N»»): только transform — на видеокарте. */
+@keyframes path-bounce {
+  0%, 70%, 100% { transform: translateY(0); }
+  80% { transform: translateY(-6px); }
+  90% { transform: translateY(0); }
+}
+@keyframes path-wiggle {
+  0%, 80%, 100% { transform: rotate(0deg); }
+  85% { transform: rotate(-6deg); }
+  90% { transform: rotate(6deg); }
+  95% { transform: rotate(-3deg); }
+}
+@keyframes path-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+.path-bounce { animation: path-bounce 2s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
+.path-wiggle { animation: path-wiggle 3s ease-in-out infinite; transform-origin: 50% 90%; }
+.path-pulse { animation: path-pulse 2s ease-in-out infinite; }
 
 /* Уменьшение движения: CSS-анимации и переходы становятся мгновенными */
 @media (prefers-reduced-motion: reduce) {

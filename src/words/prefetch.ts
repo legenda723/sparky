@@ -1,6 +1,9 @@
-// При открытии приложения заранее читаем колоды и слова, чтобы вкладка «Слова» и колоды открывались сразу.
+// При открытии приложения заранее читаем колоды, слова и путь, чтобы экраны открывались сразу.
+// После восстановления и сброса — обновляет память экранов.
 import { db } from '../db/db'
 import { setCached } from '../db/liveCache'
+import { loadPath, PATH_KEY } from '../db/path'
+import { now } from '../srs/clock'
 import type { Card } from '../db/types'
 import { statsByDeck } from './deckStats'
 
@@ -12,7 +15,8 @@ export const KEYS = {
 }
 
 export async function prefetchWords(): Promise<void> {
-  const [decks, cards] = await Promise.all([db.decks.orderBy('order').toArray(), db.cards.toArray()])
+  const [decks, cards, path] = await Promise.all([db.decks.orderBy('order').toArray(), db.cards.toArray(), loadPath(db, now())])
+  setCached(PATH_KEY, path)
   setCached(KEYS.decks, decks.filter((d) => d.deletedAt === undefined))
   setCached(KEYS.stats, statsByDeck(cards, new Date()))
   const byDeck = new Map<string, Card[]>()

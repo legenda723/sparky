@@ -414,6 +414,18 @@ function SeedSection() {
       >
         Добавить 3 колоды
       </Button>
+      <Button
+        variant="secondary"
+        block
+        icon={<Plus size={22} strokeWidth={3} />}
+        onClick={async () => {
+          const { seedPathData } = await import('./seed')
+          await seedPathData()
+          toast({ message: 'Добавлен путь со всеми состояниями' })
+        }}
+      >
+        Путь: все состояния
+      </Button>
       <ClockDemo />
     </Section>
   )
