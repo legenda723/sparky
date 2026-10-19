@@ -44,6 +44,8 @@ export interface PathChest {
   key: string
   deckId: string
   state: ChestState
+  /** Открывается после этого урока раздела (3, 6, 9…). */
+  afterLesson: number
 }
 
 /** Место будущего урока: появится, когда владелец добавит слова (пунктирный «+»). */
@@ -128,16 +130,16 @@ export function buildPath(decks: PathDeck[], cards: PathCard[], chestsClaimed: s
       if ((i + 1) % CHEST_EVERY === 0) {
         const key = chestKey(deck.id, (i + 1) / CHEST_EVERY)
         const done = state === 'passed' || state === 'mastered'
-        items.push({ kind: 'chest', key, deckId: deck.id, state: claimed.has(key) ? 'opened' : done ? 'ready' : 'locked' })
+        items.push({ kind: 'chest', key, deckId: deck.id, state: claimed.has(key) ? 'opened' : done ? 'ready' : 'locked', afterLesson: i + 1 })
       }
     }
-    // Путь виден вперёд: места будущих уроков до ближайшего сундука, и сам сундук — как цель.
+    // Путь виден вперёд: место следующего урока «+» и ближайший сундук — как цель.
     const n = items.filter((x) => x.kind === 'node').length
-    const ghosts = n > 0 && n % CHEST_EVERY === 0 ? 1 : CHEST_EVERY - (n % CHEST_EVERY)
-    for (let g = 0; g < ghosts; g++) items.push({ kind: 'ghost', key: `${deck.id}:+${g}`, deckId: deck.id })
+    items.push({ kind: 'ghost', key: `${deck.id}:+`, deckId: deck.id })
     if (n === 0 || n % CHEST_EVERY !== 0) {
-      const key = chestKey(deck.id, Math.floor(n / CHEST_EVERY) + 1)
-      items.push({ kind: 'chest', key, deckId: deck.id, state: claimed.has(key) ? 'opened' : 'locked' })
+      const k = Math.floor(n / CHEST_EVERY) + 1
+      const key = chestKey(deck.id, k)
+      items.push({ kind: 'chest', key, deckId: deck.id, state: claimed.has(key) ? 'opened' : 'locked', afterLesson: k * CHEST_EVERY })
     }
     return { deck, number: si + 1, items }
   })

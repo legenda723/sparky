@@ -24,6 +24,9 @@
   --c-disabled: #e5e5e5;
   --c-disabled-shadow: #c9ccd1;
   --c-road: #d3d6db;
+  --c-cloud: #eef3f9;
+  --c-cloud-shade: #d9e2ec;
+  --c-cloud-light: #ffffff;
   --c-overlay: rgba(0, 0, 0, 0.4);
   --c-primary-tint: #e3f7e1;
   --c-danger-tint: #ffe6e7;
@@ -75,6 +78,9 @@
     --c-disabled: #37464f;
     --c-disabled-shadow: #273640;
     --c-road: #37464f;
+    --c-cloud: #22364b;
+    --c-cloud-shade: #182839;
+    --c-cloud-light: #2e4760;
     --c-overlay: rgba(0, 0, 0, 0.6);
     --c-primary-tint: #1c3627;
     --c-danger-tint: #36262d;
@@ -109,6 +115,9 @@
   --c-disabled: #37464f;
   --c-disabled-shadow: #273640;
   --c-road: #37464f;
+  --c-cloud: #22364b;
+  --c-cloud-shade: #182839;
+  --c-cloud-light: #2e4760;
   --c-overlay: rgba(0, 0, 0, 0.6);
   --c-primary-tint: #1c3627;
   --c-danger-tint: #36262d;
@@ -151,6 +160,7 @@
   --color-on-xp: var(--c-on-xp);
   --color-disabled: var(--c-disabled);
   --color-road: var(--c-road);
+  --color-cloud: var(--c-cloud);
   --color-overlay: var(--c-overlay);
   --color-primary-tint: var(--c-primary-tint);
   --color-danger-tint: var(--c-danger-tint);
@@ -328,6 +338,24 @@ html.theme-anim *::after {
 .path-bounce { animation: path-bounce 2s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
 .path-wiggle { animation: path-wiggle 3s ease-in-out infinite; transform-origin: 50% 90%; }
 .path-pulse { animation: path-pulse 2s ease-in-out infinite; }
+/* Сияние вокруг текущего узла — расходящееся кольцо. */
+@keyframes path-halo {
+  0% { transform: scale(0.8); opacity: 0.3; }
+  100% { transform: scale(1.25); opacity: 0; }
+}
+.path-halo { animation: path-halo 2s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
+/* Искорки у дорожки мерцают. */
+@keyframes path-twinkle {
+  0%, 100% { transform: scale(0.7) rotate(0deg); opacity: 0.45; }
+  50% { transform: scale(1) rotate(20deg); opacity: 1; }
+}
+.path-twinkle { animation: path-twinkle 2.6s ease-in-out infinite; }
+/* Облака тумана чуть покачиваются. */
+@keyframes cloud-drift {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(10px); }
+}
+.cloud-drift { animation: cloud-drift 7s ease-in-out infinite alternate; }
 
 /* Уменьшение движения: CSS-анимации и переходы становятся мгновенными */
 @media (prefers-reduced-motion: reduce) {

@@ -97,7 +97,15 @@ export function NodeInfo({ node, total, data, onStart, onReview }: NodeInfoProps
   )
 }
 
-export function ChestInfo({ state, opened }: { state: 'locked' | 'ready' | 'opened'; opened?: { gems: number; total: number } }) {
+export function ChestInfo({
+  state,
+  afterLesson,
+  opened,
+}: {
+  state: 'locked' | 'ready' | 'opened'
+  afterLesson: number
+  opened?: { gems: number; total: number }
+}) {
   if (opened) {
     return (
       <>
@@ -117,7 +125,7 @@ export function ChestInfo({ state, opened }: { state: 'locked' | 'ready' | 'open
   return (
     <>
       <Title>Сундук</Title>
-      <Text>Пройди уроки перед ним — и он откроется: внутри 10–20 💎</Text>
+      <Text>{`Откроется после урока ${afterLesson} — внутри 10–20 💎`}</Text>
     </>
   )
 }

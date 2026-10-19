@@ -93,7 +93,7 @@ describe('путь: узлы и их состояния', () => {
       [],
     )
     expect(p.sections.map((s) => s.deck.id)).toEqual(['c'])
-    expect(p.sections[0].items.map((x) => x.kind)).toEqual(['ghost', 'ghost', 'ghost', 'chest'])
+    expect(p.sections[0].items.map((x) => x.kind)).toEqual(['ghost', 'chest'])
     expect(p.current).toBeUndefined()
   })
 
@@ -108,18 +108,20 @@ describe('путь: сундуки', () => {
     const p = buildPath([deck('a', 0)], words('a', 'n'.repeat(35)), [])
     const kinds = p.sections[0].items.map((x) => x.kind)
     // В конце — места будущих уроков и сундук-цель
-    expect(kinds).toEqual(['node', 'node', 'node', 'chest', 'node', 'node', 'node', 'chest', 'node', 'ghost', 'ghost', 'chest'])
+    expect(kinds).toEqual(['node', 'node', 'node', 'chest', 'node', 'node', 'node', 'chest', 'node', 'ghost', 'chest'])
     expect(chests(p.sections[0].items).map((c) => c.key)).toEqual(['a:1', 'a:2', 'a:3'])
     expect(chests(p.sections[0].items).map((c) => c.state)).toEqual(['locked', 'locked', 'locked'])
   })
 
-  it('путь виден вперёд: 1–2 урока — места до сундука и сундук-цель; ровно 3 — одно место', () => {
+  it('путь виден вперёд: «+» и сундук-цель с номером урока; ровно 3 урока — только «+»', () => {
     const one = buildPath([deck('a', 0)], words('a', 'kkkkk'), [])
-    expect(one.sections[0].items.map((x) => x.kind)).toEqual(['node', 'ghost', 'ghost', 'chest'])
+    expect(one.sections[0].items.map((x) => x.kind)).toEqual(['node', 'ghost', 'chest'])
+    expect(chests(one.sections[0].items)[0].afterLesson).toBe(3)
     const two = buildPath([deck('a', 0)], words('a', 'kkkkkkk'), [])
     expect(two.sections[0].items.map((x) => x.kind)).toEqual(['node', 'node', 'ghost', 'chest'])
     const three = buildPath([deck('a', 0)], words('a', 'k'.repeat(15)), [])
     expect(three.sections[0].items.map((x) => x.kind)).toEqual(['node', 'node', 'node', 'chest', 'ghost'])
+    expect(chests(three.sections[0].items)[0].afterLesson).toBe(3)
   })
 
   it('закрыт, пока предыдущий узел не пройден; готов; открыт — по профилю', () => {

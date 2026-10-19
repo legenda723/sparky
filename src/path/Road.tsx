@@ -1,4 +1,5 @@
-// Дорожка между местами пути (DESIGN.md → «Дорожка пути»): пройденная часть — сплошная цвета колоды, впереди — точки.
+// Тропинка между местами пути (DESIGN.md → «Дорожка пути»): широкая мягкая лента под кружками;
+// пройденная часть — цвета колоды, впереди — серая.
 
 export interface RoadPoint {
   /** Сдвиг от середины, px. */
@@ -17,21 +18,18 @@ function segment(a: RoadPoint, b: RoadPoint): string {
 
 export function Road({ points, color }: { points: RoadPoint[]; color: string }) {
   const solid: string[] = []
-  const dotted: string[] = []
+  const ahead: string[] = []
   for (let i = 1; i < points.length; i++) {
     const d = segment(points[i - 1], points[i])
     if (points[i].reached) solid.push(d)
-    else dotted.push(d)
+    else ahead.push(d)
   }
   return (
     // Узкая полоска посередине (нулевую ширину браузер не рисует): координаты — сдвиг от центра дорожки, как у самих кружков.
     <svg aria-hidden className="pointer-events-none absolute top-0 left-1/2 h-full w-px overflow-visible">
-      {solid.length > 0 && (
-        <path d={solid.join(' ')} fill="none" stroke={color} strokeOpacity={0.5} strokeWidth={12} strokeLinecap="round" />
-      )}
-      {dotted.length > 0 && (
-        <path d={dotted.join(' ')} fill="none" stroke="var(--c-road)" strokeWidth={8} strokeLinecap="round" strokeDasharray="0 15" />
-      )}
+      {/* тропинка: впереди — мягкая серая, пройденная часть — цвета колоды */}
+      {ahead.length > 0 && <path d={ahead.join(' ')} fill="none" stroke="var(--c-road)" strokeOpacity={0.7} strokeWidth={30} strokeLinecap="round" />}
+      {solid.length > 0 && <path d={solid.join(' ')} fill="none" stroke={color} strokeOpacity={0.35} strokeWidth={30} strokeLinecap="round" />}
     </svg>
   )
 }

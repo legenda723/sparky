@@ -74,6 +74,10 @@ export const PathNodeButton = forwardRef<HTMLButtonElement, Props>(function Path
   const { fill, shadow } = look(node, color)
   return (
     <div className="relative" style={{ width: SIZE, height: SIZE }}>
+      {node.state === 'current' && (
+        // Мягкое сияние: кольцо цвета колоды расходится и тает.
+        <span aria-hidden className="path-halo absolute -inset-4 rounded-full" style={{ background: DECK_COLORS[color].fill }} />
+      )}
       {node.state === 'current' && <ProgressRing value={node.introduced / node.cardIds.length} color={DECK_COLORS[color].fill} />}
       <button
         ref={ref}
@@ -88,6 +92,10 @@ export const PathNodeButton = forwardRef<HTMLButtonElement, Props>(function Path
         className="press-3d absolute inset-0 flex items-center justify-center rounded-full"
         style={{ background: fill, ['--press-shadow' as string]: shadow, ['--press-depth' as string]: '6px' }}
       >
+        {/* блик сверху — «сочный» объём, как у прогресс-бара (у закрытого — нет) */}
+        {node.state !== 'locked' && (
+          <span aria-hidden className="absolute top-[7px] left-1/2 h-[8px] w-[34px] -translate-x-1/2 rounded-full bg-on-color/20" />
+        )}
         <Icon node={node} />
       </button>
     </div>
