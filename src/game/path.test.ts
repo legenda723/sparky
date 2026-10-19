@@ -1,6 +1,6 @@
 import { State } from 'ts-fsrs'
 import { describe, expect, it } from 'vitest'
-import { buildPath, chestGems, CHEST_GEMS, type PathCard, type PathChest, type PathDeck, type PathNode } from './path'
+import { buildPath, chestGems, CHEST_GEMS, type PathCard, type PathChest, type PathDeck, type PathItem, type PathNode } from './path'
 
 const deck = (id: string, order: number, extra: Partial<PathDeck> = {}): PathDeck => ({
   id,
@@ -31,8 +31,8 @@ function words(deckId: string, pattern: string, extra: (i: number) => Partial<Pa
   })
 }
 
-const nodes = (items: (PathNode | PathChest)[]) => items.filter((x): x is PathNode => x.kind === 'node')
-const chests = (items: (PathNode | PathChest)[]) => items.filter((x): x is PathChest => x.kind === 'chest')
+const nodes = (items: PathItem[]) => items.filter((x): x is PathNode => x.kind === 'node')
+const chests = (items: PathItem[]) => items.filter((x): x is PathChest => x.kind === 'chest')
 
 describe('путь: узлы и их состояния', () => {
   it('узел — 5 слов по порядку, последний может быть неполным', () => {
@@ -93,7 +93,7 @@ describe('путь: узлы и их состояния', () => {
       [],
     )
     expect(p.sections.map((s) => s.deck.id)).toEqual(['c'])
-    expect(p.sections[0].items).toEqual([])
+    expect(p.sections[0].items.map((x) => x.kind)).toEqual(['ghost', 'ghost', 'ghost', 'chest'])
     expect(p.current).toBeUndefined()
   })
 
@@ -107,8 +107,19 @@ describe('путь: сундуки', () => {
   it('сундук после каждого третьего узла', () => {
     const p = buildPath([deck('a', 0)], words('a', 'n'.repeat(35)), [])
     const kinds = p.sections[0].items.map((x) => x.kind)
-    expect(kinds).toEqual(['node', 'node', 'node', 'chest', 'node', 'node', 'node', 'chest', 'node'])
-    expect(chests(p.sections[0].items).map((c) => c.key)).toEqual(['a:1', 'a:2'])
+    // В конце — места будущих уроков и сундук-цель
+    expect(kinds).toEqual(['node', 'node', 'node', 'chest', 'node', 'node', 'node', 'chest', 'node', 'ghost', 'ghost', 'chest'])
+    expect(chests(p.sections[0].items).map((c) => c.key)).toEqual(['a:1', 'a:2', 'a:3'])
+    expect(chests(p.sections[0].items).map((c) => c.state)).toEqual(['locked', 'locked', 'locked'])
+  })
+
+  it('путь виден вперёд: 1–2 урока — места до сундука и сундук-цель; ровно 3 — одно место', () => {
+    const one = buildPath([deck('a', 0)], words('a', 'kkkkk'), [])
+    expect(one.sections[0].items.map((x) => x.kind)).toEqual(['node', 'ghost', 'ghost', 'chest'])
+    const two = buildPath([deck('a', 0)], words('a', 'kkkkkkk'), [])
+    expect(two.sections[0].items.map((x) => x.kind)).toEqual(['node', 'node', 'ghost', 'chest'])
+    const three = buildPath([deck('a', 0)], words('a', 'k'.repeat(15)), [])
+    expect(three.sections[0].items.map((x) => x.kind)).toEqual(['node', 'node', 'node', 'chest', 'ghost'])
   })
 
   it('закрыт, пока предыдущий узел не пройден; готов; открыт — по профилю', () => {

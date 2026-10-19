@@ -46,11 +46,21 @@ export interface PathChest {
   state: ChestState
 }
 
+/** Место будущего урока: появится, когда владелец добавит слова (пунктирный «+»). */
+export interface PathGhost {
+  kind: 'ghost'
+  key: string
+  deckId: string
+}
+
+export type PathItem = PathNode | PathChest | PathGhost
+
 export interface PathSection {
   deck: PathDeck
   /** Номер раздела с 1. */
   number: number
-  items: (PathNode | PathChest)[]
+  /** Узлы и сундуки, а в конце — места будущих уроков и сундук-цель, чтобы путь был виден вперёд. */
+  items: PathItem[]
 }
 
 export interface PathModel {
@@ -94,7 +104,7 @@ export function buildPath(decks: PathDeck[], cards: PathCard[], chestsClaimed: s
 
   const sections = live.map((deck, si): PathSection => {
     const words = deckWords(cards, deck.id)
-    const items: (PathNode | PathChest)[] = []
+    const items: PathItem[] = []
     for (let i = 0; i * NODE_SIZE < words.length; i++) {
       const chunk = words.slice(i * NODE_SIZE, (i + 1) * NODE_SIZE)
       const introduced = chunk.filter(isIntroduced).length
@@ -120,6 +130,14 @@ export function buildPath(decks: PathDeck[], cards: PathCard[], chestsClaimed: s
         const done = state === 'passed' || state === 'mastered'
         items.push({ kind: 'chest', key, deckId: deck.id, state: claimed.has(key) ? 'opened' : done ? 'ready' : 'locked' })
       }
+    }
+    // Путь виден вперёд: места будущих уроков до ближайшего сундука, и сам сундук — как цель.
+    const n = items.filter((x) => x.kind === 'node').length
+    const ghosts = n > 0 && n % CHEST_EVERY === 0 ? 1 : CHEST_EVERY - (n % CHEST_EVERY)
+    for (let g = 0; g < ghosts; g++) items.push({ kind: 'ghost', key: `${deck.id}:+${g}`, deckId: deck.id })
+    if (n === 0 || n % CHEST_EVERY !== 0) {
+      const key = chestKey(deck.id, Math.floor(n / CHEST_EVERY) + 1)
+      items.push({ kind: 'chest', key, deckId: deck.id, state: claimed.has(key) ? 'opened' : 'locked' })
     }
     return { deck, number: si + 1, items }
   })

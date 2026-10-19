@@ -117,7 +117,31 @@ export function ChestInfo({ state, opened }: { state: 'locked' | 'ready' | 'open
   return (
     <>
       <Title>Сундук</Title>
-      <Text>Пройди урок перед ним, чтобы открыть</Text>
+      <Text>Пройди уроки перед ним — и он откроется: внутри 10–20 💎</Text>
+    </>
+  )
+}
+
+/** Место будущего урока: «+» в конце раздела. */
+export function GhostInfo({ deckTitle, onAdd }: { deckTitle: string; onAdd: () => void }) {
+  return (
+    <>
+      <Title>Новый урок</Title>
+      <Text>{`Добавь слова в «${deckTitle}» — каждые 5 слов становятся уроком`}</Text>
+      <div className="mt-4">
+        <Button block onClick={onAdd}>
+          Добавить слова
+        </Button>
+      </div>
+    </>
+  )
+}
+
+export function GemsInfo({ gems }: { gems: number }) {
+  return (
+    <>
+      <Title>{`Кристаллы: ${gems} 💎`}</Title>
+      <Text>Даются за сундуки на пути. Скоро на них можно будет купить заморозку стрика и украшения для Спарки.</Text>
     </>
   )
 }

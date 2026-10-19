@@ -23,6 +23,7 @@
   --c-on-xp: #3c3c3c;
   --c-disabled: #e5e5e5;
   --c-disabled-shadow: #c9ccd1;
+  --c-road: #d3d6db;
   --c-overlay: rgba(0, 0, 0, 0.4);
   --c-primary-tint: #e3f7e1;
   --c-danger-tint: #ffe6e7;
@@ -73,6 +74,7 @@
     --c-bg: #121a21;
     --c-disabled: #37464f;
     --c-disabled-shadow: #273640;
+    --c-road: #37464f;
     --c-overlay: rgba(0, 0, 0, 0.6);
     --c-primary-tint: #1c3627;
     --c-danger-tint: #36262d;
@@ -106,6 +108,7 @@
   --c-bg: #121a21;
   --c-disabled: #37464f;
   --c-disabled-shadow: #273640;
+  --c-road: #37464f;
   --c-overlay: rgba(0, 0, 0, 0.6);
   --c-primary-tint: #1c3627;
   --c-danger-tint: #36262d;
@@ -147,6 +150,7 @@
   --color-on-color: var(--c-on-color);
   --color-on-xp: var(--c-on-xp);
   --color-disabled: var(--c-disabled);
+  --color-road: var(--c-road);
   --color-overlay: var(--c-overlay);
   --color-primary-tint: var(--c-primary-tint);
   --color-danger-tint: var(--c-danger-tint);
