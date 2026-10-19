@@ -20,6 +20,7 @@ import { EmptyState } from '../ui/EmptyState'
 import { Mascot } from '../ui/Mascot'
 import { Popover } from '../ui/Popover'
 import { TextButton } from '../ui/TextButton'
+import { useToast } from '../ui/Toast'
 
 /** Сдвиг вбок по волне (DESIGN.md → «Дорожка пути»). */
 const WAVE = [0, 44, 70, 44, 0, -44, -70, -44]
@@ -70,11 +71,12 @@ function StartBubble() {
 interface TrackProps {
   section: PathSection
   burst: { id: string; gems: number } | null
+  openedHere: ReadonlySet<string>
   setRef: (id: string, el: HTMLElement | null) => void
   onSelect: (item: Item) => void
 }
 
-function Track({ section, burst, setRef, onSelect }: TrackProps) {
+function Track({ section, burst, openedHere, setRef, onSelect }: TrackProps) {
   // В чётных разделах волна зеркальная — дорожка не выглядит одинаково.
   const sign = section.number % 2 === 0 ? -1 : 1
   const nodeCount = section.items.filter((x) => x.kind === 'node').length
@@ -112,7 +114,7 @@ function Track({ section, burst, setRef, onSelect }: TrackProps) {
                 ) : (
                   <ChestButton
                     ref={(el) => setRef(id, el)}
-                    state={burst?.id === id ? 'opened' : item.state}
+                    state={openedHere.has(id) ? 'opened' : item.state}
                     burst={burst?.id === id ? burst.gems : undefined}
                     onSelect={() => onSelect(item)}
                   />
@@ -138,13 +140,23 @@ export function PathScreen() {
   const tick = useMinuteTick()
   const data = useCachedLiveQuery(PATH_KEY, () => loadPath(db, now()), [tick])
   const reduce = useReducedMotion() ?? false
+  const toast = useToast()
   const scrollRef = useRef<HTMLDivElement>(null)
   const refs = useRef(new Map<string, HTMLElement>())
   const anchor = useRef<HTMLElement | null>(null)
   const [selected, setSelected] = useState<Selected | null>(null)
   const [burst, setBurst] = useState<{ id: string; gems: number } | null>(null)
-  const timers = useRef<number[]>([])
-  useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), [])
+  // Сундуки, открытые на этом экране: показываем открытыми, пока база не ответила свежим путём.
+  const [openedHere, setOpenedHere] = useState<ReadonlySet<string>>(new Set())
+  const popTimer = useRef<number | undefined>(undefined)
+  const burstTimer = useRef<number | undefined>(undefined)
+  useEffect(
+    () => () => {
+      window.clearTimeout(popTimer.current)
+      window.clearTimeout(burstTimer.current)
+    },
+    [],
+  )
 
   // Плавно к текущему узлу: при открытии и когда текущий сменился (вернулись из урока — память показала прошлый).
   const currentKey = data?.path.current?.key
@@ -170,32 +182,55 @@ export function PathScreen() {
   }
 
   const show = (s: Selected) => {
+    window.clearTimeout(popTimer.current)
     anchor.current = refs.current.get(s.id) ?? null
     setSelected(s)
   }
 
   const select = async (item: Item) => {
     const id = itemId(item)
-    if (item.kind === 'chest' && item.state === 'ready') {
-      if (burst?.id === id) return
+    if (item.kind === 'chest' && item.state === 'ready' && !openedHere.has(id)) {
       // Отклик сразу при касании (крышка, «+N 💎», звук), запись в базу — следом.
       const gems = chestGems()
       feedback('reward')
+      setOpenedHere((set) => new Set(set).add(id))
       setBurst({ id, gems })
-      const total = await openChest(db, item.key, gems)
-      if (total === null) return
+      window.clearTimeout(burstTimer.current)
+      burstTimer.current = window.setTimeout(() => setBurst((b) => (b?.id === id ? null : b)), 1500)
+      let total: number | null = null
+      try {
+        total = await openChest(db, item.key, gems)
+      } catch {
+        // Не записалось — награды не было: сундук снова закрыт.
+        setBurst(null)
+        setOpenedHere((set) => {
+          const next = new Set(set)
+          next.delete(id)
+          return next
+        })
+        toast({ message: 'Не получилось открыть сундук' })
+        return
+      }
+      if (total === null) {
+        // Уже был открыт раньше — второй награды нет.
+        setBurst(null)
+        show({ id })
+        return
+      }
+      const saved = total
       // Сначала крышка и «+N 💎», потом всплывашка — чтобы она их не закрыла.
-      timers.current.push(
-        window.setTimeout(() => show({ id, opened: { gems, total } }), 700),
-        window.setTimeout(() => setBurst((b) => (b?.id === id ? null : b)), 1500),
-      )
+      window.clearTimeout(popTimer.current)
+      popTimer.current = window.setTimeout(() => show({ id, opened: { gems, total: saved } }), 700)
       return
     }
     show({ id })
   }
 
   const found = data && selected ? findItem(data, selected.id) : null
-  const close = () => setSelected(null)
+  const close = () => {
+    window.clearTimeout(popTimer.current)
+    setSelected(null)
+  }
   const hasDue = !!data && data.today.due > 0
 
   return (
@@ -213,7 +248,7 @@ export function PathScreen() {
               {data.path.sections.map((section) => (
                 <section key={section.deck.id}>
                   <SectionBanner deck={section.deck} number={section.number} />
-                  <Track section={section} burst={burst} setRef={setRef} onSelect={(item) => void select(item)} />
+                  <Track section={section} burst={burst} openedHere={openedHere} setRef={setRef} onSelect={(item) => void select(item)} />
                 </section>
               ))}
               {!data.path.current && (
@@ -257,7 +292,7 @@ export function PathScreen() {
             }}
           />
         ) : found ? (
-          <ChestInfo state={found.item.state as PathChest['state']} opened={selected?.opened} />
+          <ChestInfo state={openedHere.has(itemId(found.item)) ? 'opened' : (found.item.state as PathChest['state'])} opened={selected?.opened} />
         ) : null}
       </Popover>
     </div>

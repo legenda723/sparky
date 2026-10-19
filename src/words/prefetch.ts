@@ -15,8 +15,11 @@ export const KEYS = {
 }
 
 export async function prefetchWords(): Promise<void> {
-  const [decks, cards, path] = await Promise.all([db.decks.orderBy('order').toArray(), db.cards.toArray(), loadPath(db, now())])
-  setCached(PATH_KEY, path)
+  // Путь — отдельно: его ошибка не должна мешать памяти колод и слов.
+  void loadPath(db, now())
+    .then((path) => setCached(PATH_KEY, path))
+    .catch(() => {})
+  const [decks, cards] = await Promise.all([db.decks.orderBy('order').toArray(), db.cards.toArray()])
   setCached(KEYS.decks, decks.filter((d) => d.deletedAt === undefined))
   setCached(KEYS.stats, statsByDeck(cards, new Date()))
   const byDeck = new Map<string, Card[]>()

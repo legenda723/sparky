@@ -166,7 +166,9 @@ export function buildLesson(
   let ni = 0
   while (oi < old.length || ni < newCards.length) {
     const slot = tasks.length
-    const wantNew = ni < newCards.length && (oi >= old.length || slot % NEW_EVERY === NEW_EVERY - 1)
+    // В уроке узла новые идут первыми; иначе — через каждые 2 повторения.
+    const turn = mode?.kind === 'node' || oi >= old.length || slot % NEW_EVERY === NEW_EVERY - 1
+    const wantNew = ni < newCards.length && turn
     if (wantNew) {
       const id = newCards[ni++].id
       tasks.push({ kind: 'intro', cardId: id }, { kind: 'graded', cardId: id })

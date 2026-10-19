@@ -248,6 +248,9 @@ describe('урок узла и урок повторений (SPEC 7.1)', () => 
     expect(buildLesson([soon, ...nodeWords], DECKS, NOW, LIMITS, NODE).reviewCount).toBe(0)
     const big = buildLesson([soon, ...nodeWords], DECKS, NOW, { ...LIMITS, size: 20 }, NODE)
     expect([big.newCount, big.reviewCount]).toEqual([5, 1])
+    // Порядок: сначала все новые слова узла, повторение — после них
+    expect(big.tasks.filter((t) => t.kind !== 'pairs').map((t) => t.cardId).at(-1)).toBe('l')
+    expect(big.tasks[0]).toEqual({ kind: 'intro', cardId: 'a1' })
   })
 
   it('дневной лимит новых — узел даёт сколько можно', () => {
