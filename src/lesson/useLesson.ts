@@ -1,7 +1,7 @@
 // Ход урока на экране: очередь заданий, сохранение каждого ответа сразу, плашка ответа и «Отменить оценку».
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { State } from 'ts-fsrs'
-import { navigate } from '../app/routes'
+import { navigate, parseLessonTarget } from '../app/routes'
 import { setUpdateBlocked } from '../app/updates'
 import { db } from '../db/db'
 import { feedback } from '../feedback/feedback'
@@ -15,6 +15,7 @@ import {
   type UndoToken,
 } from '../db/review'
 import type { Card, Settings } from '../db/types'
+import { nodeCardIds } from '../game/path'
 import { answerXp, lessonXp, practiceXp, XP } from '../game/xp'
 import { stopSpeech } from '../media/speech'
 import { now } from '../srs/clock'
@@ -169,7 +170,12 @@ export function useLesson(): LessonApi {
       try {
         const at = now()
         const input = await loadLessonInput(db, at)
-        const plan = buildLesson(input.cards, input.deckOrder, at, input.limits)
+        const target = parseLessonTarget(window.location.hash)
+        const mode =
+          target.kind === 'node'
+            ? { kind: 'node' as const, cardIds: nodeCardIds(input.cards, target.deckId, target.index) }
+            : target
+        const plan = buildLesson(input.cards, input.deckOrder, at, input.limits, mode)
         const ids = new Set(plan.tasks.map((t) => t.cardId))
         const cards = new Map(input.cards.filter((c) => ids.has(c.id)).map((c) => [c.id, c]))
         // Свои записи произношения — заранее, чтобы озвучка при показе слова звучала сразу.

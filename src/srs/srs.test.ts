@@ -204,7 +204,61 @@ describe('сборщик урока', () => {
 
   it('счётчики на сегодня', () => {
     const cards = [review('r1', '2026-10-17T10:00'), review('r2', '2026-10-20T10:00'), card('n1', 'd1', 0), card('n2', 'd1', 1)]
-    expect(todayCounts(cards, DECKS, NOW, { ...LIMITS, newToday: 9 })).toEqual({ due: 1, newAvailable: 1 })
+    expect(todayCounts(cards, DECKS, NOW, { ...LIMITS, newToday: 9 })).toEqual({ due: 1, dueNow: 1, newAvailable: 1 })
+  })
+
+  it('к сроку — повторения на сегодня и слова в обучении, чьё время уже пришло', () => {
+    const cards = [
+      review('r1', '2026-10-18T22:00'),
+      card('l-now', 'd1', 0, { state: State.Learning, due: new Date(NOW.getTime() - 60_000), reps: 1 }),
+      card('l-soon', 'd1', 1, { state: State.Learning, due: new Date(NOW.getTime() + 10 * 60_000), reps: 1 }),
+    ]
+    expect(todayCounts(cards, DECKS, NOW, LIMITS)).toMatchObject({ due: 3, dueNow: 2 })
+    // Лимит повторений исчерпан — оставшиеся повторения новые не держат
+    expect(todayCounts([cards[0]], DECKS, NOW, { ...LIMITS, reviewLimit: 5, reviewsToday: 5 }).dueNow).toBe(0)
+  })
+})
+
+describe('урок узла и урок повторений (SPEC 7.1)', () => {
+  const nodeWords = ['a1', 'a2', 'a3', 'a4', 'a5'].map((id, i) => card(id, 'd1', i))
+  const NODE = { kind: 'node' as const, cardIds: nodeWords.map((c) => c.id) }
+
+  it('повторения сделаны — урок узла: его 5 новых слов', () => {
+    const other = card('b1', 'd2', 0)
+    const plan = buildLesson([other, ...nodeWords], DECKS, NOW, LIMITS, NODE)
+    expect(plan.newCount).toBe(5)
+    expect(plan.tasks.filter((t) => t.kind === 'intro').map((t) => t.cardId)).toEqual(['a1', 'a2', 'a3', 'a4', 'a5'])
+  })
+
+  it('пока есть повторения к сроку — новые слова узла не открываются', () => {
+    const plan = buildLesson([review('r1', '2026-10-18T10:00'), ...nodeWords], DECKS, NOW, LIMITS, NODE)
+    expect(plan.newCount).toBe(0)
+    expect(plan.tasks.map((t) => t.cardId)).toEqual(['r1'])
+  })
+
+  it('слово в обучении, чьё время пришло, тоже держит новые; ещё не пришло — не держит', () => {
+    const now = card('l', 'd2', 0, { state: State.Learning, due: new Date(NOW.getTime() - 60_000), reps: 1 })
+    expect(buildLesson([now, ...nodeWords], DECKS, NOW, LIMITS, NODE).newCount).toBe(0)
+    const soon = { ...now, due: new Date(NOW.getTime() + 10 * 60_000) }
+    expect(buildLesson([soon, ...nodeWords], DECKS, NOW, LIMITS, NODE).newCount).toBe(5)
+  })
+
+  it('новые занимают урок первыми; повторения — на оставшееся место', () => {
+    const soon = card('l', 'd2', 0, { state: State.Learning, due: new Date(NOW.getTime() + 10 * 60_000), reps: 1 })
+    expect(buildLesson([soon, ...nodeWords], DECKS, NOW, LIMITS, NODE).reviewCount).toBe(0)
+    const big = buildLesson([soon, ...nodeWords], DECKS, NOW, { ...LIMITS, size: 20 }, NODE)
+    expect([big.newCount, big.reviewCount]).toEqual([5, 1])
+  })
+
+  it('дневной лимит новых — узел даёт сколько можно', () => {
+    expect(buildLesson(nodeWords, DECKS, NOW, { ...LIMITS, newToday: 8 }, NODE).newCount).toBe(2)
+    expect(buildLesson(nodeWords, DECKS, NOW, { ...LIMITS, newToday: 10 }, NODE).newCount).toBe(0)
+  })
+
+  it('урок повторений — без новых слов', () => {
+    const plan = buildLesson([review('r1', '2026-10-18T10:00'), ...nodeWords], DECKS, NOW, LIMITS, { kind: 'review' })
+    expect(plan.newCount).toBe(0)
+    expect(plan.reviewCount).toBe(1)
   })
 })
 

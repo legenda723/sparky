@@ -62,20 +62,44 @@ export interface LessonPlan {
   reviewCount: number
 }
 
-/** Что ждёт сегодня: повторения (включая слова в обучении) и сколько новых ещё можно. */
+export interface TodayCounts {
+  /** Повторения на сегодня (с лимитом) и слова в обучении, включая те, что подойдут в ближайшие 20 минут. */
+  due: number
+  /** Сколько из них уже к сроку: повторения на сегодня и слова в обучении, чьё время пришло. Пока > 0 — новые закрыты. */
+  dueNow: number
+  /** Сколько новых ещё можно сегодня. */
+  newAvailable: number
+}
+
+/** Что ждёт сегодня. */
 export function todayCounts(
   cards: LessonCardInput[],
   deckOrder: Map<string, number>,
   at: Date,
   limits: LessonLimits,
-): { due: number; newAvailable: number } {
+): TodayCounts {
   const { reviews, learning, fresh } = sortCards(cards, deckOrder, at, limits.retention)
-  const reviewRoom = limits.reviewLimit > 0 ? Math.max(0, limits.reviewLimit - limits.reviewsToday) : Infinity
+  const dueReviews = Math.min(reviews.length, reviewRoom(limits))
   return {
-    due: Math.min(reviews.length, reviewRoom) + learning.length,
-    newAvailable: Math.min(fresh.length, Math.max(0, limits.newPerDay - limits.newToday)),
+    due: dueReviews + learning.length,
+    dueNow: dueReviews + learning.filter((c) => c.due.getTime() <= at.getTime()).length,
+    newAvailable: Math.min(fresh.length, newRoom(limits)),
   }
 }
+
+function reviewRoom(limits: LessonLimits): number {
+  return limits.reviewLimit > 0 ? Math.max(0, limits.reviewLimit - limits.reviewsToday) : Infinity
+}
+
+function newRoom(limits: LessonLimits): number {
+  return Math.max(0, limits.newPerDay - limits.newToday)
+}
+
+/**
+ * Какой урок собрать: «review» — только повторения (кнопка «ПОВТОРИТЬ»);
+ * «node» — новые слова узла пути (SPEC 7.1), но только когда сегодняшние повторения сделаны.
+ */
+export type LessonMode = { kind: 'review' } | { kind: 'node'; cardIds: string[] }
 
 function sortCards(cards: LessonCardInput[], deckOrder: Map<string, number>, at: Date, retention: number) {
   const tomorrow = nextDayStart(at).getTime()
@@ -102,19 +126,36 @@ function sortCards(cards: LessonCardInput[], deckOrder: Map<string, number>, at:
 /**
  * Собирает урок: сначала повторения, потом слова в обучении; новые — через каждые 2 задания,
  * каждое новое — «знакомство» и сразу задание с оценкой (выбор). Какое задание — решается при показе (prepareCurrent).
+ *
+ * Режим «review» — без новых слов. Режим «node» — новые только из слов узла и только когда повторения
+ * к сроку сделаны (dueNow = 0, как в Anki: сначала долги, потом новое); новые занимают урок первыми,
+ * повторения — на оставшееся место. Без режима — новые по общему порядку колод, после повторений.
  */
 export function buildLesson(
   cards: LessonCardInput[],
   deckOrder: Map<string, number>,
   at: Date,
   limits: LessonLimits,
+  mode?: LessonMode,
 ): LessonPlan {
   const { reviews, learning, fresh } = sortCards(cards, deckOrder, at, limits.retention)
-  const reviewRoom = limits.reviewLimit > 0 ? Math.max(0, limits.reviewLimit - limits.reviewsToday) : Infinity
-  const old = [...reviews.slice(0, reviewRoom), ...learning].slice(0, limits.size)
-  const newRoom = Math.max(0, limits.newPerDay - limits.newToday)
-  const budgetForNew = Math.floor((limits.size - old.length) / NEW_WORD_COST)
-  const newCards = fresh.slice(0, Math.min(MAX_NEW_PER_LESSON, newRoom, budgetForNew))
+  const due = [...reviews.slice(0, reviewRoom(limits)), ...learning]
+  let old: LessonCardInput[]
+  let newCards: LessonCardInput[]
+  if (mode?.kind === 'review') {
+    old = due.slice(0, limits.size)
+    newCards = []
+  } else if (mode?.kind === 'node') {
+    const blocked = todayCounts(cards, deckOrder, at, limits).dueNow > 0
+    const ids = new Set(mode.cardIds)
+    const room = blocked ? 0 : Math.min(MAX_NEW_PER_LESSON, newRoom(limits), Math.floor(limits.size / NEW_WORD_COST))
+    newCards = fresh.filter((c) => ids.has(c.id)).slice(0, room)
+    old = due.slice(0, Math.max(0, limits.size - newCards.length * NEW_WORD_COST))
+  } else {
+    old = due.slice(0, limits.size)
+    const budgetForNew = Math.floor((limits.size - old.length) / NEW_WORD_COST)
+    newCards = fresh.slice(0, Math.min(MAX_NEW_PER_LESSON, newRoom(limits), budgetForNew))
+  }
 
   const tasks: Task[] = []
   let oi = 0

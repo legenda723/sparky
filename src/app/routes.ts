@@ -50,3 +50,22 @@ export function useRoute(): Route {
 export function navigate(route: Route): void {
   window.location.replace(routeHref(route))
 }
+
+/** Какой урок открыть: повторения (кнопка «ПОВТОРИТЬ») или узел пути. */
+export type LessonTarget = { kind: 'review' } | { kind: 'node'; deckId: string; index: number }
+
+/** «#/lesson/review», «#/lesson/<колода>/<номер узла>». */
+export function lessonHref(target: LessonTarget): string {
+  return target.kind === 'review' ? '#/lesson/review' : `#/lesson/${target.deckId}/${target.index}`
+}
+
+export function parseLessonTarget(hash: string): LessonTarget {
+  const [deckId, index] = parseSubPath(hash).split('/')
+  const n = Number(index)
+  if (deckId && deckId !== 'review' && Number.isInteger(n) && n >= 0) return { kind: 'node', deckId, index: n }
+  return { kind: 'review' }
+}
+
+export function openLesson(target: LessonTarget): void {
+  window.location.replace(lessonHref(target))
+}

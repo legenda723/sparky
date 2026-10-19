@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseRoute, parseSubPath, routeHref } from './routes'
+import { parseRoute, parseSubPath, routeHref, lessonHref, parseLessonTarget } from './routes'
 
 describe('parseRoute', () => {
   it('пустой адрес → Путь', () => {
@@ -34,5 +34,17 @@ describe('parseSubPath', () => {
     expect(parseSubPath('#/words')).toBe('')
     expect(parseSubPath('#/words/deck-1')).toBe('deck-1')
     expect(parseSubPath('#/words/deck-1?x=1')).toBe('deck-1')
+  })
+})
+
+describe('адрес урока', () => {
+  it('повторения и узел пути — туда и обратно', () => {
+    expect(parseLessonTarget(lessonHref({ kind: 'review' }))).toEqual({ kind: 'review' })
+    expect(parseLessonTarget(lessonHref({ kind: 'node', deckId: 'abc-1', index: 3 }))).toEqual({ kind: 'node', deckId: 'abc-1', index: 3 })
+    expect(parseRoute(lessonHref({ kind: 'node', deckId: 'abc', index: 0 }))).toBe('lesson')
+  })
+  it('непонятный хвост — урок повторений', () => {
+    expect(parseLessonTarget('#/lesson')).toEqual({ kind: 'review' })
+    expect(parseLessonTarget('#/lesson/abc/x')).toEqual({ kind: 'review' })
   })
 })
