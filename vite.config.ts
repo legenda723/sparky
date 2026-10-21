@@ -58,7 +58,7 @@ export default defineConfig({
       },
       workbox: {
         // Всё приложение (включая шрифт и витрину) — в офлайн-кэше.
-        globPatterns: ['**/*.{js,css,html,woff2,svg,png,ico}'],
+        globPatterns: ['**/*.{js,css,html,woff2,svg,png,ico,webp}'],
       },
     }),
   ],

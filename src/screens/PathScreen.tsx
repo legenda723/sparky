@@ -1,5 +1,5 @@
 // Экран «Путь» (SPEC 7.1): разделы-колоды, извилистая тропинка узлов, сундуки, туман впереди, кнопка «ПОВТОРИТЬ · N».
-import { AnimatePresence, useReducedMotion } from 'motion/react'
+import { useReducedMotion } from 'motion/react'
 import { ArrowDown, ArrowUp, Gem, RotateCcw } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { navigate, navigateSub, openLesson, type LessonTarget } from '../app/routes'
@@ -13,7 +13,7 @@ import { unlockSpeech } from '../media/speech'
 import { CollapsedSection } from '../path/CollapsedSection'
 import { Fog } from '../path/Fog'
 import { ChestInfo, GemsInfo, GhostInfo, NodeInfo } from '../path/NodeInfo'
-import { itemId, PathTrack, ROW } from '../path/PathTrack'
+import { itemId, PathTrack } from '../path/PathTrack'
 import { SectionBanner } from '../path/SectionBanner'
 import { now } from '../srs/clock'
 import { plural } from '../srs/status'
@@ -27,10 +27,8 @@ import { usePress } from '../ui/usePress'
 
 /** Всплывашка счётчика кристаллов. */
 const GEMS_ID = 'gems'
-/** Облачный вал ниже последнего места: до него можно долистать (~треть экрана), дальше — нет. */
-const FOG_TAIL = 230
-/** Мягкий заход тумана на место над ним. */
-const FOG_OVERLAP = 34
+/** Сплошной дым ниже последнего места: до него можно долистать (~треть экрана), дальше — нет. */
+const FOG_TAIL = 260
 
 type Selected = { id: string; opened?: { gems: number; total: number } }
 
@@ -118,20 +116,17 @@ export function PathScreen() {
 
   const view = useMemo(() => (data ? pathView(data.path, expanded, showAll) : null), [data, expanded, showAll])
 
-  // Туман: верх — у первого места под облаками (или сразу под последним). Ключ — последнее видимое место:
-  // путь открылся дальше → старый туман разъезжается, новый проявляется ниже.
-  const lastEntry = view?.sections.at(-1)?.entries.at(-1)
-  const fogKey = lastEntry ? itemId(lastEntry.item) : 'end'
-  const fogged = view ? view.sections.reduce((n, s) => n + s.entries.filter((e) => e.fogged).length, 0) : 0
+  // Туман: плотный дым начинается у первого места под туманом (или сразу под последним видимым).
+  // Путь открылся дальше → край плавно отступает вниз (Fog).
+  const tailRef = useRef<HTMLDivElement>(null)
   const [fogTop, setFogTop] = useState<number | null>(null)
   useLayoutEffect(() => {
     const list = listRef.current
     if (!list || !view?.fog) return
-    const start = list.querySelector('[data-fog-start]')
-    const base = list.getBoundingClientRect().top
-    const top = start ? start.getBoundingClientRect().top - base : list.getBoundingClientRect().height - FOG_TAIL
-    setFogTop(Math.round(top - FOG_OVERLAP))
-  }, [view, fogKey])
+    const start = list.querySelector('[data-fog-start]') ?? tailRef.current
+    if (!start) return
+    setFogTop(Math.round(start.getBoundingClientRect().top - list.getBoundingClientRect().top))
+  }, [view])
 
   // Плавно к текущему узлу: при открытии и когда текущий сменился (вернулись из урока — память показала прошлый).
   const currentKey = data?.path.current?.key
@@ -245,7 +240,7 @@ export function PathScreen() {
 
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain pt-2 pr-[calc(16px+var(--safe-right))] pl-[calc(16px+var(--safe-left))]"
+        className="min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-y-none pt-2 pr-[calc(16px+var(--safe-right))] pl-[calc(16px+var(--safe-left))]"
       >
         {data && view && data.path.sections.length === 0 && (
           <EmptyState title="Добавь первые слова" text="Каждые 5 слов — новый урок на пути. Слова добавляешь ты сам — те, что встречаешь.">
@@ -255,7 +250,7 @@ export function PathScreen() {
           </EmptyState>
         )}
         {data && view && view.sections.length > 0 && (
-          <div ref={listRef} className="relative flex flex-col gap-6">
+          <div ref={listRef} className="relative flex min-h-full flex-col gap-6">
             {view.sections.map(({ section, collapsed, hiddenBefore, entries }) =>
               collapsed ? (
                 <CollapsedSection key={section.deck.id} section={section} onOpen={() => setExpanded((s) => toggle(s, section.deck.id))} />
@@ -293,10 +288,9 @@ export function PathScreen() {
               ),
             )}
             {/* Место под облачный вал: долистать до тумана можно, дальше — нет. */}
-            {view.fog && <div aria-hidden style={{ height: FOG_TAIL - 24 }} />}
-            <AnimatePresence initial={false}>
-              {view.fog && fogTop !== null && <Fog key={fogKey} top={fogTop} height={fogged * ROW + FOG_OVERLAP + FOG_TAIL} />}
-            </AnimatePresence>
+            {/* Место под сплошной дым: долистать до него можно, дальше — нет (резинки внизу нет). */}
+            {view.fog && <div ref={tailRef} aria-hidden className="shrink-0" style={{ height: FOG_TAIL }} />}
+            {view.fog && fogTop !== null && <Fog top={fogTop} />}
           </div>
         )}
       </div>

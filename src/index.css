@@ -24,9 +24,6 @@
   --c-disabled: #e5e5e5;
   --c-disabled-shadow: #c9ccd1;
   --c-road: #d3d6db;
-  --c-cloud: #eef3f9;
-  --c-cloud-shade: #d9e2ec;
-  --c-cloud-light: #ffffff;
   --c-overlay: rgba(0, 0, 0, 0.4);
   --c-primary-tint: #e3f7e1;
   --c-danger-tint: #ffe6e7;
@@ -78,9 +75,6 @@
     --c-disabled: #37464f;
     --c-disabled-shadow: #273640;
     --c-road: #37464f;
-    --c-cloud: #22364b;
-    --c-cloud-shade: #182839;
-    --c-cloud-light: #2e4760;
     --c-overlay: rgba(0, 0, 0, 0.6);
     --c-primary-tint: #1c3627;
     --c-danger-tint: #36262d;
@@ -115,9 +109,6 @@
   --c-disabled: #37464f;
   --c-disabled-shadow: #273640;
   --c-road: #37464f;
-  --c-cloud: #22364b;
-  --c-cloud-shade: #182839;
-  --c-cloud-light: #2e4760;
   --c-overlay: rgba(0, 0, 0, 0.6);
   --c-primary-tint: #1c3627;
   --c-danger-tint: #36262d;
@@ -160,7 +151,6 @@
   --color-on-xp: var(--c-on-xp);
   --color-disabled: var(--c-disabled);
   --color-road: var(--c-road);
-  --color-cloud: var(--c-cloud);
   --color-overlay: var(--c-overlay);
   --color-primary-tint: var(--c-primary-tint);
   --color-danger-tint: var(--c-danger-tint);
@@ -350,12 +340,30 @@ html.theme-anim *::after {
   50% { transform: scale(1) rotate(20deg); opacity: 1; }
 }
 .path-twinkle { animation: path-twinkle 2.6s ease-in-out infinite; }
-/* Облака тумана чуть покачиваются. */
-@keyframes cloud-drift {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(10px); }
+/* Туман пути (DESIGN.md → «Туман пути»): готовые картинки дыма (scripts/gen-fog.mjs), плитка 512 px.
+   Слои медленно едут вбок ровно на одну плитку и повторяются — шва нет. Только transform. */
+.fog-edge { background: url('./path/fog/fog-edge-light.webp') repeat-x 0 0 / 512px 256px; }
+.fog-body { background: url('./path/fog/fog-body-light.webp') repeat 0 0 / 512px 512px; }
+.fog-wisp { background: url('./path/fog/fog-wisp-light.webp') repeat-x 0 0 / 512px 220px; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .fog-edge { background-image: url('./path/fog/fog-edge-dark.webp'); }
+  :root:not([data-theme='light']) .fog-body { background-image: url('./path/fog/fog-body-dark.webp'); }
+  :root:not([data-theme='light']) .fog-wisp { background-image: url('./path/fog/fog-wisp-dark.webp'); }
 }
-.cloud-drift { animation: cloud-drift 7s ease-in-out infinite alternate; }
+:root[data-theme='dark'] .fog-edge { background-image: url('./path/fog/fog-edge-dark.webp'); }
+:root[data-theme='dark'] .fog-body { background-image: url('./path/fog/fog-body-dark.webp'); }
+:root[data-theme='dark'] .fog-wisp { background-image: url('./path/fog/fog-wisp-dark.webp'); }
+@keyframes fog-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-512px); }
+}
+@keyframes fog-bob {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(8px); }
+}
+.fog-drift { animation: fog-drift 90s linear infinite; }
+.fog-drift-back { animation: fog-drift 60s linear infinite reverse; }
+.fog-bob { animation: fog-bob 7s ease-in-out infinite alternate; }
 
 /* Уменьшение движения: CSS-анимации и переходы становятся мгновенными */
 @media (prefers-reduced-motion: reduce) {

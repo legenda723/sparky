@@ -73,6 +73,9 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
     return { x: WAVE[index % WAVE.length] * sign, y: bottom - CENTER_FROM_BOTTOM, reached: reached(item, openedHere) }
   })
   const firstFogged = entries.findIndex((e) => e.fogged)
+  // Маскот — у 3-го видимого места, но не под туманом.
+  const clear = firstFogged < 0 ? entries.length : firstFogged
+  const mascotAt = clear > 1 ? Math.min(MASCOT_AT, clear - 1) : -1
   return (
     <div className="relative flex flex-col">
       <Road points={points} color={DECK_COLORS[color].fill} />
@@ -89,7 +92,7 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
             className="relative flex items-end justify-center pb-3"
             style={{ height: current ? ROW_CURRENT : ROW }}
           >
-            {i === Math.min(MASCOT_AT, entries.length - 1) && entries.length > 1 && (
+            {i === mascotAt && (
               <div className="pointer-events-none absolute bottom-0" style={{ left: `calc(50% + ${side * 112}px - 48px)` }}>
                 <Mascot size={96} />
               </div>
