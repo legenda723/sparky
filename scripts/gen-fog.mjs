@@ -143,10 +143,19 @@ const lineRand = rng(77)
 const waves = [1, 2, 3, 5].map((f) => ({ f, p: lineRand() * Math.PI * 2, a: 1 / (f + 0.5) }))
 const edgeLine = (x) => EH * 0.44 + EH * 0.14 * waves.reduce((s, w) => s + w.a * Math.sin((x / W) * Math.PI * 2 * w.f + w.p), 0)
 
+/**
+ * Плотность дыма (непрозрачность) в сплошной части: не стена, а вуаль — светлые клубы гуще,
+ * провалы между ними прозрачнее; сквозь дым угадывается путь (решение владельца: «менее густой»).
+ */
+const veil = (l, s) => clamp(0.5 + l * 0.32 + s * 0.35)
+
 for (const theme of Object.keys(THEMES)) {
   const body = new Uint8ClampedArray(W * H * 4)
   for (let y = 0; y < H; y++)
-    for (let x = 0; x < W; x++) body.set([...rgbOf(theme, light(x, EH + y).l), 255], (y * W + x) * 4)
+    for (let x = 0; x < W; x++) {
+      const { l, s } = light(x, EH + y)
+      body.set([...rgbOf(theme, l), Math.round(veil(l, s) * 255)], (y * W + x) * 4)
+    }
   await save(`fog-body-${theme}.webp`, W, H, body)
 
   // край: клубы выступают, разводы дыма делают его рваным; к верху тает полностью, ниже — плотно
@@ -158,6 +167,7 @@ for (const theme of Object.keys(THEMES)) {
       let a = smooth(-1.5, 0.6, t)
       a *= smooth(0, EH * 0.28, r)
       a = Math.max(a, smooth(EH * 0.5, EH * 0.78, r))
+      a *= veil(l, s) // внизу край ровно переходит в вуаль сплошной части
       edge.set([...rgbOf(theme, l), Math.round(a * 255)], (r * W + x) * 4)
     }
   await save(`fog-edge-${theme}.webp`, W, EH, edge)

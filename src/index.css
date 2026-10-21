@@ -345,6 +345,8 @@ html.theme-anim *::after {
 .fog-edge { background: url('./path/fog/fog-edge-light.webp') repeat-x 0 0 / 512px 256px; }
 .fog-body { background: url('./path/fog/fog-body-light.webp') repeat 0 0 / 512px 512px; }
 .fog-wisp { background: url('./path/fog/fog-wisp-light.webp') repeat-x 0 0 / 512px 220px; }
+/* Глубина тумана: от прозрачного к цвету фона за 190 px — путь под дымом гаснет, сам дым остаётся лёгким. */
+.fog-depth { background: linear-gradient(to bottom, transparent, var(--c-bg) 190px); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .fog-edge { background-image: url('./path/fog/fog-edge-dark.webp'); }
   :root:not([data-theme='light']) .fog-body { background-image: url('./path/fog/fog-body-dark.webp'); }

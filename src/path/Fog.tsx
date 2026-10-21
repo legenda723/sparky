@@ -27,6 +27,8 @@ export function Fog({ top }: { top: number }) {
 
   return (
     <div ref={ref} aria-hidden className="pointer-events-none absolute -right-4 bottom-0 -left-4 overflow-hidden" style={{ top: top - FOG_LEAD }}>
+      {/* глубина: под дымом путь плавно уходит в фон — дальше двух мест его не видно, обрыва нет */}
+      <div className="fog-depth absolute inset-x-0 bottom-0" style={{ top: FOG_LEAD + 10 }} />
       {/* основной дым: край и сплошной дым едут вместе, плитки стыкуются без шва */}
       <div className="fog-drift absolute inset-y-0 left-0 w-[calc(100%+512px)]">
         <div className="fog-edge h-[256px]" />
