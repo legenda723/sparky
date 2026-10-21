@@ -102,7 +102,7 @@ function puffField(h, count, rMin, rMax, seed) {
  * в тёмной — серый (светлее фона, но приглушённый, чтобы не слепил ночью).
  */
 const THEMES = {
-  light: { deep: [150, 158, 170], mid: [198, 204, 213], top: [248, 249, 251] },
+  light: { deep: [150, 158, 170], mid: [196, 202, 211], top: [244, 246, 249] },
   dark: { deep: [88, 94, 104], mid: [132, 139, 149], top: [190, 195, 202] },
 }
 
@@ -127,7 +127,13 @@ function light(x, yy) {
   return { l, d, s }
 }
 
-function rgbOf(theme, l) {
+/**
+ * Рисунок дыма — из прозрачности: густые места — самые светлые, в редких проступает фон. На тёмном фоне
+ * это складывается в светлые клубы с тёмными провалами. На белом фоне сложилось бы в ровную пелену,
+ * поэтому в светлой теме тон обратный: густые клубы — серые, редкие места — светлые и прозрачные.
+ */
+function rgbOf(theme, l0) {
+  const l = theme === 'light' ? 1 - l0 : l0
   const c = THEMES[theme]
   return l < 0.5 ? c.deep.map((v, i) => lerp(v, c.mid[i], l / 0.5)) : c.mid.map((v, i) => lerp(v, c.top[i], (l - 0.5) / 0.5))
 }
@@ -168,8 +174,6 @@ for (const theme of Object.keys(THEMES)) {
       a *= smooth(0, EH * 0.28, r)
       a = Math.max(a, smooth(EH * 0.5, EH * 0.78, r))
       a *= veil(l, s) // внизу край ровно переходит в вуаль сплошной части
-      // светлая тема: на белом фоне начало тумана гуще (решение владельца), к низу края — как сплошная часть
-      if (theme === 'light') a = lerp(1 - (1 - a) ** 1.8, a, smooth(EH * 0.6, EH, r))
       edge.set([...rgbOf(theme, l), Math.round(a * 255)], (r * W + x) * 4)
     }
   await save(`fog-edge-${theme}.webp`, W, EH, edge)
