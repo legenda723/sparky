@@ -222,7 +222,7 @@ export function PathScreen() {
   const hasDue = !!data && data.today.due > 0
 
   return (
-    <div className="relative flex h-full flex-col">
+    <div className="relative flex h-full flex-col bg-bg">
       {/* Шапка не прокручивается: заголовок и кристаллы всегда на виду, плашка раздела прилипает под ней. */}
       <header className="flex min-h-11 shrink-0 items-center gap-1 bg-bg pt-[calc(12px+var(--safe-top))] pr-[calc(16px+var(--safe-right))] pb-2 pl-[calc(16px+var(--safe-left))]">
         <h1 className="m-0 min-w-0 flex-1 truncate text-title font-black text-text">Путь</h1>
@@ -238,10 +238,16 @@ export function PathScreen() {
         )}
       </header>
 
-      <div
-        ref={scrollRef}
-        className="min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-y-none pt-2 pr-[calc(16px+var(--safe-right))] pl-[calc(16px+var(--safe-left))]"
-      >
+      {/* Дым под путём: когда внизу оттягиваешь экран «резинкой», из-под пути видно его, а не пустоту. */}
+      {view?.fog && (
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[55%] overflow-hidden bg-bg">
+          <div className="fog-drift fog-body absolute inset-y-0 left-0 w-[calc(100%+512px)]" />
+        </div>
+      )}
+
+      <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-y-contain">
+        {/* Содержимое непрозрачное: дым под путём виден только при оттягивании ниже конца. */}
+        <div className="flex min-h-full flex-col bg-bg pt-2 pr-[calc(16px+var(--safe-right))] pl-[calc(16px+var(--safe-left))]">
         {data && view && data.path.sections.length === 0 && (
           <EmptyState title="Добавь первые слова" text="Каждые 5 слов — новый урок на пути. Слова добавляешь ты сам — те, что встречаешь.">
             <Button block onClick={() => navigate('words')}>
@@ -250,7 +256,7 @@ export function PathScreen() {
           </EmptyState>
         )}
         {data && view && view.sections.length > 0 && (
-          <div ref={listRef} className="relative flex min-h-full flex-col gap-6">
+          <div ref={listRef} className="relative flex flex-1 flex-col gap-6">
             {view.sections.map(({ section, collapsed, hiddenBefore, entries }) =>
               collapsed ? (
                 <CollapsedSection key={section.deck.id} section={section} onOpen={() => setExpanded((s) => toggle(s, section.deck.id))} />
@@ -293,6 +299,7 @@ export function PathScreen() {
             {view.fog && fogTop !== null && <Fog top={fogTop} />}
           </div>
         )}
+        </div>
       </div>
 
       {(hasDue || away) && (
