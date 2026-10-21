@@ -8,7 +8,11 @@ import { useLayoutEffect, useRef } from 'react'
 /** Сколько прозрачного края над первым скрытым местом: путь сквозь него чуть проглядывает. */
 export const FOG_LEAD = 110
 
-export function Fog({ top }: { top: number }) {
+/** Маска: внизу туман плавно растворяется (неподвижная маска — считается один раз). */
+const fade = (blend: number) => `linear-gradient(to bottom, #000 calc(100% - ${blend}px), transparent)`
+
+/** blend — на сколько px низ тумана растворяется (под ним — такой же дым под путём). */
+export function Fog({ top, blend }: { top: number; blend: number }) {
   const reduce = useReducedMotion() ?? false
   const ref = useRef<HTMLDivElement>(null)
   const prevTop = useRef(top)
@@ -26,7 +30,12 @@ export function Fog({ top }: { top: number }) {
   }, [top, reduce])
 
   return (
-    <div ref={ref} aria-hidden className="pointer-events-none absolute -right-4 bottom-0 -left-4 overflow-hidden" style={{ top: top - FOG_LEAD }}>
+    <div
+      ref={ref}
+      aria-hidden
+      className="pointer-events-none absolute -right-4 bottom-0 -left-4 overflow-hidden"
+      style={{ top: top - FOG_LEAD, maskImage: fade(blend), WebkitMaskImage: fade(blend) }}
+    >
       {/* глубина: под дымом путь плавно уходит в фон — дальше двух мест его не видно, обрыва нет */}
       <div className="fog-depth absolute inset-x-0 bottom-0" style={{ top: FOG_LEAD + 10 }} />
       {/* основной дым: край и сплошной дым едут вместе, плитки стыкуются без шва */}

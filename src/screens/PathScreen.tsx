@@ -27,6 +27,8 @@ import { usePress } from '../ui/usePress'
 
 /** Всплывашка счётчика кристаллов. */
 const GEMS_ID = 'gems'
+/** Низ тумана в пути плавно растворяется в дым под путём — на этой высоте, px. */
+const FOG_BLEND = 220
 /** Сплошной дым ниже последнего места: до него можно долистать (~треть экрана), дальше — нет. */
 const FOG_TAIL = 260
 
@@ -238,16 +240,24 @@ export function PathScreen() {
         )}
       </header>
 
-      {/* Дым под путём: когда внизу оттягиваешь экран «резинкой», из-под пути видно его, а не пустоту. */}
+      {/* Дым под путём: когда внизу оттягиваешь экран «резинкой», видно его продолжение, а не пустоту.
+          Низ тумана в пути плавно растворяется в этот слой (FOG_BLEND) — шва нет. */}
       {view?.fog && (
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[55%] overflow-hidden bg-bg">
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[65%] overflow-hidden bg-bg">
           <div className="fog-drift fog-body absolute inset-y-0 left-0 w-[calc(100%+512px)]" />
         </div>
       )}
 
       <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-y-contain">
         {/* Содержимое непрозрачное: дым под путём виден только при оттягивании ниже конца. */}
-        <div className="flex min-h-full flex-col bg-bg pt-2 pr-[calc(16px+var(--safe-right))] pl-[calc(16px+var(--safe-left))]">
+        <div
+          className="flex min-h-full flex-col pt-2 pr-[calc(16px+var(--safe-right))] pl-[calc(16px+var(--safe-left))]"
+          style={{
+            background: view?.fog
+              ? `linear-gradient(to bottom, var(--c-bg) calc(100% - ${FOG_BLEND}px), transparent)`
+              : 'var(--c-bg)',
+          }}
+        >
         {data && view && data.path.sections.length === 0 && (
           <EmptyState title="Добавь первые слова" text="Каждые 5 слов — новый урок на пути. Слова добавляешь ты сам — те, что встречаешь.">
             <Button block onClick={() => navigate('words')}>
@@ -296,7 +306,7 @@ export function PathScreen() {
             {/* Место под облачный вал: долистать до тумана можно, дальше — нет. */}
             {/* Место под сплошной дым: долистать до него можно, дальше — нет (резинки внизу нет). */}
             {view.fog && <div ref={tailRef} aria-hidden className="shrink-0" style={{ height: FOG_TAIL }} />}
-            {view.fog && fogTop !== null && <Fog top={fogTop} />}
+            {view.fog && fogTop !== null && <Fog top={fogTop} blend={FOG_BLEND} />}
           </div>
         )}
         </div>
