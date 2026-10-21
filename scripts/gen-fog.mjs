@@ -150,17 +150,26 @@ const waves = [1, 2, 3, 5].map((f) => ({ f, p: lineRand() * Math.PI * 2, a: 1 / 
 const edgeLine = (x) => EH * 0.44 + EH * 0.14 * waves.reduce((s, w) => s + w.a * Math.sin((x / W) * Math.PI * 2 * w.f + w.p), 0)
 
 /**
+ * Край по темам. Светлая (просьбы владельца): дым начинается выше и набирает плотность быстрее —
+ * пустая полоса над туманом короче, и сам дым чуть плотнее. Тёмная — как есть (владельцу нравится).
+ */
+const EDGE = {
+  light: { line: 0.36, span: 0.2, fade: 0.2, dense: 0.07 },
+  dark: { line: 0.44, span: 0.27, fade: 0.28, dense: 0 },
+}
+
+/**
  * Плотность дыма (непрозрачность) в сплошной части: не стена, а вуаль — светлые клубы гуще,
  * провалы между ними прозрачнее; сквозь дым угадывается путь (решение владельца: «менее густой»).
  */
-const veil = (l, s) => clamp(0.5 + l * 0.32 + s * 0.35)
+const veil = (theme, l, s) => clamp(0.5 + EDGE[theme].dense + l * 0.32 + s * 0.35)
 
 for (const theme of Object.keys(THEMES)) {
   const body = new Uint8ClampedArray(W * H * 4)
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       const { l, s } = light(x, EH + y)
-      body.set([...rgbOf(theme, l), Math.round(veil(l, s) * 255)], (y * W + x) * 4)
+      body.set([...rgbOf(theme, l), Math.round(veil(theme, l, s) * 255)], (y * W + x) * 4)
     }
   await save(`fog-body-${theme}.webp`, W, H, body)
 
@@ -169,11 +178,12 @@ for (const theme of Object.keys(THEMES)) {
   for (let r = 0; r < EH; r++)
     for (let x = 0; x < W; x++) {
       const { l, d, s } = light(x, r)
-      const t = (r - edgeLine(x)) / (EH * 0.27) + (d - 0.55) * 3.4 + s * 3.4
+      const e = EDGE[theme]
+      const t = (r - edgeLine(x) + EH * (0.44 - e.line)) / (EH * e.span) + (d - 0.55) * 3.4 + s * 3.4
       let a = smooth(-1.5, 0.6, t)
-      a *= smooth(0, EH * 0.28, r)
+      a *= smooth(0, EH * e.fade, r)
       a = Math.max(a, smooth(EH * 0.5, EH * 0.78, r))
-      a *= veil(l, s) // внизу край ровно переходит в вуаль сплошной части
+      a *= veil(theme, l, s) // внизу край ровно переходит в вуаль сплошной части
       edge.set([...rgbOf(theme, l), Math.round(a * 255)], (r * W + x) * 4)
     }
   await save(`fog-edge-${theme}.webp`, W, EH, edge)
