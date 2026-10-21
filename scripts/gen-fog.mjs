@@ -102,7 +102,7 @@ function puffField(h, count, rMin, rMax, seed) {
  * в тёмной — серый (светлее фона, но приглушённый, чтобы не слепил ночью).
  */
 const THEMES = {
-  light: { deep: [158, 165, 176], mid: [205, 210, 218], top: [250, 251, 252] },
+  light: { deep: [150, 158, 170], mid: [198, 204, 213], top: [248, 249, 251] },
   dark: { deep: [88, 94, 104], mid: [132, 139, 149], top: [190, 195, 202] },
 }
 
@@ -168,6 +168,8 @@ for (const theme of Object.keys(THEMES)) {
       a *= smooth(0, EH * 0.28, r)
       a = Math.max(a, smooth(EH * 0.5, EH * 0.78, r))
       a *= veil(l, s) // внизу край ровно переходит в вуаль сплошной части
+      // светлая тема: на белом фоне начало тумана гуще (решение владельца), к низу края — как сплошная часть
+      if (theme === 'light') a = lerp(1 - (1 - a) ** 1.8, a, smooth(EH * 0.6, EH, r))
       edge.set([...rgbOf(theme, l), Math.round(a * 255)], (r * W + x) * 4)
     }
   await save(`fog-edge-${theme}.webp`, W, EH, edge)
