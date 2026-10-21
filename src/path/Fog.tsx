@@ -34,8 +34,6 @@ export function Fog({ top }: { top: number }) {
         <div className="fog-edge h-[256px]" />
         <div className="fog-body absolute inset-x-0 top-[256px] bottom-0" />
       </div>
-      {/* правый край чуть плотнее (светлая тема) */}
-      <div className="fog-side absolute right-0 bottom-0 w-[70%]" style={{ top: FOG_LEAD - 30 }} />
       {/* завитки над краем — едут в другую сторону и чуть покачиваются: дым клубится */}
       <div className="fog-bob absolute inset-x-0 top-0 h-[220px]">
         <div className="fog-drift-back fog-wisp h-full w-[calc(100%+512px)]" />
