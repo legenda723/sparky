@@ -147,15 +147,15 @@ async function save(name, w, h, px) {
 // волнистая линия края (периодична по X)
 const lineRand = rng(77)
 const waves = [1, 2, 3, 5].map((f) => ({ f, p: lineRand() * Math.PI * 2, a: 1 / (f + 0.5) }))
-const edgeLine = (x) => EH * 0.44 + EH * 0.14 * waves.reduce((s, w) => s + w.a * Math.sin((x / W) * Math.PI * 2 * w.f + w.p), 0)
+const edgeLine = (x, amp = 0.14) => EH * 0.44 + EH * amp * waves.reduce((s, w) => s + w.a * Math.sin((x / W) * Math.PI * 2 * w.f + w.p), 0)
 
 /**
  * Край по темам. Светлая (просьбы владельца): дым начинается выше и набирает плотность быстрее —
  * пустая полоса над туманом короче, и сам дым чуть плотнее. Тёмная — как есть (владельцу нравится).
  */
 const EDGE = {
-  light: { line: 0.36, span: 0.2, fade: 0.2, dense: 0.07 },
-  dark: { line: 0.44, span: 0.27, fade: 0.28, dense: 0 },
+  light: { line: 0.36, span: 0.2, fade: 0.2, dense: 0.07, wave: 0.21 },
+  dark: { line: 0.44, span: 0.27, fade: 0.28, dense: 0, wave: 0.14 },
 }
 
 /**
@@ -179,7 +179,7 @@ for (const theme of Object.keys(THEMES)) {
     for (let x = 0; x < W; x++) {
       const { l, d, s } = light(x, r)
       const e = EDGE[theme]
-      const t = (r - edgeLine(x) + EH * (0.44 - e.line)) / (EH * e.span) + (d - 0.55) * 3.4 + s * 3.4
+      const t = (r - edgeLine(x, e.wave) + EH * (0.44 - e.line)) / (EH * e.span) + (d - 0.55) * 3.4 + s * 3.4
       let a = smooth(-1.5, 0.6, t)
       a *= smooth(0, EH * e.fade, r)
       a = Math.max(a, smooth(EH * 0.5, EH * 0.78, r))
