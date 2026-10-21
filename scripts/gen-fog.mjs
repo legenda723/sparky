@@ -134,7 +134,7 @@ function rgbOf(theme, l) {
 
 async function save(name, w, h, px) {
   await sharp(Buffer.from(px.buffer), { raw: { width: w, height: h, channels: 4 } })
-    .webp({ quality: 76, alphaQuality: 75, effort: 6 })
+    .webp({ quality: 68, alphaQuality: 90, effort: 6 })
     .toFile(outPath(name))
 }
 
