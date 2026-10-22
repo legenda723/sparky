@@ -19,7 +19,6 @@
   --c-border: #e3e5e8;
   --c-surface: #f7f8fa;
   --c-bg: #ffffff;
-  --c-fog-floor: #cdd2d9;
   --c-on-color: #ffffff;
   --c-on-xp: #3c3c3c;
   --c-disabled: #e5e5e5;
@@ -73,7 +72,6 @@
     --c-border: #2c3a45;
     --c-surface: #1c2832;
     --c-bg: #121a21;
-    --c-fog-floor: #686f77;
     --c-disabled: #37464f;
     --c-disabled-shadow: #273640;
     --c-road: #37464f;
@@ -108,7 +106,6 @@
   --c-border: #2c3a45;
   --c-surface: #1c2832;
   --c-bg: #121a21;
-  --c-fog-floor: #686f77;
   --c-disabled: #37464f;
   --c-disabled-shadow: #273640;
   --c-road: #37464f;
@@ -350,19 +347,6 @@ html.theme-anim *::after {
 .fog-wisp { background: url('./path/fog/fog-wisp-light.webp') repeat-x 0 0 / 512px 220px; }
 /* Глубина тумана: от прозрачного к цвету фона за 190 px — путь под дымом гаснет, сам дым остаётся лёгким. */
 .fog-depth { background: linear-gradient(to bottom, transparent, var(--c-bg) 190px); }
-/* Плотный дым у низа: рисунок плавно (по кривой, без ступеньки) уходит в ровный цвет дыма;
-   нижние --fog-solid px — ровный цвет. */
-.fog-floor {
-  --fog-ramp: calc(100% - var(--fog-solid, 0px));
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    color-mix(in srgb, var(--c-fog-floor) 16%, transparent) calc(var(--fog-ramp) * 0.25),
-    color-mix(in srgb, var(--c-fog-floor) 50%, transparent) calc(var(--fog-ramp) * 0.5),
-    color-mix(in srgb, var(--c-fog-floor) 84%, transparent) calc(var(--fog-ramp) * 0.75),
-    var(--c-fog-floor) var(--fog-ramp)
-  );
-}
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .fog-edge { background-image: url('./path/fog/fog-edge-dark.webp'); }
   :root:not([data-theme='light']) .fog-body { background-image: url('./path/fog/fog-body-dark.webp'); }

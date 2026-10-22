@@ -11,7 +11,7 @@ import { chestGems, type PathItem, type PathNode, type PathSection } from '../ga
 import { pathView } from '../game/pathView'
 import { unlockSpeech } from '../media/speech'
 import { CollapsedSection } from '../path/CollapsedSection'
-import { Fog } from '../path/Fog'
+import { Fog, FogBelow } from '../path/Fog'
 import { ChestInfo, GemsInfo, GhostInfo, NodeInfo } from '../path/NodeInfo'
 import { itemId, PathTrack } from '../path/PathTrack'
 import { SectionBanner } from '../path/SectionBanner'
@@ -238,18 +238,15 @@ export function PathScreen() {
         )}
       </header>
 
-      {/* Фон самой прокрутки виден только за её концом, когда iPhone оттягивает экран «резинкой»:
-          сверху — обычный фон, снизу — ровный цвет дыма, которым кончается туман (одно полотно, без шва). */}
-      <div
-        ref={scrollRef}
-        className="relative min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-y-contain"
-        style={view?.fog ? { background: 'linear-gradient(to bottom, var(--c-bg) 50%, var(--c-fog-floor) 50%)' } : undefined}
-      >
-        {/* Содержимое непрозрачное: фон прокрутки под ним не просвечивает. У самого низа (под туманом) фон —
-            цвет дыма: на дробном пикселе края белый не проступает светлой полоской при оттягивании. */}
+      <div className="relative min-h-0 flex-1">
+      {/* Продолжение тумана под путём: видно, только когда iPhone оттягивает путь «резинкой» за конец. */}
+      {view?.fog && fogTop !== null && <FogBelow scrollRef={scrollRef} listRef={listRef} top={fogTop} />}
+      <div ref={scrollRef} className="relative h-full overflow-x-clip overflow-y-auto overscroll-y-contain">
+        {/* Содержимое непрозрачное: продолжение тумана под ним не видно. Нижние 20 px — без фона: там туман
+            в пути растворяется в своё продолжение (на дробном пикселе края белый не проступает полоской). */}
         <div
           className="flex min-h-full flex-col bg-bg pt-2 pr-[calc(16px+var(--safe-right))] pl-[calc(16px+var(--safe-left))]"
-          style={view?.fog ? { background: 'linear-gradient(to bottom, var(--c-bg) calc(100% - 100px), var(--c-fog-floor) 0)' } : undefined}
+          style={view?.fog ? { background: 'linear-gradient(to bottom, var(--c-bg) calc(100% - 20px), transparent 0)' } : undefined}
         >
         {data && view && data.path.sections.length === 0 && (
           <EmptyState title="Добавь первые слова" text="Каждые 5 слов — новый урок на пути. Слова добавляешь ты сам — те, что встречаешь.">
@@ -302,6 +299,7 @@ export function PathScreen() {
           </div>
         )}
         </div>
+      </div>
       </div>
 
       {(hasDue || away) && (
