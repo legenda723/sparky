@@ -12,6 +12,7 @@ import { pathView } from '../game/pathView'
 import { unlockSpeech } from '../media/speech'
 import { CollapsedSection } from '../path/CollapsedSection'
 import { Fog, FogBelow } from '../path/Fog'
+import { useRubberBand } from '../path/useRubberBand'
 import { ChestInfo, GemsInfo, GhostInfo, NodeInfo } from '../path/NodeInfo'
 import { itemId, PathTrack } from '../path/PathTrack'
 import { SectionBanner } from '../path/SectionBanner'
@@ -120,6 +121,9 @@ export function PathScreen() {
   // Путь открылся дальше → край плавно отступает вниз (Fog).
   const tailRef = useRef<HTMLDivElement>(null)
   const [fogTop, setFogTop] = useState<number | null>(null)
+  const fogBelow = !!view?.fog && fogTop !== null
+  const belowRef = useRef<HTMLDivElement>(null)
+  useRubberBand(scrollRef, belowRef, reduce, fogBelow)
   useLayoutEffect(() => {
     const list = listRef.current
     if (!list || !view?.fog) return
@@ -240,8 +244,9 @@ export function PathScreen() {
 
       <div className="relative min-h-0 flex-1">
       {/* Продолжение тумана под путём: видно, только когда iPhone оттягивает путь «резинкой» за конец. */}
-      {view?.fog && fogTop !== null && <FogBelow scrollRef={scrollRef} listRef={listRef} top={fogTop} />}
-      <div ref={scrollRef} className="relative h-full overflow-x-clip overflow-y-auto overscroll-y-contain">
+      {fogBelow && <FogBelow scrollRef={scrollRef} listRef={listRef} trackRef={belowRef} top={fogTop} />}
+      {/* Родная «резинка» выключена — своя (useRubberBand): путь и туман под ним тянутся вместе. */}
+      <div ref={scrollRef} className="relative h-full overflow-x-clip overflow-y-auto overscroll-y-none">
         {/* Содержимое непрозрачное: продолжение тумана под ним не видно. Нижние 20 px — без фона: там туман
             в пути растворяется в своё продолжение (на дробном пикселе края белый не проступает полоской). */}
         <div
