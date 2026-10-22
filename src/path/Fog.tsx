@@ -55,26 +55,17 @@ export function Fog({ top }: { top: number }) {
 
 /** Сколько продолжения дыма прячется под концом пути (за непрозрачным содержимым), px. */
 const BELOW_HIDDEN = 300
-/** Сколько продолжения дыма ниже конца пути — больше, чем можно оттянуть «резинкой», px. */
+/** Сколько продолжения дыма ниже конца пути — больше, чем iPhone даёт оттянуть, px. */
 const BELOW_EXTRA = 900
 
 /**
- * Продолжение тумана под путём — для «резинки» (useRubberBand): оттягиваешь путь вверх, а снизу тянется тот же дым.
- * Лежит под прокруткой; trackRef двигает useRubberBand — вместе с путём, в том же кадре. Рисунок и клубление —
- * ровно как у тумана в пути (тот же сдвиг плитки, та же анимация с той же точки): одно полотно, а не второе окно.
+ * Продолжение тумана под путём — для родной «резинки» iPhone: оттягиваешь путь вверх, а снизу тянется тот же дым.
+ * Лежит под прокруткой и едет вместе с путём (сдвиг по прокрутке), рисунок и клубление — ровно как у тумана
+ * в пути (тот же сдвиг плитки, та же анимация с той же точки), поэтому это одно полотно, а не второе окно.
  * Пока путь не оттянут, продолжение закрыто непрозрачным содержимым.
  */
-export function FogBelow({
-  scrollRef,
-  listRef,
-  trackRef,
-  top,
-}: {
-  scrollRef: RefObject<HTMLDivElement | null>
-  listRef: RefObject<HTMLDivElement | null>
-  trackRef: RefObject<HTMLDivElement | null>
-  top: number
-}) {
+export function FogBelow({ scrollRef, listRef, top }: { scrollRef: RefObject<HTMLDivElement | null>; listRef: RefObject<HTMLDivElement | null>; top: number }) {
+  const trackRef = useRef<HTMLDivElement>(null)
   const driftRef = useRef<HTMLDivElement>(null)
 
   // Место и сдвиг рисунка: как у сплошного дыма в пути. Пересчёт — когда путь меняет высоту.
@@ -94,7 +85,20 @@ export function FogBelow({
     const ro = new ResizeObserver(place)
     ro.observe(list)
     return () => ro.disconnect()
-  }, [scrollRef, listRef, trackRef, top])
+  }, [scrollRef, listRef, top])
+
+  // Едет вместе с путём — и при «резинке» тоже (iPhone сообщает прокрутку за концом).
+  useLayoutEffect(() => {
+    const box = scrollRef.current
+    const track = trackRef.current
+    if (!box || !track) return
+    const follow = () => {
+      track.style.transform = `translateY(${-box.scrollTop}px)`
+    }
+    follow()
+    box.addEventListener('scroll', follow, { passive: true })
+    return () => box.removeEventListener('scroll', follow)
+  }, [scrollRef])
 
   // Клубится в такт туману в пути: та же анимация с той же точки отсчёта.
   useLayoutEffect(() => {
