@@ -8,11 +8,13 @@ import { useLayoutEffect, useRef } from 'react'
 /** Сколько прозрачного края над первым скрытым местом: путь сквозь него чуть проглядывает. */
 export const FOG_LEAD = 110
 
-/** Маска: внизу туман плавно растворяется (неподвижная маска — считается один раз). */
-const fade = (blend: number) => `linear-gradient(to bottom, #000 calc(100% - ${blend}px), transparent)`
+/** Внизу дым плавно уплотняется до ровного цвета --c-fog-floor — на этой высоте, px (в пределах хвоста). */
+const FOG_FLOOR = 200
+/** Нижние px «плотного дыма» — ровный цвет без рисунка: под ним у самого края нет других слоёв, и на дробном
+ *  пикселе края ничего светлее не проступает полоской (при оттягивании там продолжается тот же цвет). */
+const FOG_SOLID = 24
 
-/** blend — на сколько px низ тумана растворяется (под ним — такой же дым под путём). */
-export function Fog({ top, blend }: { top: number; blend: number }) {
+export function Fog({ top }: { top: number }) {
   const reduce = useReducedMotion() ?? false
   const ref = useRef<HTMLDivElement>(null)
   const prevTop = useRef(top)
@@ -34,12 +36,12 @@ export function Fog({ top, blend }: { top: number; blend: number }) {
       ref={ref}
       aria-hidden
       className="pointer-events-none absolute -right-4 bottom-0 -left-4 overflow-hidden"
-      style={{ top: top - FOG_LEAD, maskImage: fade(blend), WebkitMaskImage: fade(blend) }}
+      style={{ top: top - FOG_LEAD }}
     >
       {/* глубина: под дымом путь плавно уходит в фон — дальше двух мест его не видно, обрыва нет */}
-      <div className="fog-depth absolute inset-x-0 bottom-0" style={{ top: FOG_LEAD + 10 }} />
+      <div className="fog-depth absolute inset-x-0" style={{ top: FOG_LEAD + 10, bottom: FOG_SOLID / 2 }} />
       {/* основной дым: край и сплошной дым едут вместе, плитки стыкуются без шва */}
-      <div className="fog-drift absolute inset-y-0 left-0 w-[calc(100%+512px)]">
+      <div className="fog-drift absolute top-0 left-0 w-[calc(100%+512px)]" style={{ bottom: FOG_SOLID / 2 }}>
         <div className="fog-edge h-[256px]" />
         <div className="fog-body absolute inset-x-0 top-[256px] bottom-0" />
       </div>
@@ -47,6 +49,8 @@ export function Fog({ top, blend }: { top: number; blend: number }) {
       <div className="fog-bob absolute inset-x-0 top-0 h-[220px]">
         <div className="fog-drift-back fog-wisp h-full w-[calc(100%+512px)]" />
       </div>
+      {/* плотный дым у самого низа: тот же цвет за концом прокрутки — «резинка» тянет одно полотно */}
+      <div className="fog-floor absolute inset-x-0 bottom-0" style={{ height: FOG_FLOOR, ['--fog-solid' as string]: `${FOG_SOLID}px` }} />
     </div>
   )
 }
