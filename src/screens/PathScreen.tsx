@@ -29,7 +29,7 @@ const GEMS_ID = 'gems'
 /** Сплошной дым ниже последнего места: до него можно долистать, дальше — только «резинка». */
 const FOG_TAIL = 120
 /** Туман начинается ниже первого скрытого места на столько px (просьба владельца: «опусти ниже»). */
-const FOG_DROP = 64
+const FOG_DROP = 140
 
 type Selected = { id: string; opened?: { gems: number; total: number } }
 
