@@ -108,15 +108,20 @@ export function PathScreen() {
   // Путь кончается будущим уроком — место под туман уже занято им, отдельный хвост не нужен.
   const endsWithFuture = view?.sections.at(-1)?.entries.at(-1)?.item.kind === 'future'
   const [fogTop, setFogTop] = useState<number | null>(null)
+  // Где дым густеет: у последнего места под туманом (просьба владельца).
+  const [fogThick, setFogThick] = useState<number | null>(null)
   useLayoutEffect(() => {
     const list = listRef.current
     if (!list || !view?.fog) return
     const start = list.querySelector('[data-fog-start]') ?? tailRef.current
     if (!start) return
-    const top = start.getBoundingClientRect().top - list.getBoundingClientRect().top
+    const listTop = list.getBoundingClientRect().top
+    const top = start.getBoundingClientRect().top - listTop
     // Будущие уроки стоят на обычном шаге сразу за последним местом, а туман — на прежнем месте.
     const drop = start.hasAttribute('data-future') ? FOG_FUTURE_DROP : FOG_DROP
     setFogTop(Math.round(top + drop))
+    const last = [...list.querySelectorAll('[data-fogged]')].at(-1)
+    setFogThick(last ? Math.round(last.getBoundingClientRect().top - listTop) : null)
   }, [view])
 
   // Плавно к текущему узлу: при открытии и когда текущий сменился (вернулись из урока — память показала прошлый).
@@ -269,7 +274,7 @@ export function PathScreen() {
             )}
             {/* Место под сплошной дым: долистать до него можно, дальше — только «резинка». */}
             {view.fog && !endsWithFuture && <div ref={tailRef} aria-hidden className="shrink-0" style={{ height: FOG_TAIL }} />}
-            {view.fog && fogTop !== null && <Fog top={fogTop} />}
+            {view.fog && fogTop !== null && <Fog top={fogTop} thickAt={fogThick} />}
           </div>
         )}
         </div>

@@ -80,6 +80,7 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
           <div
             key={id}
             data-fog-start={i === firstFogged || undefined}
+            data-fogged={fogged || undefined}
             data-future={item.kind === 'future' || undefined}
             className="relative flex items-center justify-center"
             style={{ height: ROW }}

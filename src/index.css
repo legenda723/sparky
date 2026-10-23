@@ -345,16 +345,19 @@ html.theme-anim *::after {
 /* Край и сплошной дым — узоры одной SVG-картинки (src/path/Fog.tsx), картинка по теме выбирается здесь. */
 .fog-svg-edge { fill: url(#fog-edge-light); }
 .fog-svg-body { fill: url(#fog-body-light); }
+.fog-svg-thick { fill: url(#fog-thick-light); }
 .fog-wisp { background: url('./path/fog/fog-wisp-light.webp') repeat-x 0 0 / 512px 220px; }
 /* Глубина тумана: от прозрачного к цвету фона за 190 px — путь под дымом гаснет, сам дым остаётся лёгким. */
 .fog-depth { background: linear-gradient(to bottom, transparent, var(--c-bg) 190px); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .fog-svg-edge { fill: url(#fog-edge-dark); }
   :root:not([data-theme='light']) .fog-svg-body { fill: url(#fog-body-dark); }
+  :root:not([data-theme='light']) .fog-svg-thick { fill: url(#fog-thick-dark); }
   :root:not([data-theme='light']) .fog-wisp { background-image: url('./path/fog/fog-wisp-dark.webp'); }
 }
 :root[data-theme='dark'] .fog-svg-edge { fill: url(#fog-edge-dark); }
 :root[data-theme='dark'] .fog-svg-body { fill: url(#fog-body-dark); }
+:root[data-theme='dark'] .fog-svg-thick { fill: url(#fog-thick-dark); }
 :root[data-theme='dark'] .fog-wisp { background-image: url('./path/fog/fog-wisp-dark.webp'); }
 @keyframes fog-drift {
   from { transform: translateX(0); }
