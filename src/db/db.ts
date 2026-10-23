@@ -31,4 +31,10 @@ export class SparkyDb extends Dexie {
   }
 }
 
-export const db = new SparkyDb()
+/**
+ * Временный показ «путь на уроке 20» (просьба владельца, убрать после просмотра): ссылка с ?demo открывает
+ * отдельную базу «sparky-demo» с тестовыми словами — настоящая база не трогается.
+ */
+export const DEMO = typeof location !== 'undefined' && new URLSearchParams(location.search).has('demo')
+
+export const db = new SparkyDb(DEMO ? 'sparky-demo' : DB_NAME)

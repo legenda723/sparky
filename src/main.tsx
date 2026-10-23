@@ -15,9 +15,13 @@ import '@fontsource/nunito/cyrillic-800.css'
 import '@fontsource/nunito/cyrillic-900.css'
 import './index.css'
 import App from './App.tsx'
+import { seedDemo } from './demo'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
+// Временный показ (src/demo.ts): без ?demo ничего не делает.
+void seedDemo().finally(() =>
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  ),
 )
