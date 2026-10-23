@@ -25,8 +25,12 @@ const MASCOT_AT = 2
 /** Высота ряда — у всех мест одинаковая, как в образце (references/путь-duolingo.jpg): путь ровный. */
 /** Шаг между местами — одинаковый у всех, включая сундук (просьба владельца): у сундука хватает места. */
 export const ROW = 90
-/** Закрытые места чуть крупнее (72 вместо 70 — рядом с кольцом текущего они казались меньше); центры — на ровном шаге ROW. */
+/**
+ * Закрытые места и сундуки чуть крупнее (72 вместо 70 — рядом с кольцом текущего они казались меньше),
+ * место сразу под текущим — ещё чуть крупнее (73). Центры — на ровном шаге ROW.
+ */
 const LOCKED_SCALE = 72 / 70
+const NEXT_SCALE = 73 / 70
 
 export const itemId = (item: PathItem) => `${item.kind}:${item.key}`
 
@@ -59,12 +63,14 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
   // Маскот — у 3-го видимого места, но не под туманом.
   const clear = firstFogged < 0 ? entries.length : firstFogged
   const mascotAt = clear > 1 ? Math.min(MASCOT_AT, clear - 1) : -1
+  const curAt = entries.findIndex((e) => e.item.kind === 'node' && e.item.state === 'current')
   return (
     <div className="relative flex flex-col">
       {entries.map(({ item, index, fogged }, i) => {
         const id = itemId(item)
         const current = item.kind === 'node' && item.state === 'current'
         const locked = (item.kind === 'node' && item.state === 'locked') || item.kind === 'ghost' || item.kind === 'future'
+        const scale = locked && curAt >= 0 && i === curAt + 1 ? NEXT_SCALE : locked || item.kind === 'chest' ? LOCKED_SCALE : 1
         const x = waveX(index) * sign
         // Свободная сторона волны — для маскота и искорок.
         const side = x > 0 ? -1 : x < 0 ? 1 : index % 2 === 0 ? -1 : 1
@@ -92,7 +98,7 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
                 <Sparkle size={12} delay={-1.3 - (index % 3) * 0.5} />
               </div>
             )}
-            <div style={{ transform: `translateX(${x}px)${locked ? ` scale(${LOCKED_SCALE})` : ''}` }}>
+            <div style={{ transform: `translateX(${x}px)${scale !== 1 ? ` scale(${scale})` : ''}` }}>
               <div className={`relative ${current ? 'path-bounce' : ''}`} data-current={current || undefined}>
                 {item.kind === 'node' ? (
                   <PathNodeButton
