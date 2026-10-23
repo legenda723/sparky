@@ -92,12 +92,12 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
             )}
             {/* Искорки — на свободной стороне волны (просьба владельца: слева у первого места), и только на чистом месте (под туманом их нет). */}
             {index % 4 === 0 && i !== MASCOT_AT && !fogged && (
-              <div className="pointer-events-none absolute bottom-7" style={{ left: `calc(50% + ${side * 120}px - 10px)` }}>
+              <div className="pointer-events-none absolute bottom-7" style={{ left: `calc(50% + ${side * 150}px - 10px)` }}>
                 <Sparkle size={20} delay={-(index % 3) * 0.8} />
               </div>
             )}
             {index % 4 === 0 && !fogged && (
-              <div className="pointer-events-none absolute bottom-[68px]" style={{ left: `calc(50% + ${side * 150}px - 6px)` }}>
+              <div className="pointer-events-none absolute bottom-[68px]" style={{ left: `calc(50% + ${side * 120}px - 6px)` }}>
                 <Sparkle size={12} delay={-1.3 - (index % 3) * 0.5} />
               </div>
             )}
