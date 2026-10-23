@@ -26,11 +26,13 @@ const MASCOT_AT = 2
 /** Шаг между местами — одинаковый у всех, включая сундук (просьба владельца): у сундука хватает места. */
 export const ROW = 90
 /**
- * Закрытые места и сундуки чуть крупнее (72 вместо 70 — рядом с кольцом текущего они казались меньше),
+ * Закрытые места чуть крупнее (72 вместо 70 — рядом с кольцом текущего они казались меньше),
  * место сразу под текущим — ещё чуть крупнее (73). Центры — на ровном шаге ROW.
  */
 const LOCKED_SCALE = 72 / 70
 const NEXT_SCALE = 73 / 70
+/** Сундук — 67 вместо 64 в ширину. */
+const CHEST_SCALE = 67 / 64
 
 export const itemId = (item: PathItem) => `${item.kind}:${item.key}`
 
@@ -70,7 +72,7 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
         const id = itemId(item)
         const current = item.kind === 'node' && item.state === 'current'
         const locked = (item.kind === 'node' && item.state === 'locked') || item.kind === 'ghost' || item.kind === 'future'
-        const scale = locked && curAt >= 0 && i === curAt + 1 ? NEXT_SCALE : locked || item.kind === 'chest' ? LOCKED_SCALE : 1
+        const scale = locked && curAt >= 0 && i === curAt + 1 ? NEXT_SCALE : locked ? LOCKED_SCALE : item.kind === 'chest' ? CHEST_SCALE : 1
         const x = waveX(index) * sign
         // Свободная сторона волны — для маскота и искорок.
         const side = x > 0 ? -1 : x < 0 ? 1 : index % 2 === 0 ? -1 : 1
