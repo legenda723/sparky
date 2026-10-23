@@ -18,6 +18,7 @@ import { Switch } from '../ui/Switch'
 import { TextField } from '../ui/TextField'
 import { useToast } from '../ui/Toast'
 import { MotionLab } from './MotionLab'
+import { OverscrollLab } from './OverscrollLab'
 
 /** Витрина #/dev: все детали интерфейса, их можно потрогать. */
 export default function DevPage() {
@@ -57,6 +58,7 @@ export default function DevPage() {
           />
         </Section>
 
+        <OverscrollLab />
         <MotionLab />
         {import.meta.env.DEV && <SeedSection />}
         <MascotSection />
