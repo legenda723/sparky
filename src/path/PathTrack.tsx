@@ -14,18 +14,11 @@ export const WAVE = [0, 44, 70, 44, 0, -44, -70, -44]
 /** Маскот сидит у 3-го места раздела. */
 const MASCOT_AT = 2
 /** Высота ряда: у текущего узла сверху место под «НАЧАТЬ». Центр кружка — на 48 выше низа ряда. */
-export const ROW = 108
-const ROW_CURRENT = 160
+export const ROW = 136
+const ROW_CURRENT = 196
 const CENTER_FROM_BOTTOM = 48
 
 export const itemId = (item: PathItem) => `${item.kind}:${item.key}`
-
-/** Дошёл ли путь до этого места: участок тропинки к нему — цвета колоды. */
-function reached(item: PathItem, openedHere: ReadonlySet<string>): boolean {
-  if (item.kind === 'node') return item.state !== 'locked'
-  if (item.kind === 'chest') return item.state !== 'locked' || openedHere.has(itemId(item))
-  return false
-}
 
 function StartBubble({ color }: { color: DeckColor }) {
   const { fill, shadow } = DECK_COLORS[color]
@@ -70,7 +63,13 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
   const points: RoadPoint[] = entries.map(({ item, index }) => {
     const current = item.kind === 'node' && item.state === 'current'
     bottom += current ? ROW_CURRENT : ROW
-    return { x: WAVE[index % WAVE.length] * sign, y: bottom - CENTER_FROM_BOTTOM, reached: reached(item, openedHere) }
+    // Занятое место вокруг центра: кружок 72 с тенью; у текущего — кольцо и пузырь «НАЧАТЬ» над ним.
+    return {
+      x: WAVE[index % WAVE.length] * sign,
+      y: bottom - CENTER_FROM_BOTTOM,
+      clearTop: current ? 112 : 42,
+      clearBottom: current ? 52 : 46,
+    }
   })
   const firstFogged = entries.findIndex((e) => e.fogged)
   // Маскот — у 3-го видимого места, но не под туманом.
@@ -78,7 +77,7 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
   const mascotAt = clear > 1 ? Math.min(MASCOT_AT, clear - 1) : -1
   return (
     <div className="relative flex flex-col">
-      <Road points={points} color={DECK_COLORS[color].fill} />
+      <Road points={points} />
       {entries.map(({ item, index }, i) => {
         const id = itemId(item)
         const current = item.kind === 'node' && item.state === 'current'
