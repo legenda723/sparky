@@ -37,6 +37,18 @@ const CHEST_SCALE = 67 / 64
 export const itemId = (item: PathItem) => `${item.kind}:${item.key}`
 
 
+/**
+ * Искорки — по одной (просьба владельца: парами смотрелось «не оч»), в пустых местах у змейки, на 8 мест волны
+ * повторяются. x, y — от середины ряда (в чётных разделах x зеркально), size — размер.
+ */
+const STARS: Partial<Record<number, { x: number; y: number; size: number }>> = {
+  0: { x: 120, y: -22, size: 20 },
+  1: { x: -92, y: 6, size: 16 },
+  3: { x: 150, y: 14, size: 12 },
+  5: { x: 100, y: -8, size: 16 },
+  7: { x: -140, y: 10, size: 12 },
+}
+
 /** Искорка у дорожки: четырёхлучевая звёздочка. */
 function Sparkle({ size, delay }: { size: number; delay: number }) {
   return (
@@ -74,7 +86,8 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
         const locked = (item.kind === 'node' && item.state === 'locked') || item.kind === 'ghost' || item.kind === 'future'
         const scale = locked && curAt >= 0 && i === curAt + 1 ? NEXT_SCALE : locked ? LOCKED_SCALE : item.kind === 'chest' ? CHEST_SCALE : 1
         const x = waveX(index) * sign
-        // Свободная сторона волны — для маскота и искорок.
+        const star = STARS[index % 8]
+        // Свободная сторона волны — для маскота.
         const side = x > 0 ? -1 : x < 0 ? 1 : index % 2 === 0 ? -1 : 1
         return (
           <div
@@ -90,15 +103,13 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
                 <Mascot size={96} />
               </div>
             )}
-            {/* Искорки — на свободной стороне волны (просьба владельца: слева у первого места), и только на чистом месте (под туманом их нет). */}
-            {index % 4 === 0 && i !== MASCOT_AT && !fogged && (
-              <div className="pointer-events-none absolute bottom-7" style={{ left: `calc(50% + ${side * 150}px - 10px)` }}>
-                <Sparkle size={20} delay={-(index % 3) * 0.8} />
-              </div>
-            )}
-            {index % 4 === 0 && !fogged && (
-              <div className="pointer-events-none absolute bottom-[68px]" style={{ left: `calc(50% + ${side * 120}px - 6px)` }}>
-                <Sparkle size={12} delay={-1.3 - (index % 3) * 0.5} />
+            {/* Искорки — по одной, в пустых местах у змейки (только на чистом месте: под туманом их нет). */}
+            {star && !fogged && i !== mascotAt && (
+              <div
+                className="pointer-events-none absolute"
+                style={{ left: `calc(50% + ${star.x * sign - star.size / 2}px)`, top: `calc(50% + ${star.y - star.size / 2}px)` }}
+              >
+                <Sparkle size={star.size} delay={-(index % 3) * 0.9} />
               </div>
             )}
             <div style={{ transform: `translateX(${x}px)${scale !== 1 ? ` scale(${scale})` : ''}` }}>
