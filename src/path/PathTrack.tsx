@@ -9,14 +9,16 @@ import { PathNodeButton } from './PathNodeButton'
 /**
  * Змейка — ритм как в образце references/путь-duolingo.jpg (выбор владельца): плавная волна на 8 мест,
  * сначала вправо. Центр волны сдвинут вправо на 18 px (просьба владельца — нижние места уходили слишком
- * влево; заодно уравновешивает маскота слева): вправо до 84, влево до −48.
+ * влево; заодно уравновешивает маскота слева): вправо до 84, влево до −48. Волна начинается на четверть
+ * места раньше — первое место левее центра волны (просьба владельца сдвинуть зелёный круг левее).
  */
 const SNAKE_CENTER = 18
 const SNAKE_SWING = 66
+const SNAKE_PHASE = -0.25
 
 /** Сдвиг места вбок: все места строго на одной волне (без отдельных сдвигов — иначе змейка ломается). */
 export function waveX(index: number): number {
-  return Math.round(SNAKE_CENTER + SNAKE_SWING * Math.sin((index * Math.PI) / 4))
+  return Math.round(SNAKE_CENTER + SNAKE_SWING * Math.sin(((index + SNAKE_PHASE) * Math.PI) / 4))
 }
 /** Маскот сидит у 3-го места раздела. */
 const MASCOT_AT = 2
