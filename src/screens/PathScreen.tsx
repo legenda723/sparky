@@ -202,7 +202,8 @@ export function PathScreen() {
 
       {/* Родная «резинка» iPhone: оттянешь путь за конец — снизу тянется тот же туман (Fog рисует его за краем). */}
       <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-y-contain">
-        <div className="flex min-h-full flex-col bg-bg pt-2 pr-[calc(16px+var(--safe-right))] pl-[calc(16px+var(--safe-left))]">
+        {/* Всегда на 2 px длиннее экрана: iPhone прокручивает и пружинит, только если есть что листать (короткий путь). */}
+        <div className="flex min-h-[calc(100%+2px)] flex-col bg-bg pt-2 pr-[calc(16px+var(--safe-right))] pl-[calc(16px+var(--safe-left))]">
         {data && view && data.path.sections.length === 0 && (
           <EmptyState title="Добавь первые слова" text="Каждые 5 слов — новый урок на пути. Слова добавляешь ты сам — те, что встречаешь.">
             <Button block onClick={() => navigate('words')}>
