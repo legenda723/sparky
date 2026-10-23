@@ -13,7 +13,7 @@ import { unlockSpeech } from '../media/speech'
 import { CollapsedSection } from '../path/CollapsedSection'
 import { Fog } from '../path/Fog'
 import { ChestInfo, GemsInfo, GhostInfo, NodeInfo } from '../path/NodeInfo'
-import { FUTURE_GAP, itemId, PathTrack } from '../path/PathTrack'
+import { itemId, PathTrack } from '../path/PathTrack'
 import { SectionBanner } from '../path/SectionBanner'
 import { now } from '../srs/clock'
 import { plural } from '../srs/status'
@@ -30,6 +30,8 @@ const GEMS_ID = 'gems'
 const FOG_TAIL = 120
 /** Туман начинается ниже первого скрытого места на столько px (просьба владельца: «опусти ниже»). */
 const FOG_DROP = 140
+/** Если путь кончается будущим уроком — туман начинается так, что этот урок в дыму. */
+const FOG_FUTURE_DROP = 100
 
 type Selected = { id: string; opened?: { gems: number; total: number } }
 
@@ -109,8 +111,9 @@ export function PathScreen() {
     const start = list.querySelector('[data-fog-start]') ?? tailRef.current
     if (!start) return
     const top = start.getBoundingClientRect().top - list.getBoundingClientRect().top
-    // Будущий урок стоит в бывшем месте под туманом: туман остаётся там же, где был без него.
-    const drop = start.hasAttribute('data-future') ? FOG_DROP - FUTURE_GAP + 24 : FOG_DROP
+    // Будущий урок стоит на обычном шаге сразу за последним местом; туман поднимается к нему,
+    // чтобы он заходил в дым (его центр — посередине края тумана).
+    const drop = start.hasAttribute('data-future') ? FOG_FUTURE_DROP : FOG_DROP
     setFogTop(Math.round(top + drop))
   }, [view])
 
