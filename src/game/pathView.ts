@@ -105,7 +105,7 @@ export function pathView(model: PathModel, expanded: ReadonlySet<string>, showAl
  * в конец добавляются два будущих урока подряд — последний уходит в туман, длина пути почти не меняется.
  */
 /** Будущих уроков в конце пути, когда настоящие места кончились. */
-export const FUTURES = 2
+export const FUTURES = 3
 
 function withFuture(sections: ViewSection[]): ViewSection[] {
   const last = sections.at(-1)
@@ -113,7 +113,7 @@ function withFuture(sections: ViewSection[]): ViewSection[] {
   if (sections.some((s) => s.entries.some((e) => e.fogged))) return sections
   const deckId = last.section.deck.id
   const next = (last.entries.at(-1)?.index ?? -1) + 1
-  // Два будущих урока подряд: туман стоит там же, где без них, — первый на чистом месте, второй в дыму.
+  // Будущие уроки подряд: туман стоит там же, где без них, — первый на чистом месте, дальше уходят в дым.
   const futures: ViewEntry[] = Array.from({ length: FUTURES }, (_, k) => ({
     item: { kind: 'future', key: `${deckId}:~${k}`, deckId },
     index: next + k,

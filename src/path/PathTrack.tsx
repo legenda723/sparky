@@ -16,6 +16,13 @@ export const ROW = 84
 
 export const itemId = (item: PathItem) => `${item.kind}:${item.key}`
 
+/** Сдвиг вбок сверх волны: «+» и будущие уроки стоят чуть правее (просьба владельца). */
+function nudgeX(item: PathItem): number {
+  if (item.kind === 'ghost') return 14
+  if (item.kind === 'future') return 16
+  return 0
+}
+
 /** Искорка у дорожки: четырёхлучевая звёздочка. */
 function Sparkle({ size, delay }: { size: number; delay: number }) {
   return (
@@ -46,7 +53,7 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
   const mascotAt = clear > 1 ? Math.min(MASCOT_AT, clear - 1) : -1
   return (
     <div className="relative flex flex-col">
-      {entries.map(({ item, index }, i) => {
+      {entries.map(({ item, index, fogged }, i) => {
         const id = itemId(item)
         const current = item.kind === 'node' && item.state === 'current'
         const x = WAVE[index % WAVE.length] * sign
@@ -61,21 +68,23 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
             style={{ height: ROW }}
           >
             {i === mascotAt && (
-              <div className="pointer-events-none absolute bottom-0" style={{ left: `calc(50% + ${side * 112}px - 48px)` }}>
+              <div className="pointer-events-none absolute -bottom-6" style={{ left: `calc(50% + ${side * 112}px - 48px)` }}>
                 <Mascot size={96} />
               </div>
             )}
-            {index % 4 === 0 && i !== MASCOT_AT && (
-              <div className="pointer-events-none absolute bottom-10" style={{ left: `calc(50% + ${side * 120}px - 10px)` }}>
+            {/* Искорки — на стороне, противоположной маскоту, и только на чистом месте (под туманом их нет). */}
+            {index % 4 === 0 && i !== MASCOT_AT && !fogged && (
+              <div className="pointer-events-none absolute bottom-7" style={{ left: `calc(50% + ${-side * 120}px - 10px)` }}>
                 <Sparkle size={20} delay={-(index % 3) * 0.8} />
               </div>
             )}
-            {index % 4 === 0 && (
-              <div className="pointer-events-none absolute bottom-20" style={{ left: `calc(50% + ${side * 150}px - 6px)` }}>
+            {index % 4 === 0 && !fogged && (
+              <div className="pointer-events-none absolute bottom-[68px]" style={{ left: `calc(50% + ${-side * 150}px - 6px)` }}>
                 <Sparkle size={12} delay={-1.3 - (index % 3) * 0.5} />
               </div>
             )}
-            <div style={{ transform: `translateX(${x}px)` }}>
+            {/* «+» — чуть ниже и правее волны; будущие уроки — чуть правее (просьба владельца). */}
+            <div style={{ transform: `translate(${x + nudgeX(item)}px, ${item.kind === 'ghost' ? 6 : 0}px)` }}>
               <div className={`relative ${current ? 'path-bounce' : ''}`} data-current={current || undefined}>
                 {item.kind === 'node' ? (
                   <PathNodeButton
