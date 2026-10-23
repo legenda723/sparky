@@ -1,4 +1,4 @@
-// Дорожка раздела (DESIGN.md → «Дорожка пути»): места по волне, тропинка под ними, маскот и искорки по бокам.
+// Дорожка раздела (DESIGN.md → «Дорожка пути»): места по волне, маскот и искорки по бокам.
 import type { DeckColor } from '../db/types'
 import type { PathItem } from '../game/path'
 import type { ViewEntry } from '../game/pathView'
@@ -7,16 +7,14 @@ import { DECK_COLORS } from '../words/deckLook'
 import { ChestButton } from './ChestButton'
 import { GhostButton } from './GhostButton'
 import { PathNodeButton } from './PathNodeButton'
-import { Road, type RoadPoint } from './Road'
 
 /** Сдвиг вбок по волне. */
 export const WAVE = [0, 44, 70, 44, 0, -44, -70, -44]
 /** Маскот сидит у 3-го места раздела. */
 const MASCOT_AT = 2
-/** Высота ряда: у текущего узла сверху место под «НАЧАТЬ». Центр кружка — на 48 выше низа ряда. */
-export const ROW = 136
-const ROW_CURRENT = 196
-const CENTER_FROM_BOTTOM = 48
+/** Высота ряда: у текущего узла сверху место под «НАЧАТЬ». */
+export const ROW = 100
+const ROW_CURRENT = 152
 
 export const itemId = (item: PathItem) => `${item.kind}:${item.key}`
 
@@ -59,25 +57,12 @@ interface TrackProps {
 
 export function PathTrack({ entries, color, number, nodeCount, burst, openedHere, setRef, onSelect }: TrackProps) {
   const sign = number % 2 === 0 ? -1 : 1
-  let bottom = 0
-  const points: RoadPoint[] = entries.map(({ item, index }) => {
-    const current = item.kind === 'node' && item.state === 'current'
-    bottom += current ? ROW_CURRENT : ROW
-    // Занятое место вокруг центра: кружок 72 с тенью; у текущего — кольцо и пузырь «НАЧАТЬ» над ним.
-    return {
-      x: WAVE[index % WAVE.length] * sign,
-      y: bottom - CENTER_FROM_BOTTOM,
-      clearTop: current ? 112 : 42,
-      clearBottom: current ? 52 : 46,
-    }
-  })
   const firstFogged = entries.findIndex((e) => e.fogged)
   // Маскот — у 3-го видимого места, но не под туманом.
   const clear = firstFogged < 0 ? entries.length : firstFogged
   const mascotAt = clear > 1 ? Math.min(MASCOT_AT, clear - 1) : -1
   return (
     <div className="relative flex flex-col">
-      <Road points={points} />
       {entries.map(({ item, index }, i) => {
         const id = itemId(item)
         const current = item.kind === 'node' && item.state === 'current'
