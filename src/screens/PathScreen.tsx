@@ -1,6 +1,6 @@
 // Экран «Путь» (SPEC 7.1): разделы-колоды, извилистая тропинка узлов, сундуки, туман впереди, кнопка «ПОВТОРИТЬ · N».
 import { useReducedMotion } from 'motion/react'
-import { ArrowDown, ArrowUp, Gem, RotateCcw } from 'lucide-react'
+import { Gem, RotateCcw } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { navigate, navigateSub, openLesson, type LessonTarget } from '../app/routes'
 import { db } from '../db/db'
@@ -23,12 +23,11 @@ import { HeaderChip } from '../ui/HeaderChip'
 import { Popover } from '../ui/Popover'
 import { TextButton } from '../ui/TextButton'
 import { useToast } from '../ui/Toast'
-import { usePress } from '../ui/usePress'
 
 /** Всплывашка счётчика кристаллов. */
 const GEMS_ID = 'gems'
-/** Сплошной дым ниже последнего места: до него можно долистать (~треть экрана), дальше — нет. */
-const FOG_TAIL = 260
+/** Сплошной дым ниже последнего места: до него можно долистать, дальше — только «резинка». */
+const FOG_TAIL = 160
 
 type Selected = { id: string; opened?: { gems: number; total: number } }
 
@@ -60,26 +59,6 @@ function findItem(data: PathData, id: string): { item: PathItem; section: PathSe
     if (item) return { item, section }
   }
   return null
-}
-
-/** «К текущему уроку» (DESIGN.md → «Кнопка «к текущему»»): круглая объёмная второстепенная 48. */
-function ToCurrentButton({ up, onClick }: { up: boolean; onClick: () => void }) {
-  const { pressed, pressHandlers } = usePress()
-  return (
-    <button
-      type="button"
-      aria-label="К текущему уроку"
-      {...pressHandlers}
-      data-pressed={pressed || undefined}
-      onClick={() => {
-        feedback('tap')
-        onClick()
-      }}
-      className="press-3d flex h-12 w-12 items-center justify-center rounded-full border-2 border-border bg-bg text-info-ink [--press-shadow:var(--c-border)]"
-    >
-      {up ? <ArrowUp size={24} strokeWidth={3} /> : <ArrowDown size={24} strokeWidth={3} />}
-    </button>
-  )
 }
 
 const toggle = (set: ReadonlySet<string>, id: string) => {
@@ -149,23 +128,6 @@ export function PathScreen() {
     requestAnimationFrame(() => scrollToCurrent(true))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentKey])
-
-  // Кнопка «к текущему уроку»: когда он ушёл за край экрана.
-  const [away, setAway] = useState<'up' | 'down' | null>(null)
-  useEffect(() => {
-    const box = scrollRef.current
-    const el = box?.querySelector('[data-current]')
-    if (!box || !el) {
-      setAway(null)
-      return
-    }
-    const io = new IntersectionObserver(
-      ([e]) => setAway(e.isIntersecting ? null : e.boundingClientRect.top < (e.rootBounds?.top ?? 0) ? 'up' : 'down'),
-      { root: box },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [currentKey, view])
 
   const setRef = (id: string, el: HTMLElement | null) => {
     if (el) refs.current.set(id, el)
@@ -294,20 +256,13 @@ export function PathScreen() {
         </div>
       </div>
 
-      {(hasDue || away) && (
+      {hasDue && (
         <div className="pointer-events-none absolute inset-x-0 bottom-4 flex items-center justify-center">
-          {hasDue && (
-            <div className="path-pulse pointer-events-auto">
-              <Button variant="info" icon={<RotateCcw size={22} strokeWidth={2.75} />} onClick={() => startLesson({ kind: 'review' })}>
-                Повторить · {data.today.due}
-              </Button>
-            </div>
-          )}
-          {away && (
-            <div className="pointer-events-auto absolute right-[calc(16px+var(--safe-right))]">
-              <ToCurrentButton up={away === 'up'} onClick={() => scrollToCurrent(true)} />
-            </div>
-          )}
+          <div className="path-pulse pointer-events-auto">
+            <Button variant="info" icon={<RotateCcw size={22} strokeWidth={2.75} />} onClick={() => startLesson({ kind: 'review' })}>
+              Повторить · {data.today.due}
+            </Button>
+          </div>
         </div>
       )}
 
