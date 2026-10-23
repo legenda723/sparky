@@ -102,19 +102,24 @@ export function pathView(model: PathModel, expanded: ReadonlySet<string>, showAl
 
 /**
  * Путь всегда уходит в туман (решение владельца): если под туманом нет ни одного места (слова кончились),
- * в конец добавляется один будущий урок — он ляжет в туман, длина пути почти не меняется.
+ * в конец добавляются два будущих урока подряд — последний уходит в туман, длина пути почти не меняется.
  */
+/** Будущих уроков в конце пути, когда настоящие места кончились. */
+export const FUTURES = 2
+
 function withFuture(sections: ViewSection[]): ViewSection[] {
   const last = sections.at(-1)
   if (!last || last.collapsed) return sections
   if (sections.some((s) => s.entries.some((e) => e.fogged))) return sections
   const deckId = last.section.deck.id
-  const future: ViewEntry = {
-    item: { kind: 'future', key: `${deckId}:~`, deckId },
-    index: (last.entries.at(-1)?.index ?? -1) + 1,
+  const next = (last.entries.at(-1)?.index ?? -1) + 1
+  // Два будущих урока подряд: туман стоит там же, где без них, — первый на чистом месте, второй в дыму.
+  const futures: ViewEntry[] = Array.from({ length: FUTURES }, (_, k) => ({
+    item: { kind: 'future', key: `${deckId}:~${k}`, deckId },
+    index: next + k,
     fogged: true,
-  }
-  return [...sections.slice(0, -1), { ...last, entries: [...last.entries, future] }]
+  }))
+  return [...sections.slice(0, -1), { ...last, entries: [...last.entries, ...futures] }]
 }
 
 function entries(section: PathSection, from: number, to: number): ViewEntry[] {

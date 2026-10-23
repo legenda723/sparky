@@ -30,8 +30,11 @@ const GEMS_ID = 'gems'
 const FOG_TAIL = 120
 /** Туман начинается ниже первого скрытого места на столько px (просьба владельца: «опусти ниже»). */
 const FOG_DROP = 140
-/** Если путь кончается будущим уроком — туман начинается так, что этот урок в дыму. */
-const FOG_FUTURE_DROP = 100
+/**
+ * Путь кончается будущими уроками — туман стоит там же, где стоял бы без них (над хвостом: зазор 24 + FOG_DROP):
+ * первый будущий урок на чистом месте, второй в дыму.
+ */
+const FOG_FUTURE_DROP = 24 + 140
 
 type Selected = { id: string; opened?: { gems: number; total: number } }
 
@@ -111,8 +114,7 @@ export function PathScreen() {
     const start = list.querySelector('[data-fog-start]') ?? tailRef.current
     if (!start) return
     const top = start.getBoundingClientRect().top - list.getBoundingClientRect().top
-    // Будущий урок стоит на обычном шаге сразу за последним местом; туман поднимается к нему,
-    // чтобы он заходил в дым (его центр — посередине края тумана).
+    // Будущие уроки стоят на обычном шаге сразу за последним местом, а туман — на прежнем месте.
     const drop = start.hasAttribute('data-future') ? FOG_FUTURE_DROP : FOG_DROP
     setFogTop(Math.round(top + drop))
   }, [view])
