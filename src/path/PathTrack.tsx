@@ -25,8 +25,8 @@ const MASCOT_AT = 2
 /** Высота ряда — у всех мест одинаковая, как в образце (references/путь-duolingo.jpg): путь ровный. */
 /** Шаг между местами — одинаковый у всех, включая сундук (просьба владельца): у сундука хватает места. */
 export const ROW = 90
-/** Увеличение места сразу под текущим; центры мест остаются на ровном шаге ROW. */
-const NEXT_SCALE = 72 / 70
+/** Закрытые места чуть крупнее (72 вместо 70 — рядом с кольцом текущего они казались меньше); центры — на ровном шаге ROW. */
+const LOCKED_SCALE = 72 / 70
 
 export const itemId = (item: PathItem) => `${item.kind}:${item.key}`
 
@@ -59,13 +59,12 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
   // Маскот — у 3-го видимого места, но не под туманом.
   const clear = firstFogged < 0 ? entries.length : firstFogged
   const mascotAt = clear > 1 ? Math.min(MASCOT_AT, clear - 1) : -1
-  // Место сразу под текущим — чуть крупнее (просьба владельца: рядом с кольцом текущего оно казалось меньше).
-  const curAt = entries.findIndex((e) => e.item.kind === 'node' && e.item.state === 'current')
   return (
     <div className="relative flex flex-col">
       {entries.map(({ item, index, fogged }, i) => {
         const id = itemId(item)
         const current = item.kind === 'node' && item.state === 'current'
+        const locked = (item.kind === 'node' && item.state === 'locked') || item.kind === 'ghost' || item.kind === 'future'
         const x = waveX(index) * sign
         // Свободная сторона волны — для маскота и искорок.
         const side = x > 0 ? -1 : x < 0 ? 1 : index % 2 === 0 ? -1 : 1
@@ -93,7 +92,7 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
                 <Sparkle size={12} delay={-1.3 - (index % 3) * 0.5} />
               </div>
             )}
-            <div style={{ transform: `translateX(${x}px)${curAt >= 0 && i === curAt + 1 && item.kind !== 'chest' ? ` scale(${NEXT_SCALE})` : ''}` }}>
+            <div style={{ transform: `translateX(${x}px)${locked ? ` scale(${LOCKED_SCALE})` : ''}` }}>
               <div className={`relative ${current ? 'path-bounce' : ''}`} data-current={current || undefined}>
                 {item.kind === 'node' ? (
                   <PathNodeButton
