@@ -28,6 +28,8 @@ import { useToast } from '../ui/Toast'
 const GEMS_ID = 'gems'
 /** Сплошной дым ниже последнего места: до него можно долистать, дальше — только «резинка». */
 const FOG_TAIL = 120
+/** Туман начинается ниже первого скрытого места на столько px (просьба владельца: «опусти ниже»). */
+const FOG_DROP = 64
 
 type Selected = { id: string; opened?: { gems: number; total: number } }
 
@@ -251,7 +253,7 @@ export function PathScreen() {
             )}
             {/* Место под сплошной дым: долистать до него можно, дальше — только «резинка». */}
             {view.fog && <div ref={tailRef} aria-hidden className="shrink-0" style={{ height: FOG_TAIL }} />}
-            {view.fog && fogTop !== null && <Fog top={fogTop} />}
+            {view.fog && fogTop !== null && <Fog top={fogTop + FOG_DROP} />}
           </div>
         )}
         </div>
