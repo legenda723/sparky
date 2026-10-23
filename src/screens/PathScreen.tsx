@@ -27,7 +27,7 @@ import { useToast } from '../ui/Toast'
 /** Всплывашка счётчика кристаллов. */
 const GEMS_ID = 'gems'
 /** Сплошной дым ниже последнего места: до него можно долистать, дальше — только «резинка». */
-const FOG_TAIL = 160
+const FOG_TAIL = 140
 
 type Selected = { id: string; opened?: { gems: number; total: number } }
 
