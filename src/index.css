@@ -346,6 +346,9 @@ html.theme-anim *::after {
 .fog-svg-edge { fill: url(#fog-edge-light); }
 .fog-svg-body { fill: url(#fog-body-light); }
 .fog-svg-thick { fill: url(#fog-thick-light); }
+.fog-svg-thick2 { fill: url(#fog-thick2-light); }
+/* дымчатая заливка под густым дымом у последнего места — цвет середины дыма */
+.fog-svg-wash { fill: #D3D8DF; fill-opacity: 0.75; }
 .fog-wisp { background: url('./path/fog/fog-wisp-light.webp') repeat-x 0 0 / 512px 220px; }
 /* Глубина тумана: от прозрачного к цвету фона за 190 px — путь под дымом гаснет, сам дым остаётся лёгким. */
 .fog-depth { background: linear-gradient(to bottom, transparent, var(--c-bg) 190px); }
@@ -353,11 +356,15 @@ html.theme-anim *::after {
   :root:not([data-theme='light']) .fog-svg-edge { fill: url(#fog-edge-dark); }
   :root:not([data-theme='light']) .fog-svg-body { fill: url(#fog-body-dark); }
   :root:not([data-theme='light']) .fog-svg-thick { fill: url(#fog-thick-dark); }
+  :root:not([data-theme='light']) .fog-svg-thick2 { fill: url(#fog-thick2-dark); }
+  :root:not([data-theme='light']) .fog-svg-wash { fill: #5F656F; }
   :root:not([data-theme='light']) .fog-wisp { background-image: url('./path/fog/fog-wisp-dark.webp'); }
 }
 :root[data-theme='dark'] .fog-svg-edge { fill: url(#fog-edge-dark); }
 :root[data-theme='dark'] .fog-svg-body { fill: url(#fog-body-dark); }
 :root[data-theme='dark'] .fog-svg-thick { fill: url(#fog-thick-dark); }
+:root[data-theme='dark'] .fog-svg-thick2 { fill: url(#fog-thick2-dark); }
+:root[data-theme='dark'] .fog-svg-wash { fill: #5F656F; }
 :root[data-theme='dark'] .fog-wisp { background-image: url('./path/fog/fog-wisp-dark.webp'); }
 @keyframes fog-drift {
   from { transform: translateX(0); }

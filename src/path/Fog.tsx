@@ -19,8 +19,9 @@ const FOG_EDGE = 256
  */
 const FOG_BELOW = 900
 /**
- * У последнего места дым гуще (просьба владельца): поверх лежит второй слой того же дыма, сдвинутый на полплитки
- * (закрывает просветы), и проявляется плавно за FOG_THICK_RAMP px — ровной границы нет.
+ * У последнего места дым гуще (просьба владельца): поверх лежат дымчатая заливка цвета дыма и ещё три слоя того же
+ * дыма (один совпадает с основным, два сдвинуты — закрывают просветы); всё вместе проявляется плавно за
+ * FOG_THICK_RAMP px — ровной границы нет.
  */
 const FOG_THICK_RAMP = 70
 
@@ -28,7 +29,7 @@ export function Fog({ top, thickAt }: { top: number; thickAt?: number | null }) 
   const reduce = useReducedMotion() ?? false
   const ref = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<SVGRectElement>(null)
-  const thickRef = useRef<SVGRectElement>(null)
+  const thickRef = useRef<SVGGElement>(null)
   const prevTop = useRef(top)
 
   // Край отступает: элемент сразу встаёт на новое место, а видно — как он плавно едет вниз со старого.
@@ -50,7 +51,7 @@ export function Fog({ top, thickAt }: { top: number; thickAt?: number | null }) 
     if (!el || !body) return
     const fit = () => {
       body.setAttribute('height', String(Math.max(0, el.offsetHeight - FOG_EDGE) + FOG_BELOW))
-      thickRef.current?.setAttribute('height', String(el.offsetHeight + FOG_BELOW))
+      for (const r of thickRef.current?.children ?? []) r.setAttribute('height', String(el.offsetHeight + FOG_BELOW))
     }
     fit()
     const ro = new ResizeObserver(fit)
@@ -89,6 +90,9 @@ export function Fog({ top, thickAt }: { top: number; thickAt?: number | null }) 
               <pattern id={`fog-thick-${t}`} patternUnits="userSpaceOnUse" x={256} y={FOG_EDGE + 200} width={512} height={512}>
                 <image href={t === 'light' ? bodyLight : bodyDark} width={512} height={512} />
               </pattern>
+              <pattern id={`fog-thick2-${t}`} patternUnits="userSpaceOnUse" x={128} y={FOG_EDGE + 330} width={512} height={512}>
+                <image href={t === 'light' ? bodyLight : bodyDark} width={512} height={512} />
+              </pattern>
             </g>
           ))}
           {thick !== null && (
@@ -103,7 +107,11 @@ export function Fog({ top, thickAt }: { top: number; thickAt?: number | null }) 
         </defs>
         <rect className="fog-svg-edge" width="100%" height={FOG_EDGE} />
         <rect ref={bodyRef} className="fog-svg-body" y={FOG_EDGE} width="100%" height={FOG_BELOW} />
-        <rect ref={thickRef} className="fog-svg-thick" mask="url(#fog-thick)" y={0} width="100%" height={FOG_BELOW} display={thick === null ? 'none' : undefined} />
+        <g ref={thickRef} mask="url(#fog-thick)" display={thick === null ? 'none' : undefined}>
+          {['fog-svg-wash', 'fog-svg-body', 'fog-svg-thick', 'fog-svg-thick2'].map((c) => (
+            <rect key={c} className={c} width="100%" height={FOG_BELOW} />
+          ))}
+        </g>
       </svg>
       {/* завитки над краем — едут в другую сторону и чуть покачиваются: дым клубится */}
       <div className="fog-bob absolute inset-x-0 top-0 h-[220px]">
