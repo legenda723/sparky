@@ -7,14 +7,16 @@ import { ChestButton } from './ChestButton'
 import { PathNodeButton } from './PathNodeButton'
 
 /**
- * Змейка — ритм как в образце references/путь-duolingo.jpg (выбор владельца), но зеркально (сначала вправо)
- * и с изгибом посильнее: 0 → 56 → 84 → 56 → 0 и обратно.
+ * Змейка — ритм как в образце references/путь-duolingo.jpg (выбор владельца): плавная волна на 8 мест,
+ * сначала вправо. Центр волны сдвинут вправо на 18 px (просьба владельца — нижние места уходили слишком
+ * влево; заодно уравновешивает маскота слева): вправо до 84, влево до −48.
  */
-const SNAKE = [0, 56, 84, 56, 0, -56, -84, -56]
+const SNAKE_CENTER = 18
+const SNAKE_SWING = 66
 
 /** Сдвиг места вбок: все места строго на одной волне (без отдельных сдвигов — иначе змейка ломается). */
 export function waveX(index: number): number {
-  return SNAKE[index % SNAKE.length]
+  return Math.round(SNAKE_CENTER + SNAKE_SWING * Math.sin((index * Math.PI) / 4))
 }
 /** Маскот сидит у 3-го места раздела. */
 const MASCOT_AT = 2
