@@ -4,24 +4,26 @@ import type { PathItem } from '../game/path'
 import type { ViewEntry } from '../game/pathView'
 import { Mascot } from '../ui/Mascot'
 import { ChestButton } from './ChestButton'
-import { GhostButton } from './GhostButton'
 import { PathNodeButton } from './PathNodeButton'
 
-/** Сдвиг вбок по волне. */
-export const WAVE = [0, 44, 70, 44, 0, -44, -70, -44]
+/**
+ * Змейка — ритм как в образце references/путь-duolingo.jpg (выбор владельца), но зеркально (сначала вправо)
+ * и с изгибом посильнее: 0 → 56 → 84 → 56 → 0 и обратно.
+ */
+const SNAKE = [0, 56, 84, 56, 0, -56, -84, -56]
+
+/** Сдвиг места вбок: все места строго на одной волне (без отдельных сдвигов — иначе змейка ломается). */
+export function waveX(index: number): number {
+  return SNAKE[index % SNAKE.length]
+}
 /** Маскот сидит у 3-го места раздела. */
 const MASCOT_AT = 2
 /** Высота ряда — у всех мест одинаковая, как в образце (references/путь-duolingo.jpg): путь ровный. */
-export const ROW = 84
+/** Шаг между местами — одинаковый у всех, включая сундук (просьба владельца): у сундука хватает места. */
+export const ROW = 90
 
 export const itemId = (item: PathItem) => `${item.kind}:${item.key}`
 
-/** Сдвиг вбок сверх волны: «+» и будущие уроки стоят чуть правее (просьба владельца). */
-function nudgeX(item: PathItem): number {
-  if (item.kind === 'ghost') return 14
-  if (item.kind === 'future') return 16
-  return 0
-}
 
 /** Искорка у дорожки: четырёхлучевая звёздочка. */
 function Sparkle({ size, delay }: { size: number; delay: number }) {
@@ -56,7 +58,7 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
       {entries.map(({ item, index, fogged }, i) => {
         const id = itemId(item)
         const current = item.kind === 'node' && item.state === 'current'
-        const x = WAVE[index % WAVE.length] * sign
+        const x = waveX(index) * sign
         // Свободная сторона волны — для маскота и искорок.
         const side = x > 0 ? -1 : x < 0 ? 1 : index % 2 === 0 ? -1 : 1
         return (
@@ -83,8 +85,7 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
                 <Sparkle size={12} delay={-1.3 - (index % 3) * 0.5} />
               </div>
             )}
-            {/* «+» — чуть ниже и правее волны; будущие уроки — чуть правее (просьба владельца). */}
-            <div style={{ transform: `translate(${x + nudgeX(item)}px, ${item.kind === 'ghost' ? 6 : 0}px)` }}>
+            <div style={{ transform: `translateX(${x}px)` }}>
               <div className={`relative ${current ? 'path-bounce' : ''}`} data-current={current || undefined}>
                 {item.kind === 'node' ? (
                   <PathNodeButton
@@ -94,15 +95,13 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
                     label={`Урок ${item.index + 1} из ${nodeCount}`}
                     onSelect={() => onSelect(item)}
                   />
-                ) : item.kind === 'ghost' ? (
-                  <GhostButton ref={(el) => setRef(id, el)} onSelect={() => onSelect(item)} />
-                ) : item.kind === 'future' ? (
-                  // Будущий урок: выглядит как закрытый узел, касание — как у «+» («добавь слова»).
+                ) : item.kind === 'ghost' || item.kind === 'future' ? (
+                  // Место следующего урока и будущие уроки: выглядят как закрытый узел, касание — «добавь слова».
                   <PathNodeButton
                     ref={(el) => setRef(id, el)}
                     node={{ kind: 'node', key: item.key, deckId: item.deckId, index, cardIds: [], introduced: 0, state: 'locked' }}
                     color={color}
-                    label="Будущий урок"
+                    label={item.kind === 'ghost' ? 'Новый урок: добавь слова' : 'Будущий урок'}
                     onSelect={() => onSelect(item)}
                   />
                 ) : (
