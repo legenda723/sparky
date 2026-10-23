@@ -3,7 +3,6 @@ import type { DeckColor } from '../db/types'
 import type { PathItem } from '../game/path'
 import type { ViewEntry } from '../game/pathView'
 import { Mascot } from '../ui/Mascot'
-import { DECK_COLORS } from '../words/deckLook'
 import { ChestButton } from './ChestButton'
 import { GhostButton } from './GhostButton'
 import { PathNodeButton } from './PathNodeButton'
@@ -12,26 +11,10 @@ import { PathNodeButton } from './PathNodeButton'
 export const WAVE = [0, 44, 70, 44, 0, -44, -70, -44]
 /** Маскот сидит у 3-го места раздела. */
 const MASCOT_AT = 2
-/** Высота ряда: у текущего узла сверху место под «НАЧАТЬ». */
-export const ROW = 100
-const ROW_CURRENT = 152
+/** Высота ряда — у всех мест одинаковая, как в образце (references/путь-duolingo.jpg): путь ровный. */
+export const ROW = 84
 
 export const itemId = (item: PathItem) => `${item.kind}:${item.key}`
-
-function StartBubble({ color }: { color: DeckColor }) {
-  const { fill, shadow } = DECK_COLORS[color]
-  return (
-    <div className="pointer-events-none absolute bottom-[calc(100%+28px)] left-1/2 -translate-x-1/2">
-      <div
-        className="relative rounded-card px-4 py-2 text-small font-black tracking-[0.04em] whitespace-nowrap text-on-color uppercase"
-        style={{ background: fill, boxShadow: `0 4px 0 ${shadow}` }}
-      >
-        Начать
-        <span aria-hidden className="absolute -bottom-[6px] left-1/2 h-3.5 w-3.5 -translate-x-1/2 rotate-45 rounded-[3px]" style={{ background: fill }} />
-      </div>
-    </div>
-  )
-}
 
 /** Искорка у дорожки: четырёхлучевая звёздочка. */
 function Sparkle({ size, delay }: { size: number; delay: number }) {
@@ -73,8 +56,8 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
           <div
             key={id}
             data-fog-start={i === firstFogged || undefined}
-            className="relative flex items-end justify-center pb-3"
-            style={{ height: current ? ROW_CURRENT : ROW }}
+            className="relative flex items-center justify-center"
+            style={{ height: ROW }}
           >
             {i === mascotAt && (
               <div className="pointer-events-none absolute bottom-0" style={{ left: `calc(50% + ${side * 112}px - 48px)` }}>
@@ -93,7 +76,6 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
             )}
             <div style={{ transform: `translateX(${x}px)` }}>
               <div className={`relative ${current ? 'path-bounce' : ''}`} data-current={current || undefined}>
-                {current && <StartBubble color={color} />}
                 {item.kind === 'node' ? (
                   <PathNodeButton
                     ref={(el) => setRef(id, el)}

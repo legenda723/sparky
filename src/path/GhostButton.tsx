@@ -17,7 +17,7 @@ export const GhostButton = forwardRef<HTMLButtonElement, { onSelect: () => void 
         feedback('tap')
         onSelect()
       }}
-      className="press-soft flex h-[72px] w-[72px] items-center justify-center rounded-full border-[3px] border-dashed border-road bg-bg text-muted"
+      className="press-soft flex h-[56px] w-[70px] items-center justify-center rounded-[50%] border-[3px] border-dashed border-road bg-bg text-muted"
     >
       <Plus size={30} strokeWidth={3} />
     </button>

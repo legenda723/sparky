@@ -6,7 +6,10 @@ import { feedback } from '../feedback/feedback'
 import { usePress } from '../ui/usePress'
 import { DECK_COLORS } from '../words/deckLook'
 
-const SIZE = 72
+/** Овальная объёмная кнопка, как в образце references/путь-duolingo.jpg: лицо 70×56, низ 8 px. */
+const W = 70
+const H = 56
+const DEPTH = 8
 const RING = 92
 const RING_WIDTH = 6
 
@@ -41,7 +44,7 @@ function ProgressRing({ value, color }: { value: number; color: string }) {
       width={RING}
       height={RING}
       className="pointer-events-none absolute -rotate-90"
-      style={{ left: (SIZE - RING) / 2, top: (SIZE - RING) / 2 }}
+      style={{ left: (W - RING) / 2, top: (H + DEPTH - RING) / 2 }}
     >
       <circle cx={RING / 2} cy={RING / 2} r={r} fill="none" stroke="var(--c-border)" strokeWidth={RING_WIDTH} />
       {value > 0 && (
@@ -73,10 +76,10 @@ export const PathNodeButton = forwardRef<HTMLButtonElement, Props>(function Path
   const { pressed, pressHandlers } = usePress()
   const { fill, shadow } = look(node, color)
   return (
-    <div className="relative" style={{ width: SIZE, height: SIZE }}>
+    <div className="relative" style={{ width: W, height: H + DEPTH }}>
       {node.state === 'current' && (
         // Мягкое сияние: кольцо цвета колоды расходится и тает.
-        <span aria-hidden className="path-halo absolute -inset-4 rounded-full" style={{ background: DECK_COLORS[color].fill }} />
+        <span aria-hidden className="path-halo absolute -inset-4 rounded-[50%]" style={{ background: DECK_COLORS[color].fill }} />
       )}
       {node.state === 'current' && <ProgressRing value={node.introduced / node.cardIds.length} color={DECK_COLORS[color].fill} />}
       <button
@@ -89,12 +92,12 @@ export const PathNodeButton = forwardRef<HTMLButtonElement, Props>(function Path
           feedback('tap')
           onSelect()
         }}
-        className="press-3d absolute inset-0 flex items-center justify-center rounded-full"
-        style={{ background: fill, ['--press-shadow' as string]: shadow, ['--press-depth' as string]: '6px' }}
+        className="press-3d absolute inset-x-0 top-0 flex items-center justify-center rounded-[50%]"
+        style={{ height: H, background: fill, ['--press-shadow' as string]: shadow, ['--press-depth' as string]: `${DEPTH}px` }}
       >
         {/* блик сверху — «сочный» объём, как у прогресс-бара (у закрытого — нет) */}
         {node.state !== 'locked' && (
-          <span aria-hidden className="absolute top-[7px] left-1/2 h-[8px] w-[34px] -translate-x-1/2 rounded-full bg-on-color/20" />
+          <span aria-hidden className="absolute top-[6px] left-1/2 h-[7px] w-[32px] -translate-x-1/2 rounded-full bg-on-color/20" />
         )}
         <Icon node={node} />
       </button>
