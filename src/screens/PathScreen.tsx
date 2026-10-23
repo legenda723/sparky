@@ -136,14 +136,20 @@ export function PathScreen() {
     else refs.current.delete(id)
   }
 
-  const show = (s: Selected) => {
+  /** anchorId — над чем открыть всплывашку, если не над самим местом (будущий урок показывает подсказку «+»). */
+  const show = (s: Selected, anchorId = s.id) => {
     window.clearTimeout(popTimer.current)
-    anchor.current = refs.current.get(s.id) ?? null
+    anchor.current = refs.current.get(anchorId) ?? null
     setSelected(s)
   }
 
   const select = async (item: PathItem) => {
     const id = itemId(item)
+    if (item.kind === 'future') {
+      // Будущий урок — как «+» своей колоды: «добавь слова».
+      show({ id: `ghost:${item.deckId}:+` }, id)
+      return
+    }
     if (item.kind === 'chest' && item.state === 'ready' && !openedHere.has(id)) {
       // Отклик сразу при касании (крышка, «+N 💎», звук), запись в базу — следом.
       const gems = chestGems()

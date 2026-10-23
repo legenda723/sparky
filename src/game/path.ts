@@ -55,7 +55,17 @@ export interface PathGhost {
   deckId: string
 }
 
-export type PathItem = PathNode | PathChest | PathGhost
+/**
+ * Будущий урок — только для вида: продолжает путь в туман, когда слов в колоде больше нет
+ * (выглядит как закрытый узел; касание — как у «+»: «добавь слова»). Строит pathView, не buildPath.
+ */
+export interface PathFuture {
+  kind: 'future'
+  key: string
+  deckId: string
+}
+
+export type PathItem = PathNode | PathChest | PathGhost | PathFuture
 
 export interface PathSection {
   deck: PathDeck

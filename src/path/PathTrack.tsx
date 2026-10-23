@@ -86,6 +86,15 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
                   />
                 ) : item.kind === 'ghost' ? (
                   <GhostButton ref={(el) => setRef(id, el)} onSelect={() => onSelect(item)} />
+                ) : item.kind === 'future' ? (
+                  // Будущий урок: выглядит как закрытый узел, касание — как у «+» («добавь слова»).
+                  <PathNodeButton
+                    ref={(el) => setRef(id, el)}
+                    node={{ kind: 'node', key: item.key, deckId: item.deckId, index, cardIds: [], introduced: 0, state: 'locked' }}
+                    color={color}
+                    label="Будущий урок"
+                    onSelect={() => onSelect(item)}
+                  />
                 ) : (
                   <ChestButton
                     ref={(el) => setRef(id, el)}

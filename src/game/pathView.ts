@@ -7,8 +7,9 @@ import type { PathItem, PathModel, PathSection } from './path'
 export const KEEP_BEFORE = 6
 /** Мест под текущим, видных ясно. */
 export const AHEAD_CLEAR = 2
-/** Ещё мест под облаками тумана — дальше путь не рисуется. */
-export const AHEAD_FOGGED = 2
+/** Ещё мест под туманом — дальше путь не рисуется. Под туманом их всегда столько (решение владельца:
+ *  путь всегда уходит в туман): не хватает настоящих — добавляются будущие уроки. */
+export const AHEAD_FOGGED = 4
 
 export interface ViewEntry {
   item: PathItem
@@ -68,7 +69,7 @@ export function pathView(model: PathModel, expanded: ReadonlySet<string>, showAl
 
   if (!cur) {
     out.push({ section: front, collapsed: false, hiddenBefore, entries: entries(front, start, front.items.length) })
-    return { sections: out, fog: true }
+    return { sections: withFutures(out), fog: true }
   }
 
   // Под текущим — AHEAD_CLEAR + AHEAD_FOGGED мест, можно и из следующих разделов; дальше путь не рисуется.
@@ -77,27 +78,37 @@ export function pathView(model: PathModel, expanded: ReadonlySet<string>, showAl
   const frontEnd = Math.min(front.items.length, anchor + 1 + budget)
   budget -= frontEnd - (anchor + 1)
   tail.push({ section: front, collapsed: false, hiddenBefore, entries: entries(front, start, frontEnd) })
-  let cutAt = { s: frontier, end: frontEnd }
   for (let i = frontier + 1; i < secs.length && budget > 0; i++) {
     const end = Math.min(secs[i].items.length, budget)
     budget -= end
     tail.push({ section: secs[i], collapsed: false, hiddenBefore: 0, entries: entries(secs[i], 0, end) })
-    cutAt = { s: i, end }
   }
-  // Последние AHEAD_FOGGED мест — под туманом, если за ними путь ещё есть.
-  const more = cutAt.end < secs[cutAt.s].items.length || cutAt.s < secs.length - 1
-  if (more) {
-    let left = AHEAD_FOGGED
-    for (let t = tail.length - 1; t >= 0 && left > 0; t--) {
-      const list = tail[t].entries
-      for (let e = list.length - 1; e >= 0 && left > 0; e--) {
-        if (list[e].item === cur) break
-        list[e].fogged = true
-        left--
-      }
+  // Под текущим первые AHEAD_CLEAR мест — ясно, остальные — под туманом (не хватит — добавятся будущие уроки).
+  let seen = -1
+  for (const t of tail) {
+    for (const e of t.entries) {
+      if (e.item === cur) seen = 0
+      else if (seen >= 0 && ++seen > AHEAD_CLEAR) e.fogged = true
     }
   }
-  return { sections: [...out, ...tail], fog: true }
+  return { sections: withFutures([...out, ...tail]), fog: true }
+}
+
+/** Под туманом — не меньше AHEAD_FOGGED мест: не хватает — в конец добавляются будущие уроки. */
+function withFutures(sections: ViewSection[]): ViewSection[] {
+  const last = sections.at(-1)
+  if (!last || last.collapsed) return sections
+  const fogged = sections.reduce((n, s) => n + s.entries.filter((e) => e.fogged).length, 0)
+  const need = AHEAD_FOGGED - fogged
+  if (need <= 0) return sections
+  const deckId = last.section.deck.id
+  const next = (last.entries.at(-1)?.index ?? -1) + 1
+  const futures: ViewEntry[] = Array.from({ length: need }, (_, k) => ({
+    item: { kind: 'future', key: `${deckId}:~${k}`, deckId },
+    index: next + k,
+    fogged: true,
+  }))
+  return [...sections.slice(0, -1), { ...last, entries: [...last.entries, ...futures] }]
 }
 
 function entries(section: PathSection, from: number, to: number): ViewEntry[] {
