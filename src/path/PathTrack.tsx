@@ -26,7 +26,7 @@ const MASCOT_AT = 2
 /** Шаг между местами — одинаковый у всех, включая сундук (просьба владельца): у сундука хватает места. */
 export const ROW = 90
 /** Увеличение места сразу под текущим; центры мест остаются на ровном шаге ROW. */
-const NEXT_SCALE = 1.12
+const NEXT_SCALE = 72 / 70
 
 export const itemId = (item: PathItem) => `${item.kind}:${item.key}`
 
