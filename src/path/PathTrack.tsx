@@ -13,6 +13,8 @@ export const WAVE = [0, 44, 70, 44, 0, -44, -70, -44]
 const MASCOT_AT = 2
 /** Высота ряда — у всех мест одинаковая, как в образце (references/путь-duolingo.jpg): путь ровный. */
 export const ROW = 84
+/** Будущий урок стоит ниже обычного шага — в том месте, где и так лежит туман (длина пути почти не меняется). */
+export const FUTURE_GAP = 75
 
 export const itemId = (item: PathItem) => `${item.kind}:${item.key}`
 
@@ -56,8 +58,9 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
           <div
             key={id}
             data-fog-start={i === firstFogged || undefined}
+            data-future={item.kind === 'future' || undefined}
             className="relative flex items-center justify-center"
-            style={{ height: ROW }}
+            style={{ height: ROW, marginTop: item.kind === 'future' ? FUTURE_GAP : undefined }}
           >
             {i === mascotAt && (
               <div className="pointer-events-none absolute bottom-0" style={{ left: `calc(50% + ${side * 112}px - 48px)` }}>

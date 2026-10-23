@@ -13,7 +13,7 @@ import { unlockSpeech } from '../media/speech'
 import { CollapsedSection } from '../path/CollapsedSection'
 import { Fog } from '../path/Fog'
 import { ChestInfo, GemsInfo, GhostInfo, NodeInfo } from '../path/NodeInfo'
-import { itemId, PathTrack } from '../path/PathTrack'
+import { FUTURE_GAP, itemId, PathTrack } from '../path/PathTrack'
 import { SectionBanner } from '../path/SectionBanner'
 import { now } from '../srs/clock'
 import { plural } from '../srs/status'
@@ -100,13 +100,18 @@ export function PathScreen() {
   // Туман: плотный дым начинается у первого места под туманом (или сразу под последним видимым).
   // Путь открылся дальше → край плавно отступает вниз (Fog).
   const tailRef = useRef<HTMLDivElement>(null)
+  // Путь кончается будущим уроком — место под туман уже занято им, отдельный хвост не нужен.
+  const endsWithFuture = view?.sections.at(-1)?.entries.at(-1)?.item.kind === 'future'
   const [fogTop, setFogTop] = useState<number | null>(null)
   useLayoutEffect(() => {
     const list = listRef.current
     if (!list || !view?.fog) return
     const start = list.querySelector('[data-fog-start]') ?? tailRef.current
     if (!start) return
-    setFogTop(Math.round(start.getBoundingClientRect().top - list.getBoundingClientRect().top))
+    const top = start.getBoundingClientRect().top - list.getBoundingClientRect().top
+    // Будущий урок стоит в бывшем месте под туманом: туман остаётся там же, где был без него.
+    const drop = start.hasAttribute('data-future') ? FOG_DROP - FUTURE_GAP + 24 : FOG_DROP
+    setFogTop(Math.round(top + drop))
   }, [view])
 
   // Плавно к текущему узлу: при открытии и когда текущий сменился (вернулись из урока — память показала прошлый).
@@ -258,8 +263,8 @@ export function PathScreen() {
               ),
             )}
             {/* Место под сплошной дым: долистать до него можно, дальше — только «резинка». */}
-            {view.fog && <div ref={tailRef} aria-hidden className="shrink-0" style={{ height: FOG_TAIL }} />}
-            {view.fog && fogTop !== null && <Fog top={fogTop + FOG_DROP} />}
+            {view.fog && !endsWithFuture && <div ref={tailRef} aria-hidden className="shrink-0" style={{ height: FOG_TAIL }} />}
+            {view.fog && fogTop !== null && <Fog top={fogTop} />}
           </div>
         )}
         </div>
