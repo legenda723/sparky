@@ -107,16 +107,18 @@ const THEMES = {
 }
 
 const field = puffField(TALL, 70, 44, 130, 11)
-// Поле периодично по Y на участке сплошного дыма: последние строки плавно сводятся к первым.
+// Поле периодично по Y на участке сплошного дыма: последние строки плавно сводятся к строкам прямо над
+// первой строкой сплошного дыма — тогда за последней строкой плитки ровно продолжается первая, шва нет.
 const BLEND = 64
 for (let r = 0; r < BLEND; r++) {
-  const t = smooth(0, 1, r / BLEND)
-  for (let x = 0; x < W; x++) field[(TALL - BLEND + r) * W + x] = lerp(field[(TALL - BLEND + r) * W + x], field[(EH + r) * W + x], t)
+  const t = smooth(0, 1, (r + 1) / BLEND)
+  for (let x = 0; x < W; x++) field[(TALL - BLEND + r) * W + x] = lerp(field[(TALL - BLEND + r) * W + x], field[(EH - BLEND + r) * W + x], t)
 }
 
 /** Свет и плотность точки поля (yy — строка поля 0..TALL). */
 function light(x, yy) {
-  const at = (xx, y) => field[Math.min(TALL - 1, Math.max(0, y)) * W + (((xx % W) + W) % W)]
+  // ниже последней строки — снова верх сплошного дыма (плитка повторяется), выше первой строки края — она сама
+  const at = (xx, y) => field[(y >= TALL ? y - H : Math.max(0, y)) * W + (((xx % W) + W) % W)]
   const d = at(x, yy)
   // мягкий объём клубов: свет сверху, по крупному наклону (шаг 8 px — без мелких бугорков)
   const gy = (at(x, yy + 8) - at(x, yy - 8)) / 16
@@ -138,9 +140,10 @@ function rgbOf(theme, l0) {
   return l < 0.5 ? c.deep.map((v, i) => lerp(v, c.mid[i], l / 0.5)) : c.mid.map((v, i) => lerp(v, c.top[i], (l - 0.5) / 0.5))
 }
 
-async function save(name, w, h, px) {
+/** lossless — для края и сплошного дыма: при сжатии с потерями края картинок сжимаются врозь и на стыках видна линия. */
+async function save(name, w, h, px, lossless = false) {
   await sharp(Buffer.from(px.buffer), { raw: { width: w, height: h, channels: 4 } })
-    .webp({ quality: 68, alphaQuality: 90, effort: 6 })
+    .webp(lossless ? { lossless: true, effort: 6 } : { quality: 68, alphaQuality: 90, effort: 6 })
     .toFile(outPath(name))
 }
 
@@ -171,7 +174,7 @@ for (const theme of Object.keys(THEMES)) {
       const { l, s } = light(x, EH + y)
       body.set([...rgbOf(theme, l), Math.round(veil(theme, l, s) * 255)], (y * W + x) * 4)
     }
-  await save(`fog-body-${theme}.webp`, W, H, body)
+  await save(`fog-body-${theme}.webp`, W, H, body, true)
 
   // край: клубы выступают, разводы дыма делают его рваным; к верху тает полностью, ниже — плотно
   const edge = new Uint8ClampedArray(W * EH * 4)
@@ -186,7 +189,7 @@ for (const theme of Object.keys(THEMES)) {
       a *= veil(theme, l, s) // внизу край ровно переходит в вуаль сплошной части
       edge.set([...rgbOf(theme, l), Math.round(a * 255)], (r * W + x) * 4)
     }
-  await save(`fog-edge-${theme}.webp`, W, EH, edge)
+  await save(`fog-edge-${theme}.webp`, W, EH, edge, true)
 
   // завитки: редкие полупрозрачные струйки дыма над краем — второй слой, едет в другую сторону
   const wisp = new Uint8ClampedArray(W * WH * 4)

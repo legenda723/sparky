@@ -342,18 +342,19 @@ html.theme-anim *::after {
 .path-twinkle { animation: path-twinkle 2.6s ease-in-out infinite; }
 /* Туман пути (DESIGN.md → «Туман пути»): готовые картинки дыма (scripts/gen-fog.mjs), плитка 512 px.
    Слои медленно едут вбок ровно на одну плитку и повторяются — шва нет. Только transform. */
-.fog-edge { background: url('./path/fog/fog-edge-light.webp') repeat-x 0 0 / 512px 256px; }
-.fog-body { background: url('./path/fog/fog-body-light.webp') repeat 0 0 / 512px 512px; }
+/* Край и сплошной дым — узоры одной SVG-картинки (src/path/Fog.tsx), картинка по теме выбирается здесь. */
+.fog-svg-edge { fill: url(#fog-edge-light); }
+.fog-svg-body { fill: url(#fog-body-light); }
 .fog-wisp { background: url('./path/fog/fog-wisp-light.webp') repeat-x 0 0 / 512px 220px; }
 /* Глубина тумана: от прозрачного к цвету фона за 190 px — путь под дымом гаснет, сам дым остаётся лёгким. */
 .fog-depth { background: linear-gradient(to bottom, transparent, var(--c-bg) 190px); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .fog-edge { background-image: url('./path/fog/fog-edge-dark.webp'); }
-  :root:not([data-theme='light']) .fog-body { background-image: url('./path/fog/fog-body-dark.webp'); }
+  :root:not([data-theme='light']) .fog-svg-edge { fill: url(#fog-edge-dark); }
+  :root:not([data-theme='light']) .fog-svg-body { fill: url(#fog-body-dark); }
   :root:not([data-theme='light']) .fog-wisp { background-image: url('./path/fog/fog-wisp-dark.webp'); }
 }
-:root[data-theme='dark'] .fog-edge { background-image: url('./path/fog/fog-edge-dark.webp'); }
-:root[data-theme='dark'] .fog-body { background-image: url('./path/fog/fog-body-dark.webp'); }
+:root[data-theme='dark'] .fog-svg-edge { fill: url(#fog-edge-dark); }
+:root[data-theme='dark'] .fog-svg-body { fill: url(#fog-body-dark); }
 :root[data-theme='dark'] .fog-wisp { background-image: url('./path/fog/fog-wisp-dark.webp'); }
 @keyframes fog-drift {
   from { transform: translateX(0); }
