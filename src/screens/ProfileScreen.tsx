@@ -1,4 +1,4 @@
-import { ArchiveRestore, CloudUpload, Download, Info, Palette, ShieldAlert, ShieldCheck, Sparkles, Volume2 } from 'lucide-react'
+import { ArchiveRestore, CloudUpload, Download, Eye, Info, Palette, ShieldAlert, ShieldCheck, Sparkles, Volume2 } from 'lucide-react'
 import { useState, useSyncExternalStore } from 'react'
 import { useStorageStatus, type StorageStatus } from '../app/install'
 import { getPendingUpdate, subscribePendingUpdate } from '../app/updates'
@@ -8,6 +8,8 @@ import { BackupNudge } from '../backup/BackupNudge'
 import { SaveBackupSheet, useBackupStatus, useRestore } from '../backup/BackupSheets'
 import { backupAgeText, isBackupStale } from '../backup/reminder'
 import { changeTheme } from '../app/theme'
+import { DEMO } from '../db/db'
+import { setDemo } from '../demo'
 import { Screen } from '../shell/Screen'
 import { ChoiceChips } from '../ui/ChoiceChips'
 import { ListRow } from '../ui/ListRow'
@@ -91,6 +93,13 @@ export function ProfileScreen() {
           title="Витрина компонентов"
           subtitle="Для проверки дизайна"
           onClick={() => navigate('dev')}
+        />
+        {/* Временный показ (src/demo.ts) — убрать после просмотра владельцем. */}
+        <ListRow
+          icon={<Eye size={22} className="text-muted" />}
+          title={DEMO ? 'Выйти из показа' : 'Показ: путь на уроке 20'}
+          subtitle={DEMO ? 'Вернуться к своим словам' : 'Отдельные тестовые слова, твои не трогаются'}
+          onClick={() => setDemo(!DEMO)}
         />
       </section>
     </Screen>

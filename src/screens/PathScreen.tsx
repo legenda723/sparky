@@ -7,6 +7,7 @@ import { db } from '../db/db'
 import { useCachedLiveQuery } from '../db/liveCache'
 import { loadPath, openChest, PATH_KEY, type PathData } from '../db/path'
 import { feedback } from '../feedback/feedback'
+import { DEMO } from '../db/db'
 import { chestGems, type PathItem, type PathNode, type PathSection } from '../game/path'
 import { pathView } from '../game/pathView'
 import { unlockSpeech } from '../media/speech'
@@ -210,7 +211,7 @@ export function PathScreen() {
     <div className="relative flex h-full flex-col bg-bg">
       {/* Шапка не прокручивается: заголовок и кристаллы всегда на виду, плашка раздела прилипает под ней. */}
       <header className="flex min-h-11 shrink-0 items-center gap-1 bg-bg pt-[calc(12px+var(--safe-top))] pr-[calc(16px+var(--safe-right))] pb-2 pl-[calc(16px+var(--safe-left))]">
-        <h1 className="m-0 min-w-0 flex-1 truncate text-title font-black text-text">Путь</h1>
+        <h1 className="m-0 min-w-0 flex-1 truncate text-title font-black text-text">{DEMO ? 'Путь · показ' : 'Путь'}</h1>
         {data && (
           <HeaderChip
             ref={(el) => setRef(GEMS_ID, el)}

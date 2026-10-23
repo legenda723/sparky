@@ -1,8 +1,8 @@
 // Временный показ «путь на уроке 20» (просьба владельца, убрать после просмотра).
-// Работает только в отдельной базе «sparky-demo» (ссылка с ?demo): 22 урока, 1–19 пройдены, сундуки открыты.
+// Работает только в отдельной базе «sparky-demo» (включается в Профиле): 22 урока, 1–19 пройдены, сундуки открыты.
 import { State } from 'ts-fsrs'
 import { addCards } from './db/cards'
-import { db, DEMO } from './db/db'
+import { db, DEMO, DEMO_FLAG } from './db/db'
 import { createDeck } from './db/decks'
 import { openChest } from './db/path'
 import { chestKey } from './game/path'
@@ -26,4 +26,16 @@ export async function seedDemo(): Promise<void> {
     })),
   )
   for (let k = 1; k <= 6; k++) await openChest(db, chestKey(deck.id, k), 15)
+}
+
+/** Включить или выключить показ: переключает базу и перезапускает приложение. */
+export function setDemo(on: boolean): void {
+  try {
+    if (on) localStorage.setItem(DEMO_FLAG, '1')
+    else localStorage.removeItem(DEMO_FLAG)
+  } catch {
+    return
+  }
+  location.replace(`${location.pathname}#/path`)
+  location.reload()
 }
