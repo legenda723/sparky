@@ -1,6 +1,6 @@
 import { State } from 'ts-fsrs'
 import { describe, expect, it } from 'vitest'
-import { buildPath, chestGems, CHEST_GEMS, type PathCard, type PathChest, type PathDeck, type PathItem, type PathNode } from './path'
+import { buildPath, type PathCard, type PathDeck, type PathItem, type PathNode } from './path'
 
 const deck = (id: string, order: number, extra: Partial<PathDeck> = {}): PathDeck => ({
   id,
@@ -32,30 +32,29 @@ function words(deckId: string, pattern: string, extra: (i: number) => Partial<Pa
 }
 
 const nodes = (items: PathItem[]) => items.filter((x): x is PathNode => x.kind === 'node')
-const chests = (items: PathItem[]) => items.filter((x): x is PathChest => x.kind === 'chest')
 
 describe('путь: узлы и их состояния', () => {
   it('узел — 5 слов по порядку, последний может быть неполным', () => {
-    const p = buildPath([deck('a', 0)], words('a', 'nnnnnnnnnnnn'), [])
+    const p = buildPath([deck('a', 0)], words('a', 'nnnnnnnnnnnn'))
     const ns = nodes(p.sections[0].items)
     expect(ns.map((n) => n.cardIds.length)).toEqual([5, 5, 2])
     expect(ns[0].cardIds).toEqual(['a-0', 'a-1', 'a-2', 'a-3', 'a-4'])
   })
 
   it('пройден, освоен, текущий и закрытые', () => {
-    const p = buildPath([deck('a', 0)], words('a', 'mmmmm' + 'kkmml' + 'kknnn' + 'nnnnn'), [])
+    const p = buildPath([deck('a', 0)], words('a', 'mmmmm' + 'kkmml' + 'kknnn' + 'nnnnn'))
     expect(nodes(p.sections[0].items).map((n) => n.state)).toEqual(['mastered', 'passed', 'current', 'locked'])
     expect(p.current?.key).toBe('a:2')
     expect(p.current?.introduced).toBe(2)
   })
 
   it('освоен — только когда у всех слов стабильность от 21 дня', () => {
-    const p = buildPath([deck('a', 0)], words('a', 'mmmmk'), [])
+    const p = buildPath([deck('a', 0)], words('a', 'mmmmk'))
     expect(nodes(p.sections[0].items)[0].state).toBe('passed')
   })
 
   it('текущий — первый непройденный во всём пути, разделы по порядку колод', () => {
-    const p = buildPath([deck('b', 1), deck('a', 0)], [...words('a', 'kkkkk'), ...words('b', 'nnnnn')], [])
+    const p = buildPath([deck('b', 1), deck('a', 0)], [...words('a', 'kkkkk'), ...words('b', 'nnnnn')])
     expect(p.sections.map((s) => [s.deck.id, s.number])).toEqual([
       ['a', 1],
       ['b', 2],
@@ -64,22 +63,22 @@ describe('путь: узлы и их состояния', () => {
   })
 
   it('пройденный узел после текущего остаётся пройденным (слова добавили в раннюю колоду)', () => {
-    const p = buildPath([deck('a', 0), deck('b', 1)], [...words('a', 'kkkkkkn'), ...words('b', 'kkkkk')], [])
+    const p = buildPath([deck('a', 0), deck('b', 1)], [...words('a', 'kkkkkkn'), ...words('b', 'kkkkk')])
     expect(nodes(p.sections[0].items).map((n) => n.state)).toEqual(['passed', 'current'])
     expect(nodes(p.sections[1].items)[0].state).toBe('passed')
   })
 
   it('дополненный неполный узел снова становится текущим', () => {
-    const before = buildPath([deck('a', 0)], words('a', 'kkkkkkk'), [])
+    const before = buildPath([deck('a', 0)], words('a', 'kkkkkkk'))
     expect(before.current).toBeUndefined()
-    const after = buildPath([deck('a', 0)], words('a', 'kkkkkkknn'), [])
+    const after = buildPath([deck('a', 0)], words('a', 'kkkkkkknn'))
     expect(after.current?.key).toBe('a:1')
     expect(after.current?.cardIds.length).toBe(4)
   })
 
   it('замороженные и удалённые слова в узлы не входят', () => {
     const cards = words('a', 'kknnkkk', (i) => (i === 2 ? { suspended: true } : i === 3 ? { deletedAt: 1 } : {}))
-    const p = buildPath([deck('a', 0)], cards, [])
+    const p = buildPath([deck('a', 0)], cards)
     const ns = nodes(p.sections[0].items)
     expect(ns).toHaveLength(1)
     expect(ns[0].cardIds).toEqual(['a-0', 'a-1', 'a-4', 'a-5', 'a-6'])
@@ -90,50 +89,36 @@ describe('путь: узлы и их состояния', () => {
     const p = buildPath(
       [deck('a', 0, { deletedAt: 1 }), deck('b', 1, { archived: true }), deck('c', 2)],
       [...words('a', 'nn'), ...words('b', 'nn')],
-      [],
     )
     expect(p.sections.map((s) => s.deck.id)).toEqual(['c'])
-    expect(p.sections[0].items.map((x) => x.kind)).toEqual(['ghost', 'chest'])
+    expect(p.sections[0].items.map((x) => x.kind)).toEqual(['ghost'])
     expect(p.current).toBeUndefined()
   })
 
   it('слово, которое учится, считается прошедшим знакомство', () => {
-    const p = buildPath([deck('a', 0)], words('a', 'lllll'), [])
+    const p = buildPath([deck('a', 0)], words('a', 'lllll'))
     expect(nodes(p.sections[0].items)[0].state).toBe('passed')
   })
 })
 
-describe('путь: сундуки', () => {
-  it('сундук после каждого третьего узла', () => {
-    const p = buildPath([deck('a', 0)], words('a', 'n'.repeat(35)), [])
-    const kinds = p.sections[0].items.map((x) => x.kind)
-    // В конце — места будущих уроков и сундук-цель
-    expect(kinds).toEqual(['node', 'node', 'node', 'chest', 'node', 'node', 'node', 'chest', 'node', 'ghost', 'chest'])
-    expect(chests(p.sections[0].items).map((c) => c.key)).toEqual(['a:1', 'a:2', 'a:3'])
-    expect(chests(p.sections[0].items).map((c) => c.state)).toEqual(['locked', 'locked', 'locked'])
+describe('путь: места', () => {
+  it('места — только уроки по порядку и в конце одно место следующего урока', () => {
+    const p = buildPath([deck('a', 0)], words('a', 'n'.repeat(35)))
+    expect(p.sections[0].items.map((x) => x.kind)).toEqual(['node', 'node', 'node', 'node', 'node', 'node', 'node', 'ghost'])
   })
 
-  it('путь виден вперёд: «+» и сундук-цель с номером урока; ровно 3 урока — только «+»', () => {
-    const one = buildPath([deck('a', 0)], words('a', 'kkkkk'), [])
-    expect(one.sections[0].items.map((x) => x.kind)).toEqual(['node', 'ghost', 'chest'])
-    expect(chests(one.sections[0].items)[0].afterLesson).toBe(3)
-    const two = buildPath([deck('a', 0)], words('a', 'kkkkkkk'), [])
-    expect(two.sections[0].items.map((x) => x.kind)).toEqual(['node', 'node', 'ghost', 'chest'])
-    const three = buildPath([deck('a', 0)], words('a', 'k'.repeat(15)), [])
-    expect(three.sections[0].items.map((x) => x.kind)).toEqual(['node', 'node', 'node', 'chest', 'ghost'])
-    expect(chests(three.sections[0].items)[0].afterLesson).toBe(3)
+  it('путь виден вперёд при любом числе уроков: за последним уроком — место следующего', () => {
+    for (const [pattern, count] of [['kkkkk', 1], ['kkkkkkk', 2], ['k'.repeat(15), 3]] as const) {
+      const kinds = buildPath([deck('a', 0)], words('a', pattern)).sections[0].items.map((x) => x.kind)
+      expect(kinds).toEqual([...Array(count).fill('node'), 'ghost'])
+    }
   })
 
-  it('закрыт, пока предыдущий узел не пройден; готов; открыт — по профилю', () => {
-    const cards = words('a', 'k'.repeat(15) + 'k'.repeat(12) + 'nnn')
-    const p = buildPath([deck('a', 0)], cards, [])
-    expect(chests(p.sections[0].items).map((c) => c.state)).toEqual(['ready', 'locked'])
-    const q = buildPath([deck('a', 0)], cards, ['a:1'])
-    expect(chests(q.sections[0].items).map((c) => c.state)).toEqual(['opened', 'locked'])
-  })
-
-  it('кристаллов — от 10 до 20', () => {
-    expect(chestGems(() => 0)).toBe(CHEST_GEMS.min)
-    expect(chestGems(() => 0.9999)).toBe(CHEST_GEMS.max)
+  it('место следующего урока — в каждом разделе, со своим ключом', () => {
+    const p = buildPath([deck('a', 0), deck('b', 1)], [...words('a', 'kkkkk'), ...words('b', 'nnnnn')])
+    expect(p.sections.map((s) => s.items.at(-1))).toEqual([
+      { kind: 'ghost', key: 'a:+', deckId: 'a' },
+      { kind: 'ghost', key: 'b:+', deckId: 'b' },
+    ])
   })
 })

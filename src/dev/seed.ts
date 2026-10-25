@@ -3,7 +3,6 @@ import { State } from 'ts-fsrs'
 import { addCards } from '../db/cards'
 import { db } from '../db/db'
 import { createDeck } from '../db/decks'
-import { DEFAULT_PROFILE } from '../db/types'
 
 const DAY = 86_400_000
 
@@ -60,9 +59,8 @@ function texts(list: string) {
 }
 
 /**
- * Путь со всеми состояниями (SPEC 7.1, этап 7): «Еда» — освоен, пройден (3 слова к повторению), пройден,
- * готовый сундук, текущий (2 из 5 знакомы); «Дом» — закрытые; «Работа» — пройденные после текущего и открытый сундук;
- * «Путешествия» — без слов.
+ * Путь со всеми состояниями (SPEC 7.1, этап 7): «Еда» — освоен, пройден (3 слова к повторению), пройден, пройден,
+ * текущий (2 из 5 знакомы); «Дом» — закрытые; «Работа» — пройденные после текущего; «Путешествия» — без слов.
  */
 export async function seedPathData(): Promise<void> {
   const now = Date.now()
@@ -81,15 +79,12 @@ export async function seedPathData(): Promise<void> {
   const work = await createDeck(db, { title: 'Работа', emoji: '💼', color: 'purple' })
   const workCards = await addCards(db, work.id, texts(WORK))
   await createDeck(db, { title: 'Путешествия', emoji: '✈️', color: 'pink' })
-  await db.transaction('rw', db.cards, db.profile, async () => {
+  await db.transaction('rw', db.cards, async () => {
     for (const [i, c] of foodCards.entries()) {
       if (i < 5) await db.cards.update(c.id, known(30, 20))
       else if (i < 8) await db.cards.update(c.id, known(4, -1))
       else if (i < 17) await db.cards.update(c.id, known(5, 3))
     }
     for (const c of workCards) await db.cards.update(c.id, known(8, 5))
-    const profile = await db.profile.get('me')
-    if (profile) await db.profile.put({ ...profile, chestsClaimed: [...profile.chestsClaimed, `${work.id}:1`] })
-    else await db.profile.put({ ...DEFAULT_PROFILE, chestsClaimed: [`${work.id}:1`] })
   })
 }

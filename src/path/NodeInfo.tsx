@@ -97,40 +97,7 @@ export function NodeInfo({ node, total, data, onStart, onReview }: NodeInfoProps
   )
 }
 
-export function ChestInfo({
-  state,
-  afterLesson,
-  opened,
-}: {
-  state: 'locked' | 'ready' | 'opened'
-  afterLesson: number
-  opened?: { gems: number; total: number }
-}) {
-  if (opened) {
-    return (
-      <>
-        <Title>Сундук открыт!</Title>
-        <Text>{`+${opened.gems} 💎 · всего ${opened.total} 💎`}</Text>
-      </>
-    )
-  }
-  if (state === 'opened') {
-    return (
-      <>
-        <Title>Сундук</Title>
-        <Text>Уже открыт</Text>
-      </>
-    )
-  }
-  return (
-    <>
-      <Title>Сундук</Title>
-      <Text>{`Откроется после урока ${afterLesson} — внутри 10–20 💎`}</Text>
-    </>
-  )
-}
-
-/** Место будущего урока: «+» в конце раздела. */
+/** Место следующего урока в конце раздела (закрытый круг с замком). */
 export function GhostInfo({ deckTitle, onAdd }: { deckTitle: string; onAdd: () => void }) {
   return (
     <>
@@ -141,15 +108,6 @@ export function GhostInfo({ deckTitle, onAdd }: { deckTitle: string; onAdd: () =
           Добавить слова
         </Button>
       </div>
-    </>
-  )
-}
-
-export function GemsInfo({ gems }: { gems: number }) {
-  return (
-    <>
-      <Title>{`Кристаллы: ${gems} 💎`}</Title>
-      <Text>Даются за сундуки на пути. Скоро на них можно будет купить заморозку стрика и украшения для Спарки.</Text>
     </>
   )
 }

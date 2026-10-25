@@ -3,7 +3,6 @@ import type { DeckColor } from '../db/types'
 import type { PathItem } from '../game/path'
 import type { ViewEntry } from '../game/pathView'
 import { Mascot } from '../ui/Mascot'
-import { ChestButton } from './ChestButton'
 import { PathNodeButton } from './PathNodeButton'
 
 /**
@@ -23,7 +22,7 @@ export function waveX(index: number): number {
 /** Маскот сидит у 3-го места раздела. */
 const MASCOT_AT = 2
 /** Высота ряда — у всех мест одинаковая, как в образце (references/путь-duolingo.jpg): путь ровный. */
-/** Шаг между местами — одинаковый у всех, включая сундук (просьба владельца): у сундука хватает места. */
+/** Шаг между местами — одинаковый у всех (просьба владельца). */
 export const ROW = 90
 /**
  * Закрытые места чуть крупнее (72 вместо 70 — рядом с кольцом текущего они казались меньше),
@@ -31,8 +30,6 @@ export const ROW = 90
  */
 const LOCKED_SCALE = 72 / 70
 const NEXT_SCALE = 73 / 70
-/** Сундук — 67 вместо 64 в ширину. */
-const CHEST_SCALE = 67 / 64
 
 export const itemId = (item: PathItem) => `${item.kind}:${item.key}`
 
@@ -65,17 +62,16 @@ interface TrackProps {
   number: number
   /** Сколько уроков в разделе всего (для «Урок 3 из 5»). */
   nodeCount: number
-  burst: { id: string; gems: number } | null
-  openedHere: ReadonlySet<string>
   setRef: (id: string, el: HTMLElement | null) => void
   onSelect: (item: PathItem) => void
 }
 
-export function PathTrack({ entries, color, number, nodeCount, burst, openedHere, setRef, onSelect }: TrackProps) {
+export function PathTrack({ entries, color, number, nodeCount, setRef, onSelect }: TrackProps) {
   const sign = number % 2 === 0 ? -1 : 1
   const firstFogged = entries.findIndex((e) => e.fogged)
+  // Чистые места — до тумана. Первый будущий урок стоит ещё на чистом месте (туман опущен под него), остальные — в дыму.
+  const clear = firstFogged < 0 ? entries.length : firstFogged + (entries[firstFogged].item.kind === 'future' ? 1 : 0)
   // Маскот — у 3-го видимого места, но не под туманом.
-  const clear = firstFogged < 0 ? entries.length : firstFogged
   const mascotAt = clear > 1 ? Math.min(MASCOT_AT, clear - 1) : -1
   const curAt = entries.findIndex((e) => e.item.kind === 'node' && e.item.state === 'current')
   return (
@@ -84,7 +80,7 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
         const id = itemId(item)
         const current = item.kind === 'node' && item.state === 'current'
         const locked = (item.kind === 'node' && item.state === 'locked') || item.kind === 'ghost' || item.kind === 'future'
-        const scale = locked && curAt >= 0 && i === curAt + 1 ? NEXT_SCALE : locked ? LOCKED_SCALE : item.kind === 'chest' ? CHEST_SCALE : 1
+        const scale = locked && curAt >= 0 && i === curAt + 1 ? NEXT_SCALE : locked ? LOCKED_SCALE : 1
         const x = waveX(index) * sign
         const star = STARS[index % 8]
         // Свободная сторона волны — для маскота.
@@ -104,7 +100,7 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
               </div>
             )}
             {/* Искорки — по одной, в пустых местах у змейки (только на чистом месте: под туманом их нет). */}
-            {star && !fogged && i !== mascotAt && (
+            {star && i < clear && i !== mascotAt && (
               <div
                 className="pointer-events-none absolute"
                 style={{ left: `calc(50% + ${star.x * sign - star.size / 2}px)`, top: `calc(50% + ${star.y - star.size / 2}px)` }}
@@ -122,20 +118,13 @@ export function PathTrack({ entries, color, number, nodeCount, burst, openedHere
                     label={`Урок ${item.index + 1} из ${nodeCount}`}
                     onSelect={() => onSelect(item)}
                   />
-                ) : item.kind === 'ghost' || item.kind === 'future' ? (
+                ) : (
                   // Место следующего урока и будущие уроки: выглядят как закрытый узел, касание — «добавь слова».
                   <PathNodeButton
                     ref={(el) => setRef(id, el)}
                     node={{ kind: 'node', key: item.key, deckId: item.deckId, index, cardIds: [], introduced: 0, state: 'locked' }}
                     color={color}
                     label={item.kind === 'ghost' ? 'Новый урок: добавь слова' : 'Будущий урок'}
-                    onSelect={() => onSelect(item)}
-                  />
-                ) : (
-                  <ChestButton
-                    ref={(el) => setRef(id, el)}
-                    state={openedHere.has(id) ? 'opened' : item.state}
-                    burst={burst?.id === id ? burst.gems : undefined}
                     onSelect={() => onSelect(item)}
                   />
                 )}

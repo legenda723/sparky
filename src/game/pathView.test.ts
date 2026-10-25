@@ -23,7 +23,7 @@ const kinds = (v: ReturnType<typeof pathView>, s: number) =>
 
 describe('что видно на пути', () => {
   it('пройденные колоды выше текущей — свёрнуты; развернуть можно', () => {
-    const m = buildPath([deck('a', 0), deck('b', 1)], [...words('a', 'k'.repeat(10)), ...words('b', 'nnnnn')], [])
+    const m = buildPath([deck('a', 0), deck('b', 1)], [...words('a', 'k'.repeat(10)), ...words('b', 'nnnnn')])
     const v = pathView(m, none, none)
     expect(v.sections.map((s) => s.collapsed)).toEqual([true, false])
     expect(v.sections[0].entries).toEqual([])
@@ -31,32 +31,33 @@ describe('что видно на пути', () => {
   })
 
   it('под текущим — 2 места ясно и 2 под туманом, дальше путь не рисуется', () => {
-    const m = buildPath([deck('a', 0), deck('b', 1)], [...words('a', 'n'.repeat(30)), ...words('b', 'nnnnn')], [])
+    const m = buildPath([deck('a', 0), deck('b', 1)], [...words('a', 'n'.repeat(30)), ...words('b', 'nnnnn')])
     const v = pathView(m, none, none)
     expect(v.fog).toBe(true)
     expect(v.sections).toHaveLength(1)
-    // текущий, закрытый, закрытый, сундук~, закрытый~
-    expect(kinds(v, 0)).toEqual(['current', 'locked', 'locked', 'chest~', 'locked~'])
+    // текущий, 2 закрытых ясно, 2 закрытых под туманом
+    expect(kinds(v, 0)).toEqual(['current', 'locked', 'locked', 'locked~', 'locked~'])
   })
 
   it('окно продолжается в следующий раздел', () => {
-    const m = buildPath([deck('a', 0), deck('b', 1)], [...words('a', 'kkkkknnnnn'), ...words('b', 'n'.repeat(15))], [])
+    const m = buildPath([deck('a', 0), deck('b', 1)], [...words('a', 'kkkkknnnnn'), ...words('b', 'n'.repeat(15))])
     const v = pathView(m, none, none)
-    // в «a»: пройден, текущий, «+», сундук-цель; дальше «b» — первые 2 места под туманом
-    expect(kinds(v, 0)).toEqual(['passed', 'current', 'ghost', 'chest'])
-    expect(kinds(v, 1)).toEqual(['locked~', 'locked~'])
+    // в «a»: пройден, текущий, место следующего урока; дальше «b»: ещё одно место ясно и 2 под туманом
+    expect(kinds(v, 0)).toEqual(['passed', 'current', 'ghost'])
+    expect(kinds(v, 1)).toEqual(['locked', 'locked~', 'locked~'])
   })
 
   it('впереди слов нет — путь продолжают три будущих урока подряд', () => {
-    const m = buildPath([deck('a', 0)], words('a', 'kkkkknn'), [])
+    const m = buildPath([deck('a', 0)], words('a', 'kkkkknn'))
     const v = pathView(m, none, none)
-    expect(kinds(v, 0)).toEqual(['passed', 'current', 'ghost', 'chest', 'future~', 'future~', 'future~'])
-    expect(v.sections[0].entries.map((e) => e.index)).toEqual([0, 1, 2, 3, 4, 5, 6])
+    expect(kinds(v, 0)).toEqual(['passed', 'current', 'ghost', 'future~', 'future~', 'future~'])
+    // Будущие уроки — на той же волне, подряд за последним местом.
+    expect(v.sections[0].entries.map((e) => e.index)).toEqual([0, 1, 2, 3, 4, 5])
     expect(v.fog).toBe(true)
   })
 
   it('над текущим — не больше 6 мест, остальные пройденные — «Показать ещё»', () => {
-    const m = buildPath([deck('a', 0)], words('a', 'k'.repeat(50) + 'nnnnn'), [])
+    const m = buildPath([deck('a', 0)], words('a', 'k'.repeat(50) + 'nnnnn'))
     const v = pathView(m, none, none)
     const s = v.sections[0]
     const cur = s.entries.findIndex((e) => e.item.kind === 'node' && e.item.state === 'current')
@@ -66,15 +67,15 @@ describe('что видно на пути', () => {
     expect(pathView(m, none, new Set(['a'])).sections[0].hiddenBefore).toBe(0)
   })
 
-  it('всё пройдено — последний раздел открыт до «+» и сундука-цели', () => {
-    const m = buildPath([deck('a', 0), deck('b', 1)], [...words('a', 'kkkkk'), ...words('b', 'kkkkk')], [])
+  it('всё пройдено — последний раздел открыт до места следующего урока', () => {
+    const m = buildPath([deck('a', 0), deck('b', 1)], [...words('a', 'kkkkk'), ...words('b', 'kkkkk')])
     const v = pathView(m, none, none)
     expect(v.sections.map((s) => s.collapsed)).toEqual([true, false])
-    expect(kinds(v, 1)).toEqual(['passed', 'ghost', 'chest', 'future~', 'future~', 'future~'])
+    expect(kinds(v, 1)).toEqual(['passed', 'ghost', 'future~', 'future~', 'future~'])
   })
 
   it('5000 слов — на экране не больше ~11 мест', () => {
-    const m = buildPath([deck('a', 0)], words('a', 'k'.repeat(4990) + 'n'.repeat(10)), [])
+    const m = buildPath([deck('a', 0)], words('a', 'k'.repeat(4990) + 'n'.repeat(10)))
     const v = pathView(m, none, none)
     expect(v.sections[0].entries.length).toBeLessThanOrEqual(KEEP_BEFORE + 1 + 4 + 3)
   })

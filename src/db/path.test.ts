@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { addCards } from './cards'
 import { SparkyDb } from './db'
 import { createDeck } from './decks'
-import { loadPath, openChest } from './path'
+import { loadPath } from './path'
 
 let n = 0
 const opened: SparkyDb[] = []
@@ -23,7 +23,7 @@ afterEach(async () => {
 const T = new Date('2026-10-18T15:00')
 
 describe('путь из базы', () => {
-  it('узлы колоды, текущий, кристаллы', async () => {
+  it('узлы колоды, текущий, место следующего урока', async () => {
     const db = freshDb()
     const deck = await createDeck(db, { title: 'Еда', emoji: '🍎', color: 'green' })
     const cards = await addCards(db, deck.id, Array.from({ length: 7 }, (_, i) => ({ front: `w${i}`, back: `с${i}` })))
@@ -34,15 +34,8 @@ describe('путь из базы', () => {
     expect(data.path.sections).toHaveLength(1)
     expect(data.path.current?.key).toBe(`${deck.id}:1`)
     expect(data.today).toMatchObject({ due: 0, dueNow: 0, newAvailable: 2 })
-    expect(data.gems).toBe(0)
+    // Места — только уроки и место следующего урока (сундуков нет).
+    expect(data.path.sections[0].items.map((x) => x.kind)).toEqual(['node', 'node', 'ghost'])
   })
 
-  it('сундук открывается один раз: кристаллы и отметка вместе', async () => {
-    const db = freshDb()
-    expect(await openChest(db, 'd:1', 15)).toBe(15)
-    expect(await openChest(db, 'd:1', 15)).toBeNull()
-    expect(await openChest(db, 'd:2', 12)).toBe(27)
-    const p = await db.profile.get('me')
-    expect(p).toMatchObject({ gems: 27, chestsClaimed: ['d:1', 'd:2'] })
-  })
 })

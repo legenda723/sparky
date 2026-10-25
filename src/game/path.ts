@@ -1,4 +1,4 @@
-// Путь (SPEC 7.1): колоды — разделы, узел — 5 слов колоды по порядку, каждые 3 узла — сундук.
+// Путь (SPEC 7.1): колоды — разделы, узел — 5 слов колоды по порядку.
 // Чистые функции: состояния считаются по словам, отдельно не хранятся.
 import { State } from 'ts-fsrs'
 import { MASTERED_DAYS } from '../srs/status'
@@ -6,13 +6,8 @@ import type { Deck } from '../db/types'
 
 /** Слов в узле: один узел — один урок. */
 export const NODE_SIZE = 5
-/** Сундук — после каждого третьего узла. */
-export const CHEST_EVERY = 3
-/** Кристаллов в сундуке — случайно в этих пределах. */
-export const CHEST_GEMS = { min: 10, max: 20 } as const
 
 export type NodeState = 'locked' | 'current' | 'passed' | 'mastered'
-export type ChestState = 'locked' | 'ready' | 'opened'
 
 export interface PathCard {
   id: string
@@ -38,17 +33,7 @@ export interface PathNode {
   state: NodeState
 }
 
-export interface PathChest {
-  kind: 'chest'
-  /** «deckId:номер сундука» — так он записан в профиле (chestsClaimed). */
-  key: string
-  deckId: string
-  state: ChestState
-  /** Открывается после этого урока раздела (3, 6, 9…). */
-  afterLesson: number
-}
-
-/** Место будущего урока: появится, когда владелец добавит слова (пунктирный «+»). */
+/** Место следующего урока: появится, когда владелец добавит слова (выглядит как закрытый узел с замком). */
 export interface PathGhost {
   kind: 'ghost'
   key: string
@@ -65,13 +50,13 @@ export interface PathFuture {
   deckId: string
 }
 
-export type PathItem = PathNode | PathChest | PathGhost | PathFuture
+export type PathItem = PathNode | PathGhost | PathFuture
 
 export interface PathSection {
   deck: PathDeck
   /** Номер раздела с 1. */
   number: number
-  /** Узлы и сундуки, а в конце — места будущих уроков и сундук-цель, чтобы путь был виден вперёд. */
+  /** Узлы, а в конце — место следующего урока, чтобы путь был виден вперёд. */
   items: PathItem[]
 }
 
@@ -104,14 +89,9 @@ export function nodeCardIds(cards: PathCard[], deckId: string, index: number): s
     .map((c) => c.id)
 }
 
-export function chestKey(deckId: string, n: number): string {
-  return `${deckId}:${n}`
-}
-
-/** Строит путь: разделы по порядку колод, в каждом — узлы и сундуки. */
-export function buildPath(decks: PathDeck[], cards: PathCard[], chestsClaimed: string[]): PathModel {
+/** Строит путь: разделы по порядку колод, в каждом — узлы. */
+export function buildPath(decks: PathDeck[], cards: PathCard[]): PathModel {
   const live = decks.filter((d) => d.deletedAt === undefined && !d.archived).sort((a, b) => a.order - b.order)
-  const claimed = new Set(chestsClaimed)
   let current: PathNode | undefined
 
   const sections = live.map((deck, si): PathSection => {
@@ -137,26 +117,10 @@ export function buildPath(decks: PathDeck[], cards: PathCard[], chestsClaimed: s
       }
       if (state === 'current') current = node
       items.push(node)
-      if ((i + 1) % CHEST_EVERY === 0) {
-        const key = chestKey(deck.id, (i + 1) / CHEST_EVERY)
-        const done = state === 'passed' || state === 'mastered'
-        items.push({ kind: 'chest', key, deckId: deck.id, state: claimed.has(key) ? 'opened' : done ? 'ready' : 'locked', afterLesson: i + 1 })
-      }
     }
-    // Путь виден вперёд: место следующего урока «+» и ближайший сундук — как цель.
-    const n = items.filter((x) => x.kind === 'node').length
+    // Путь виден вперёд: место следующего урока.
     items.push({ kind: 'ghost', key: `${deck.id}:+`, deckId: deck.id })
-    if (n === 0 || n % CHEST_EVERY !== 0) {
-      const k = Math.floor(n / CHEST_EVERY) + 1
-      const key = chestKey(deck.id, k)
-      items.push({ kind: 'chest', key, deckId: deck.id, state: claimed.has(key) ? 'opened' : 'locked', afterLesson: k * CHEST_EVERY })
-    }
     return { deck, number: si + 1, items }
   })
   return { sections, current }
-}
-
-/** Кристаллы в сундуке: rng — число от 0 до 1. */
-export function chestGems(rng: () => number = Math.random): number {
-  return CHEST_GEMS.min + Math.floor(rng() * (CHEST_GEMS.max - CHEST_GEMS.min + 1))
 }

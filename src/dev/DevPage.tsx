@@ -1,4 +1,4 @@
-import { ChevronLeft, Flame, Gem, Plus, Trash2, Volume2 } from 'lucide-react'
+import { ChevronLeft, Flame, Plus, Trash2, Volume2 } from 'lucide-react'
 import { useRef, useState, type ReactNode } from 'react'
 import { setPref, usePrefs, type ThemePref } from '../app/prefs'
 import { navigate } from '../app/routes'
@@ -246,8 +246,7 @@ function ChipsDemo() {
 
 function PopoverSection() {
   const streakRef = useRef<HTMLButtonElement>(null)
-  const gemRef = useRef<HTMLButtonElement>(null)
-  const [open, setOpen] = useState<'streak' | 'gem' | null>(null)
+  const [open, setOpen] = useState(false)
   return (
     <Section title="Чипы шапки и всплывашка">
       <div className="flex items-center gap-4 rounded-panel border-2 border-border px-2">
@@ -257,28 +256,14 @@ function PopoverSection() {
           value={12}
           colorClass="text-streak"
           label="Стрик: 12 дней"
-          onClick={() => setOpen('streak')}
-        />
-        <HeaderChip
-          ref={gemRef}
-          icon={<Gem size={24} fill="currentColor" />}
-          value={340}
-          colorClass="text-gem"
-          label="Кристаллы: 340"
-          onClick={() => setOpen('gem')}
+          onClick={() => setOpen(true)}
         />
       </div>
-      <Popover open={open === 'streak'} onClose={() => setOpen(null)} anchorRef={streakRef}>
+      <Popover open={open} onClose={() => setOpen(false)} anchorRef={streakRef}>
         <p className="m-0 flex items-center gap-2 text-heading font-black text-text">
           <Flame size={24} fill="currentColor" className="text-streak" /> 12 дней подряд!
         </p>
         <p className="m-0 mt-1 text-small font-semibold text-muted">Позанимайся сегодня, чтобы огонь не погас.</p>
-      </Popover>
-      <Popover open={open === 'gem'} onClose={() => setOpen(null)} anchorRef={gemRef}>
-        <p className="m-0 flex items-center gap-2 text-heading font-black text-text">
-          <Gem size={22} fill="currentColor" className="text-gem" /> 340 кристаллов
-        </p>
-        <p className="m-0 mt-1 text-small font-semibold text-muted">Трать их в магазине на заморозки и наряды для Спарки.</p>
       </Popover>
     </Section>
   )

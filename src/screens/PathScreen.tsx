@@ -1,31 +1,26 @@
-// Экран «Путь» (SPEC 7.1): разделы-колоды, извилистая тропинка узлов, сундуки, туман впереди, кнопка «ПОВТОРИТЬ · N».
+// Экран «Путь» (SPEC 7.1): разделы-колоды, извилистая тропинка узлов, туман впереди, кнопка «ПОВТОРИТЬ · N».
 import { useReducedMotion } from 'motion/react'
-import { Gem, RotateCcw } from 'lucide-react'
+import { RotateCcw } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { navigate, navigateSub, openLesson, type LessonTarget } from '../app/routes'
 import { db } from '../db/db'
 import { useCachedLiveQuery } from '../db/liveCache'
-import { loadPath, openChest, PATH_KEY, type PathData } from '../db/path'
-import { feedback } from '../feedback/feedback'
-import { chestGems, type PathItem, type PathNode, type PathSection } from '../game/path'
+import { loadPath, PATH_KEY, type PathData } from '../db/path'
+import type { PathItem, PathNode, PathSection } from '../game/path'
 import { pathView } from '../game/pathView'
 import { unlockSpeech } from '../media/speech'
 import { CollapsedSection } from '../path/CollapsedSection'
 import { Fog } from '../path/Fog'
-import { ChestInfo, GemsInfo, GhostInfo, NodeInfo } from '../path/NodeInfo'
+import { GhostInfo, NodeInfo } from '../path/NodeInfo'
 import { itemId, PathTrack } from '../path/PathTrack'
 import { SectionBanner } from '../path/SectionBanner'
 import { now } from '../srs/clock'
 import { plural } from '../srs/status'
 import { Button } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
-import { HeaderChip } from '../ui/HeaderChip'
 import { Popover } from '../ui/Popover'
 import { TextButton } from '../ui/TextButton'
-import { useToast } from '../ui/Toast'
 
-/** Всплывашка счётчика кристаллов. */
-const GEMS_ID = 'gems'
 /** Сплошной дым ниже последнего места: до него можно долистать, дальше — только «резинка». */
 const FOG_TAIL = 120
 /** Туман начинается ниже первого скрытого места на столько px (просьба владельца: «опусти ниже»). */
@@ -36,7 +31,7 @@ const FOG_DROP = 140
  */
 const FOG_FUTURE_DROP = 24 + 140
 
-type Selected = { id: string; opened?: { gems: number; total: number } }
+type Selected = { id: string }
 
 /** Раз в минуту и при возврате в приложение — свежий счёт: слова в обучении подходят по времени. */
 function useMinuteTick(): number {
@@ -79,26 +74,13 @@ export function PathScreen() {
   const tick = useMinuteTick()
   const data = useCachedLiveQuery(PATH_KEY, () => loadPath(db, now()), [tick])
   const reduce = useReducedMotion() ?? false
-  const toast = useToast()
   const scrollRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const refs = useRef(new Map<string, HTMLElement>())
   const anchor = useRef<HTMLElement | null>(null)
   const [selected, setSelected] = useState<Selected | null>(null)
-  const [burst, setBurst] = useState<{ id: string; gems: number } | null>(null)
-  // Сундуки, открытые на этом экране: показываем открытыми, пока база не ответила свежим путём.
-  const [openedHere, setOpenedHere] = useState<ReadonlySet<string>>(new Set())
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const [showAll, setShowAll] = useState<ReadonlySet<string>>(new Set())
-  const popTimer = useRef<number | undefined>(undefined)
-  const burstTimer = useRef<number | undefined>(undefined)
-  useEffect(
-    () => () => {
-      window.clearTimeout(popTimer.current)
-      window.clearTimeout(burstTimer.current)
-    },
-    [],
-  )
 
   const view = useMemo(() => (data ? pathView(data.path, expanded, showAll) : null), [data, expanded, showAll])
 
@@ -153,74 +135,29 @@ export function PathScreen() {
 
   /** anchorId — над чем открыть всплывашку, если не над самим местом (будущий урок показывает подсказку «+»). */
   const show = (s: Selected, anchorId = s.id) => {
-    window.clearTimeout(popTimer.current)
     anchor.current = refs.current.get(anchorId) ?? null
     setSelected(s)
   }
 
-  const select = async (item: PathItem) => {
+  const select = (item: PathItem) => {
     const id = itemId(item)
     if (item.kind === 'future') {
       // Будущий урок — как «+» своей колоды: «добавь слова».
       show({ id: `ghost:${item.deckId}:+` }, id)
       return
     }
-    if (item.kind === 'chest' && item.state === 'ready' && !openedHere.has(id)) {
-      // Отклик сразу при касании (крышка, «+N 💎», звук), запись в базу — следом.
-      const gems = chestGems()
-      feedback('reward')
-      setOpenedHere((set) => new Set(set).add(id))
-      setBurst({ id, gems })
-      window.clearTimeout(burstTimer.current)
-      burstTimer.current = window.setTimeout(() => setBurst((b) => (b?.id === id ? null : b)), 1500)
-      let total: number | null = null
-      try {
-        total = await openChest(db, item.key, gems)
-      } catch {
-        // Не записалось — награды не было: сундук снова закрыт.
-        setBurst(null)
-        setOpenedHere((set) => toggle(set, id))
-        toast({ message: 'Не получилось открыть сундук' })
-        return
-      }
-      if (total === null) {
-        // Уже был открыт раньше — второй награды нет.
-        setBurst(null)
-        show({ id })
-        return
-      }
-      const saved = total
-      // Сначала крышка и «+N 💎», потом всплывашка — чтобы она их не закрыла.
-      window.clearTimeout(popTimer.current)
-      popTimer.current = window.setTimeout(() => show({ id, opened: { gems, total: saved } }), 700)
-      return
-    }
     show({ id })
   }
 
-  const found = data && selected && selected.id !== GEMS_ID ? findItem(data, selected.id) : null
-  const gemsOpen = selected?.id === GEMS_ID
-  const close = () => {
-    window.clearTimeout(popTimer.current)
-    setSelected(null)
-  }
+  const found = data && selected ? findItem(data, selected.id) : null
+  const close = () => setSelected(null)
   const hasDue = !!data && data.today.due > 0
 
   return (
     <div className="relative flex h-full flex-col bg-bg">
-      {/* Шапка не прокручивается: заголовок и кристаллы всегда на виду, плашка раздела прилипает под ней. */}
+      {/* Шапка не прокручивается, плашка раздела прилипает под ней. Высота строки — 44, как у чипов полосы этапа 8. */}
       <header className="flex min-h-11 shrink-0 items-center gap-1 bg-bg pt-[calc(12px+var(--safe-top))] pr-[calc(16px+var(--safe-right))] pb-2 pl-[calc(16px+var(--safe-left))]">
-        <h1 className="m-0 min-w-0 flex-1 truncate text-title font-black text-text">Путь</h1>
-        {data && (
-          <HeaderChip
-            ref={(el) => setRef(GEMS_ID, el)}
-            icon={<Gem size={24} strokeWidth={2.5} className="fill-current" />}
-            value={data.gems}
-            colorClass="text-gem"
-            label={`Кристаллы: ${data.gems}`}
-            onClick={() => show({ id: GEMS_ID })}
-          />
-        )}
+        <h1 className="m-0 min-w-0 flex-1 truncate text-title leading-11 font-black text-text">Путь</h1>
       </header>
 
       {/* Родная «резинка» iPhone: оттянешь путь за конец — снизу тянется тот же туман (Fog рисует его за краем). */}
@@ -258,10 +195,8 @@ export function PathScreen() {
                       color={section.deck.color}
                       number={section.number}
                       nodeCount={section.items.filter((x) => x.kind === 'node').length}
-                      burst={burst}
-                      openedHere={openedHere}
                       setRef={setRef}
-                      onSelect={(item) => void select(item)}
+                      onSelect={select}
                     />
                   </div>
                   {expanded.has(section.deck.id) && (
@@ -280,8 +215,9 @@ export function PathScreen() {
         </div>
       </div>
 
+      {/* Поверх прилипающих плашек разделов (у них z-10): плашка, проезжая внизу, не закрывает кнопку. */}
       {hasDue && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-4 flex items-center justify-center">
+        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center">
           <div className="path-pulse pointer-events-auto">
             <Button variant="info" icon={<RotateCcw size={22} strokeWidth={2.75} />} onClick={() => startLesson({ kind: 'review' })}>
               Повторить · {data.today.due}
@@ -290,8 +226,7 @@ export function PathScreen() {
         </div>
       )}
 
-      <Popover open={!!found || gemsOpen} onClose={close} anchorRef={anchor} width={300} gap={gemsOpen ? 8 : 22}>
-        {gemsOpen && data && <GemsInfo gems={data.gems} />}
+      <Popover open={!!found} onClose={close} anchorRef={anchor} width={300} gap={22}>
         {found && data && found.item.kind === 'node' ? (
           <NodeInfo
             node={found.item}
@@ -314,12 +249,6 @@ export function PathScreen() {
               close()
               navigateSub('words', found.section.deck.id)
             }}
-          />
-        ) : found && found.item.kind === 'chest' ? (
-          <ChestInfo
-            state={openedHere.has(itemId(found.item)) ? 'opened' : found.item.state}
-            afterLesson={found.item.afterLesson}
-            opened={selected?.opened}
           />
         ) : null}
       </Popover>
