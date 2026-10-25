@@ -8,6 +8,7 @@ import { feedback } from '../feedback/feedback'
 import { ACHIEVEMENTS, stripBadges, type Achievement } from '../game/achievements'
 import { GOAL_OPTIONS, levelInfo } from '../game/progress'
 import { compressImage } from '../media/image'
+import { JourneySection } from './Journey'
 import { Screen } from '../shell/Screen'
 import { now } from '../srs/clock'
 import { plural } from '../srs/status'
@@ -288,6 +289,7 @@ export function ProfileGameSection({ g, onAchievements }: { g: ProfileGame; onAc
       <ProfileTiles g={g} />
       <DailyGoal goal={g.goalXp} />
       <AchievementStrip have={g.achievements} onOpen={onAchievements} />
+      <JourneySection g={g} />
     </>
   )
 }

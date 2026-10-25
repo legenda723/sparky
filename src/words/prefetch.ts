@@ -2,6 +2,7 @@
 // После восстановления и сброса — обновляет память экранов.
 import { db } from '../db/db'
 import { loadProfileGame, PROFILE_GAME_KEY } from '../db/game'
+import { JOURNEY_KEY, loadJourney } from '../db/journey'
 import { setCached } from '../db/liveCache'
 import { loadPath, PATH_KEY } from '../db/path'
 import { now } from '../srs/clock'
@@ -22,6 +23,9 @@ export async function prefetchWords(): Promise<void> {
     .catch(() => {})
   void loadProfileGame(db, now())
     .then((g) => setCached(PROFILE_GAME_KEY, g))
+    .catch(() => {})
+  void loadJourney(db)
+    .then((j) => setCached(JOURNEY_KEY, j))
     .catch(() => {})
   const [decks, cards] = await Promise.all([db.decks.orderBy('order').toArray(), db.cards.toArray()])
   setCached(KEYS.decks, decks.filter((d) => d.deletedAt === undefined))
