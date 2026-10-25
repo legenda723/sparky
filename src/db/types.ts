@@ -103,6 +103,10 @@ export interface Profile {
   lastBackupAt?: number
   /** Когда последний раз после урока напоминали о бэкапе (не чаще раза в неделю). */
   backupNudgeAt?: number
+  /** Имя владельца (база версии 2); пусто — «Добавь имя». */
+  name: string
+  /** Фото профиля — запись в media (база версии 2). */
+  avatarId?: Id
 }
 
 export const DEFAULT_PROFILE: Profile = {
@@ -117,6 +121,7 @@ export const DEFAULT_PROFILE: Profile = {
   unlockedThemes: [],
   achievements: [],
   chestsClaimed: [],
+  name: '',
 }
 
 export interface QuestDay {

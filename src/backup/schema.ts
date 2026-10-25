@@ -122,6 +122,9 @@ const profile = z.looseObject({
   chestsClaimed: z.array(z.string()).default([]),
   lastBackupAt: ms.optional(),
   backupNudgeAt: ms.optional(),
+  // База версии 2: в старых файлах имени и фото нет.
+  name: z.string().default(P.name),
+  avatarId: z.string().optional(),
 })
 
 const questDay = z.looseObject({

@@ -5,6 +5,7 @@ import { addCard, addCards, deleteCard } from '../db/cards'
 import { SparkyDb } from '../db/db'
 import { createDeck, deleteDeck } from '../db/decks'
 import { finishLesson } from '../db/game'
+import { setAvatar, setProfileName } from '../db/profile'
 import { markIntroduced, saveAnswer } from '../db/review'
 import { updateSettings } from '../db/settings'
 import { DEFAULT_PROFILE, DEFAULT_SETTINGS } from '../db/types'
@@ -52,6 +53,9 @@ async function seed(d: SparkyDb) {
   await finishLesson(d, at)
   await updateSettings(d, { theme: 'dark', newPerDay: 7, voiceURI: 'com.apple.voice.Samantha' })
   await d.profile.put({ ...DEFAULT_PROFILE, totalXp: 42, gems: 15, streak: 3, achievements: ['first-word'] })
+  // База версии 2: имя и фото профиля.
+  await setProfileName(d, 'Сама')
+  await setAvatar(d, { kind: 'image', blob: new Blob([new Uint8Array([0xff, 0xd8, 7, 7])], { type: 'image/jpeg' }), mime: 'image/jpeg', width: 300, height: 300 }, T0.getTime())
   await d.quests.put({ dayKey: '2026-10-10', quests: [{ kind: 'xp', target: 50, progress: 12, done: false }], chestClaimed: false })
   return { food, home, apple }
 }
@@ -93,6 +97,9 @@ describe('бэкап: экспорт → импорт', () => {
     after.profile[0].lastBackupAt = before.profile[0].lastBackupAt
     expect(after).toEqual(before)
     expect(after.cards[0].due).toBeInstanceOf(Date)
+    // Имя и фото профиля вернулись.
+    expect(after.profile[0].name).toBe('Сама')
+    expect(after.media.find((m) => m.id === after.profile[0].avatarId)?.width).toBe(300)
   })
 
   it('в другую (пустую) базу — тоже всё', async () => {
@@ -112,7 +119,8 @@ describe('бэкап: экспорт → импорт', () => {
     await seed(d)
     const p = await exportBackup(d, new Date('2026-03-05T10:00:00'))
     expect(p.fileName).toBe('sparky-backup-2026-03-05.json')
-    expect(p.summary).toEqual({ decks: 2, cards: 3, images: 1, audios: 1, reviews: 1 })
+    // Фото: у слова и в профиле.
+    expect(p.summary).toEqual({ decks: 2, cards: 3, images: 2, audios: 1, reviews: 1 })
     expect(parseBackup(p.text).summary).toEqual(p.summary)
     expect(p.size).toBe(new TextEncoder().encode(p.text).length)
   })
@@ -210,7 +218,10 @@ describe('бэкап: старые файлы открываются и в но�
       }
       const s = await d.settings.get('me')
       if (s) for (const key of Object.keys(DEFAULT_SETTINGS)) if (key !== 'voiceURI') expect(s).toHaveProperty(key)
-      expect(await d.profile.get('me')).toMatchObject({ id: 'me', level: expect.any(Number) })
+      // В старых файлах имени и фото нет — пустое имя, без фото.
+      const p = await d.profile.get('me')
+      expect(p).toMatchObject({ id: 'me', level: expect.any(Number), name: '' })
+      expect(p?.avatarId).toBeUndefined()
     })
   }
 

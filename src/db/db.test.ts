@@ -1,8 +1,9 @@
 import 'fake-indexeddb/auto'
 import { afterEach, describe, expect, it } from 'vitest'
-import { SparkyDb } from './db'
+import { Dexie } from 'dexie'
+import { SparkyDb, STORES_V1 } from './db'
 import { ensureSettings, updateSettings } from './settings'
-import { DEFAULT_SETTINGS } from './types'
+import { DEFAULT_PROFILE, DEFAULT_SETTINGS } from './types'
 
 let n = 0
 const opened: SparkyDb[] = []
@@ -19,11 +20,11 @@ afterEach(async () => {
   }
 })
 
-describe('схема версии 1', () => {
+describe('схема', () => {
   it('открывается со всеми таблицами SPEC', async () => {
     const d = freshDb()
     await d.open()
-    expect(d.verno).toBe(1)
+    expect(d.verno).toBe(2)
     expect(d.tables.map((t) => t.name).sort()).toEqual(
       ['cards', 'days', 'decks', 'media', 'profile', 'quests', 'reviewLogs', 'settings'].sort(),
     )
@@ -38,6 +39,25 @@ describe('схема версии 1', () => {
     opened.push(again)
     expect((await again.decks.get('d1'))?.title).toBe('Еда')
     expect((await again.media.get('m1'))?.mime).toBe('image/jpeg')
+  })
+
+  it('версия 1 → 2: профиль получает пустое имя, всё остальное на месте', async () => {
+    const name = `test-${++n}`
+    const v1 = new Dexie(name)
+    v1.version(1).stores(STORES_V1)
+    const { name: _skip, ...oldProfile } = { ...DEFAULT_PROFILE, totalXp: 507, streak: 13, achievements: ['first-word'] }
+    await v1.table('profile').put(oldProfile)
+    await v1.table('decks').put({ id: 'd1', title: 'Еда', emoji: '🍎', color: 'green', order: 0, createdAt: 1, archived: false })
+    v1.close()
+
+    const d = new SparkyDb(name)
+    opened.push(d)
+    await d.open()
+    expect(d.verno).toBe(2)
+    const p = await d.profile.get('me')
+    expect(p).toEqual({ ...oldProfile, name: '' })
+    expect(p?.avatarId).toBeUndefined()
+    expect((await d.decks.get('d1'))?.title).toBe('Еда')
   })
 })
 
