@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { addDays, dayKey, daysBetween, weekday } from '../srs/day'
 import { goalInfo, levelInfo, levelNeed } from './progress'
-import { countStreakDay, isDayDone, isStreakAlarm, reconcileStreak, streakWeek, type StreakState } from './streak'
+import { countStreakDay, isDayDone, isStreakAlarm, reconcileStreak, streakFromHistory, streakWeek, type StreakState } from './streak'
 
 const fresh: StreakState = { streak: 0, bestStreak: 0, freezes: 0 }
 const at = (y: number, m: number, d: number, h: number, min = 0) => new Date(y, m - 1, d, h, min)
@@ -141,5 +141,18 @@ describe('стрик (8.1)', () => {
       'Сб:future',
       'Вс:future',
     ])
+  })
+
+  it('стрик по прошлым урокам (первое открытие после обновления)', () => {
+    const days = new Set(['2026-10-10', '2026-10-11', '2026-10-12', '2026-10-20', '2026-10-21', '2026-10-22'])
+    // Сегодня ещё не занимался — стрик до вчера.
+    expect(streakFromHistory(days, '2026-10-23')).toEqual({ streak: 3, bestStreak: 3, lastStreakDay: '2026-10-22', freezes: 0 })
+    // Уже занимался сегодня.
+    expect(streakFromHistory(new Set([...days, '2026-10-23']), '2026-10-23').streak).toBe(4)
+    // Был пропуск — стрик 0, лучший сохраняется.
+    expect(streakFromHistory(days, '2026-10-25')).toMatchObject({ streak: 0, bestStreak: 3, lastStreakDay: undefined })
+    // Неделя подряд — заморозка.
+    const week = new Set(Array.from({ length: 8 }, (_, i) => addDays('2026-10-15', i)))
+    expect(streakFromHistory(week, '2026-10-23')).toMatchObject({ streak: 8, freezes: 1 })
   })
 })

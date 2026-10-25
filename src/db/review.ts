@@ -1,30 +1,13 @@
-// Ответы в уроке. Каждый ответ сохраняется сразу, одной транзакцией: слово + журнал + итоги дня + XP в профиле.
+// Ответы в уроке. Каждый ответ сохраняется сразу, одной транзакцией: слово + журнал + итоги дня + XP в профиле
+// + прогресс заданий дня (src/db/day.ts).
 import { State, type Card as FsrsCard, type Grade } from 'ts-fsrs'
 import { dayKey, dayStart } from '../srs/day'
 import { isCorrect, type ExerciseType } from '../srs/grade'
 import type { LessonLimits } from '../srs/lesson'
 import type { Outcome } from '../srs/scheduler'
 import type { SparkyDb } from './db'
-import { DEFAULT_PROFILE, DEFAULT_SETTINGS, type Card, type DayRecord, type Settings } from './types'
-
-export function emptyDay(key: string): DayRecord {
-  return { dayKey: key, xp: 0, lessons: 0, reviews: 0, newLearned: 0, correct: 0, wrong: 0, msSpent: 0, goalMet: false, freezeUsed: false }
-}
-
-type DayDelta = Partial<Pick<DayRecord, 'xp' | 'lessons' | 'reviews' | 'newLearned' | 'correct' | 'wrong' | 'msSpent'>>
-
-async function addToDay(db: SparkyDb, key: string, delta: DayDelta, sign: 1 | -1 = 1): Promise<void> {
-  const day = (await db.days.get(key)) ?? emptyDay(key)
-  for (const [k, v] of Object.entries(delta) as [keyof DayDelta, number][]) {
-    day[k] = Math.max(0, day[k] + sign * v)
-  }
-  await db.days.put(day)
-  // XP копится и в профиле (всего XP) — в той же транзакции.
-  if (delta.xp) {
-    const profile = (await db.profile.get('me')) ?? DEFAULT_PROFILE
-    await db.profile.put({ ...profile, totalXp: Math.max(0, profile.totalXp + sign * delta.xp) })
-  }
-}
+import { changeDay, dayTables, getDay, type DayDelta } from './day'
+import { DEFAULT_SETTINGS, type Card, type Settings } from './types'
 
 const FSRS_KEYS = [
   'due',
@@ -57,6 +40,8 @@ export interface UndoToken {
   logId: number
   dayKey: string
   delta: DayDelta
+  /** Лучшая серия дня до ответа. */
+  comboBefore: number
 }
 
 export interface AnswerInput {
@@ -67,6 +52,8 @@ export interface AnswerInput {
   durationMs: number
   /** XP за ответ (SPEC 8.1). */
   xp?: number
+  /** Серия в уроке после ответа — только задания, которые проверяет приложение (у переворота нет). */
+  combo?: number
 }
 
 export async function saveAnswer(db: SparkyDb, a: AnswerInput): Promise<UndoToken> {
@@ -81,8 +68,9 @@ export async function saveAnswer(db: SparkyDb, a: AnswerInput): Promise<UndoToke
     msSpent: Math.round(a.durationMs),
     xp: a.xp ?? 0,
   }
-  return db.transaction('rw', db.cards, db.reviewLogs, db.days, db.profile, async () => {
+  return db.transaction('rw', [db.cards, db.reviewLogs, ...dayTables(db)], async () => {
     await putSchedule(db, a.outcome.card)
+    const comboBefore = (await getDay(db, key)).bestCombo ?? 0
     const logId = await db.reviewLogs.add({
       cardId: a.before.id,
       rating: log.rating,
@@ -95,40 +83,33 @@ export async function saveAnswer(db: SparkyDb, a: AnswerInput): Promise<UndoToke
       exerciseType: a.exerciseType,
       durationMs: Math.round(a.durationMs),
     })
-    await addToDay(db, key, delta)
-    return { cardBefore: a.before, logId: logId as number, dayKey: key, delta }
+    await changeDay(db, key, { delta, combo: a.combo })
+    return { cardBefore: a.before, logId: logId as number, dayKey: key, delta, comboBefore }
   })
 }
 
 /** «Отменить последнюю оценку»: слово — как было, запись журнала — убрать, итоги дня — назад. */
 export async function undoAnswer(db: SparkyDb, u: UndoToken): Promise<void> {
-  await db.transaction('rw', db.cards, db.reviewLogs, db.days, db.profile, async () => {
+  await db.transaction('rw', [db.cards, db.reviewLogs, ...dayTables(db)], async () => {
     await putSchedule(db, u.cardBefore)
     await db.reviewLogs.delete(u.logId)
-    await addToDay(db, u.dayKey, u.delta, -1)
+    await changeDay(db, u.dayKey, { delta: u.delta, sign: -1, restoreCombo: u.comboBefore })
   })
 }
 
 /** Знакомство с новым словом: оценки нет, отмечаем, что слово показано (для лимита новых и пути). */
 export async function markIntroduced(db: SparkyDb, id: string, at: Date, durationMs: number): Promise<void> {
-  await db.transaction('rw', db.cards, db.days, async () => {
+  await db.transaction('rw', [db.cards, ...dayTables(db)], async () => {
     const card = await db.cards.get(id)
     if (card && card.introducedAt === undefined) await db.cards.update(id, { introducedAt: at.getTime() })
-    await addToDay(db, dayKey(at), { msSpent: Math.round(durationMs) })
+    await changeDay(db, dayKey(at), { delta: { msSpent: Math.round(durationMs) } })
   })
 }
 
-/** Тренировка без оценки FSRS (лёгкое задание в конце, «Пары»): только XP и время. */
-export async function savePractice(db: SparkyDb, at: Date, xp: number, durationMs: number): Promise<void> {
-  await db.transaction('rw', db.days, db.profile, async () => {
-    await addToDay(db, dayKey(at), { xp, msSpent: Math.round(durationMs) })
-  })
-}
-
-/** Урок завершён: +1 урок за день и бонус XP за завершение. */
-export async function finishLesson(db: SparkyDb, at: Date, xp = 0): Promise<void> {
-  await db.transaction('rw', db.days, db.profile, async () => {
-    await addToDay(db, dayKey(at), { lessons: 1, xp })
+/** Тренировка без оценки FSRS (лёгкое задание в конце, «Пары»): только XP, время и серия. */
+export async function savePractice(db: SparkyDb, at: Date, xp: number, durationMs: number, combo?: number): Promise<void> {
+  await db.transaction('rw', dayTables(db), async () => {
+    await changeDay(db, dayKey(at), { delta: { xp, msSpent: Math.round(durationMs) }, combo })
   })
 }
 
@@ -151,7 +132,8 @@ export async function loadLessonInput(db: SparkyDb, at: Date): Promise<LessonInp
     const day = await db.days.get(dayKey(at))
     const limits: LessonLimits = {
       size: settings.lessonSize,
-      newPerDay: settings.newPerDay,
+      // «Выучить ещё 5 новых слов» (SPEC 6.5) поднимает лимит только на сегодня.
+      newPerDay: settings.newPerDay + (day?.extraNew ?? 0),
       newToday,
       reviewLimit: settings.reviewLimit,
       // Все оценки за день (и новых слов, и возвратов) — проще и строже; по умолчанию лимита нет.

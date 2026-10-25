@@ -1,13 +1,17 @@
 // Сколько повторений добавят новые слова (SPEC 6.5, «Выучить ещё 5 новых слов»). Чистая функция.
-// Оценка: каждое слово проходит урок и потом отвечается «Хорошо» в срок; считаются показы с завтрашнего дня
-// в пределах недели (шаги обучения сегодня — внутри урока, их не считаем). Без разброса (fuzz) — число стабильное.
-import { createEmptyCard, fsrs, Rating } from 'ts-fsrs'
+// Оценка с запасом (просьба владельца): часть слов на первом повторении получит «Снова» — такое слово
+// придёт ещё несколько раз (шаг переобучения, потом короткие интервалы). Считаются показы с завтрашнего дня
+// в пределах недели (шаги обучения сегодня — внутри урока). Без разброса (fuzz) — число стабильное.
+import { createEmptyCard, fsrs, Rating, type Grade } from 'ts-fsrs'
 import { nextDayStart } from './day'
 
 const DAY = 86_400_000
 
-/** Повторений в ближайшие days дней от n новых слов. */
-export function extraReviewsEstimate(n: number, at: Date, retention: number, days = 7): number {
+/** С запасом: столько новых слов из каждых 10 забудутся на первом повторении. */
+export const FORGET_SHARE = 0.3
+
+/** Показы одного слова с завтрашнего дня до конца окна; forgetFirst — на первом повторении «Снова». */
+function showings(at: Date, retention: number, days: number, forgetFirst: boolean): number {
   const s = fsrs({
     request_retention: Math.min(0.95, Math.max(0.85, retention)),
     enable_fuzz: false,
@@ -19,13 +23,21 @@ export function extraReviewsEstimate(n: number, at: Date, retention: number, day
   const end = tomorrow + days * DAY
   let card = createEmptyCard(at)
   let t = at
-  let reviews = 0
-  for (let i = 0; i < 50; i++) {
-    card = s.next(card, t, Rating.Good).card
-    t = card.due
-    if (t.getTime() >= end) break
+  let count = 0
+  for (let i = 0; i < 50 && t.getTime() < end; i++) {
     // Повторение, назначенное на завтра и позже, приходит с 04:00 своего дня — это и есть новый показ.
-    if (t.getTime() >= tomorrow) reviews++
+    const future = t.getTime() >= tomorrow
+    const grade: Grade = forgetFirst && future && count === 0 ? Rating.Again : Rating.Good
+    if (future) count++
+    card = s.next(card, t, grade).card
+    t = card.due
   }
-  return reviews * n
+  return count
+}
+
+/** Повторений в ближайшие days дней от n новых слов — с запасом на «Снова», округлено вверх. */
+export function extraReviewsEstimate(n: number, at: Date, retention: number, days = 7): number {
+  const good = showings(at, retention, days, false)
+  const forgot = showings(at, retention, days, true)
+  return Math.ceil(n * ((1 - FORGET_SHARE) * good + FORGET_SHARE * forgot))
 }

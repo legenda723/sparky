@@ -6,7 +6,7 @@
 // - образцы старых файлов в fixtures/ не правим, тест их восстановления всегда зелёный.
 // Объекты «свободные» (looseObject): поле, которое забыли сюда вписать, всё равно не потеряется.
 import { z } from 'zod'
-import { emptyDay } from '../db/review'
+import { emptyDay } from '../db/day'
 import { DEFAULT_PROFILE, DEFAULT_SETTINGS } from '../db/types'
 
 /** Номер формата файла. Меняется только вместе с шагом перевода со старого номера. */
@@ -99,6 +99,11 @@ const dayRecord = z.looseObject({
   msSpent: z.number().default(day0.msSpent),
   goalMet: z.boolean().default(day0.goalMet),
   freezeUsed: z.boolean().default(day0.freezeUsed),
+  // Этап 8: в старых файлах этих полей нет.
+  bestCombo: z.number().default(0),
+  perfectLessons: z.number().default(0),
+  streakDay: z.boolean().default(false),
+  extraNew: z.number().default(0),
 })
 
 const profile = z.looseObject({

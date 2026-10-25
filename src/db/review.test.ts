@@ -6,7 +6,8 @@ import { outcomes } from '../srs/scheduler'
 import { addCards } from './cards'
 import { SparkyDb } from './db'
 import { createDeck } from './decks'
-import { finishLesson, loadLessonInput, markIntroduced, saveAnswer, savePractice, undoAnswer } from './review'
+import { finishLesson } from './game'
+import { loadLessonInput, markIntroduced, saveAnswer, savePractice, undoAnswer } from './review'
 
 let n = 0
 const opened: SparkyDb[] = []
@@ -88,7 +89,7 @@ describe('сохранение ответа', () => {
   it('тренировка и конец урока добавляют XP, журнал оценок не трогают', async () => {
     const { db } = await setup()
     await savePractice(db, T, 5, 20_000)
-    await finishLesson(db, T, 15)
+    await finishLesson(db, T, { xp: 15 })
     expect(await db.days.get('2026-10-18')).toMatchObject({ xp: 20, lessons: 1, reviews: 0, msSpent: 20_000 })
     expect((await db.profile.get('me'))!.totalXp).toBe(20)
     expect(await db.reviewLogs.count()).toBe(0)

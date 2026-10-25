@@ -5,8 +5,8 @@ import { navigate, parseLessonTarget } from '../app/routes'
 import { setUpdateBlocked } from '../app/updates'
 import { db } from '../db/db'
 import { feedback } from '../feedback/feedback'
+import { finishLesson } from '../db/game'
 import {
-  finishLesson,
   loadLessonInput,
   markIntroduced,
   saveAnswer,
@@ -16,7 +16,7 @@ import {
 } from '../db/review'
 import type { Card, Settings } from '../db/types'
 import { nodeCardIds } from '../game/path'
-import { answerXp, lessonXp, practiceXp, XP } from '../game/xp'
+import { answerXp, isPerfect, lessonXp, practiceXp, XP } from '../game/xp'
 import { stopSpeech } from '../media/speech'
 import { now } from '../srs/clock'
 import type { PoolCard } from '../srs/exercise'
@@ -215,7 +215,9 @@ export function useLesson(): LessonApi {
     if (!isFinished(next)) return
     setElapsedMs(Date.now() - startedAt.current)
     setUndoSnap(null)
-    void enqueue(() => finishLesson(db, now(), lessonXp(next.checkedWrong, next.checked)))
+    void enqueue(() =>
+      finishLesson(db, now(), { xp: lessonXp(next.checkedWrong, next.checked), perfect: isPerfect(next.checkedWrong, next.checked) }),
+    )
   }
 
   /** Звук ответа: верно, «серия» на каждых 5 подряд, неверно. */
@@ -254,7 +256,9 @@ export function useLesson(): LessonApi {
     const xp = answerXp({ correct: ok, newWord: isNewWordBonus(state, cardId), streak: ok ? state.streak + 1 : 0, selfGraded })
     const l = { ...loaded, cards: new Map(loaded.cards).set(cardId, outcome.card) }
     const next = prepare(afterGrade(state, cardId, g, outcome.card.due, outcome.log.review, xp, selfGraded), l)
-    const token = enqueue(() => saveAnswer(db, { before, grade: g, outcome, exerciseType: exercise, durationMs, xp }))
+    // Лучшая серия дня (задание «N верных подряд») — только задания, которые проверяет приложение.
+    const combo = selfGraded ? undefined : next.streak
+    const token = enqueue(() => saveAnswer(db, { before, grade: g, outcome, exerciseType: exercise, durationMs, xp, combo }))
     return { prev: state, next, l, token, ok }
   }
 
@@ -288,7 +292,7 @@ export function useLesson(): LessonApi {
       // Лёгкое задание в конце — тренировка: без оценки FSRS, половина XP.
       const xp = practiceXp(answer.correct)
       const next = prepare(afterPractice(state, xp, answer.correct), loaded)
-      void enqueue(() => savePractice(db, now(), xp, answer.durationMs))
+      void enqueue(() => savePractice(db, now(), xp, answer.durationMs, next.streak))
       answerSound(answer.correct, next)
       showChecked({ correct: answer.correct, cardId, exercise: answer.type, next })
       finishIfDone(next)

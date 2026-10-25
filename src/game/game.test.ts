@@ -122,12 +122,12 @@ describe('праздники после урока', () => {
 
 describe('«Выучить ещё 5 новых слов»: сколько повторений добавится', () => {
   const at = new Date(2026, 9, 25, 15, 0)
-  it('за неделю — несколько повторений на слово, число стабильное и кратно числу слов', () => {
-    const one = extraReviewsEstimate(1, at, 0.9)
-    expect(one).toBeGreaterThanOrEqual(1)
-    expect(one).toBeLessThanOrEqual(4)
-    expect(extraReviewsEstimate(5, at, 0.9)).toBe(one * 5)
+  it('с запасом на «Снова»: 5 новых слов — около 10 повторений за неделю, число стабильное', () => {
+    // Все «Хорошо» — 1 показ на слово за неделю; забытое на первом повторении — 4 показа; забывается 3 из 10.
+    expect(extraReviewsEstimate(5, at, 0.9)).toBe(10)
     expect(extraReviewsEstimate(5, at, 0.9)).toBe(extraReviewsEstimate(5, at, 0.9))
+    // С запасом — больше, чем если бы всё было «Хорошо» (1 на слово).
+    expect(extraReviewsEstimate(5, at, 0.9)).toBeGreaterThan(5)
   })
   it('чем выше желаемая память — тем повторений не меньше', () => {
     expect(extraReviewsEstimate(5, at, 0.95)).toBeGreaterThanOrEqual(extraReviewsEstimate(5, at, 0.85))

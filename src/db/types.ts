@@ -72,7 +72,17 @@ export interface DayRecord {
   wrong: number
   msSpent: number
   goalMet: boolean
+  /** День закрыт заморозкой стрика. */
   freezeUsed: boolean
+  // Этап 8. Необязательные: в записях, сделанных раньше, их нет (читаем как 0 / false).
+  /** Самая длинная серия за день — только задания, которые проверяет приложение (задание «N верных подряд»). */
+  bestCombo?: number
+  /** Уроков без ошибок за день. */
+  perfectLessons?: number
+  /** День засчитан в стрик. */
+  streakDay?: boolean
+  /** «Выучить ещё 5 новых слов» — на сколько поднят сегодняшний лимит новых. */
+  extraNew?: number
 }
 
 export interface Profile {
@@ -110,6 +120,7 @@ export const DEFAULT_PROFILE: Profile = {
 export interface QuestDay {
   dayKey: string
   quests: { kind: string; target: number; progress: number; done: boolean }[]
+  /** Не используется с этапа 8 (сундука за задания нет), остаётся ради старых бэкапов. */
   chestClaimed: boolean
 }
 

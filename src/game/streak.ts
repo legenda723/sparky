@@ -109,3 +109,31 @@ export function streakWeek(today: string, marks: ReadonlyMap<string, 'done' | 'f
     return { key, label, state }
   })
 }
+
+/**
+ * Стрик по прошлым дням с уроками — один раз, при первом открытии после этапа 8 (до него стрик не считался):
+ * дни подряд, кончая сегодняшним (если он уже засчитан) или вчерашним. Заморозки — как если бы их давали всё время.
+ */
+export function streakFromHistory(days: ReadonlySet<string>, today: string, bestStreak = 0): StreakState {
+  const end = days.has(today) ? today : addDays(today, -1)
+  let streak = 0
+  while (days.has(addDays(end, -streak))) streak++
+  const longest = Math.max(streak, longestRun(days))
+  return {
+    streak,
+    bestStreak: Math.max(bestStreak, longest),
+    lastStreakDay: streak > 0 ? end : undefined,
+    freezes: Math.min(FREEZE_MAX, Math.floor(streak / FREEZE_EVERY)),
+  }
+}
+
+function longestRun(days: ReadonlySet<string>): number {
+  let best = 0
+  for (const d of days) {
+    if (days.has(addDays(d, -1))) continue
+    let run = 1
+    while (days.has(addDays(d, run))) run++
+    best = Math.max(best, run)
+  }
+  return best
+}
