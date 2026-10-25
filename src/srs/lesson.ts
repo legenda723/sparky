@@ -355,11 +355,11 @@ export interface PrepareContext {
   rng: Rng
 }
 
-/** Слова, которые уже встречались в уроке до текущего места (знакомство или задание с оценкой). */
+/** Слова, которые уже встречались в уроке до текущего места (знакомство, задание с оценкой или тренировки). */
 function seenCardIds(s: LessonState): string[] {
   const ids: string[] = []
   for (const t of s.queue.slice(0, s.index)) {
-    if ((t.kind === 'intro' || t.kind === 'graded') && !ids.includes(t.cardId)) ids.push(t.cardId)
+    if ((t.kind === 'intro' || t.kind === 'graded' || t.kind === 'practice') && !ids.includes(t.cardId)) ids.push(t.cardId)
   }
   return ids
 }

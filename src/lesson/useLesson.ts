@@ -398,7 +398,12 @@ export function useLesson(): LessonApi {
     canUndo: undoSnap !== null && !checked,
     reaction,
     elapsedMs,
-    totalXp: shown ? shown.xp + (isFinished(shown) ? lessonXp(shown.checkedWrong, shown.checked) : 0) : 0,
+    totalXp: shown
+      ? shown.xp +
+        (isFinished(shown)
+          ? (isTraining(shown) ? trainingLessonXp : lessonXp)(shown.checkedWrong, shown.checked)
+          : 0)
+      : 0,
     undoCount,
     celebrations,
     introDone,

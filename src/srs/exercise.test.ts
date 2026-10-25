@@ -435,6 +435,8 @@ describe('тренировка (6.5)', () => {
       s = prepareCurrent(afterPractice(s, 1, t.kind === 'pairs' ? undefined : i % 3 !== 0, t.kind === 'practice'), ctx)
     }
     expect(isFinished(s)).toBe(true)
+    // «Пары» собрались из слов тренировки (а не пропустились).
+    expect(s.queue.some((t) => t.kind === 'pairs' && t.pairIds?.length === 5)).toBe(true)
     expect(seen.has('flip')).toBe(false)
     expect(seen.size).toBeGreaterThan(1)
     expect(s.queue.some((t) => t.kind === 'easy')).toBe(false)
