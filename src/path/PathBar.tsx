@@ -25,19 +25,19 @@ export function StreakChip({ header, chipRef, onClick }: { header: PathHeader; c
   )
 }
 
-const R = 14
+const R = 13.5
 const C = 2 * Math.PI * R
 
-/** Кольцо цели 32: дорожка и заливка по доле, молния внутри. */
+/** Кольцо цели 31: дорожка и заливка по доле, молния внутри. */
 function GoalRing({ ratio, done }: { ratio: number; done: boolean }) {
   return (
-    <span className="relative flex size-8 items-center justify-center">
-      <svg width={32} height={32} viewBox="0 0 32 32" className="absolute inset-0 -rotate-90" aria-hidden>
-        <circle cx={16} cy={16} r={R} fill="none" stroke="var(--c-border)" strokeWidth={4} />
+    <span className="relative flex size-[31px] items-center justify-center">
+      <svg width={31} height={31} viewBox="0 0 31 31" className="absolute inset-0 -rotate-90" aria-hidden>
+        <circle cx={15.5} cy={15.5} r={R} fill="none" stroke="var(--c-border)" strokeWidth={4} />
         {ratio > 0 && (
           <circle
-            cx={16}
-            cy={16}
+            cx={15.5}
+            cy={15.5}
             r={R}
             fill="none"
             stroke="var(--c-xp)"
