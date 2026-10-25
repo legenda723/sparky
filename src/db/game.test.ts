@@ -211,3 +211,15 @@ describe('дневная цель в «Профиле»', () => {
   })
 })
 
+describe('«Профиль»', () => {
+  it('«знаю слов» — слова в состояниях «знаю» и «освоены», без учащихся, новых и удалённых', async () => {
+    const { db, cards } = await setup(6)
+    await db.cards.update(cards[0].id, { state: State.Review, stability: 3 })
+    await db.cards.update(cards[1].id, { state: State.Review, stability: 30 })
+    await db.cards.update(cards[2].id, { state: State.Learning })
+    await db.cards.update(cards[3].id, { state: State.Review, stability: 5, deletedAt: 1 })
+    await db.profile.put({ ...DEFAULT_PROFILE, name: 'Сама' })
+    expect(await loadProfileGame(db, T)).toMatchObject({ knownWords: 2, name: 'Сама', avatar: undefined })
+  })
+})
+

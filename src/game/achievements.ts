@@ -41,3 +41,10 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
 export function newAchievements(stats: AchievementStats, have: readonly string[]): Achievement[] {
   return ACHIEVEMENTS.filter((a) => !have.includes(a.id) && a.done(stats))
 }
+
+/** Ряд значков в «Профиле»: сначала полученные (новые первыми), остальное место — ближайшие неполученные. */
+export function stripBadges(have: readonly string[], n = 5): Achievement[] {
+  const got = [...have].reverse().flatMap((id) => ACHIEVEMENTS.filter((a) => a.id === id))
+  const rest = ACHIEVEMENTS.filter((a) => !have.includes(a.id))
+  return [...got, ...rest].slice(0, n)
+}

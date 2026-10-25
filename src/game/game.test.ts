@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { extraReviewsEstimate } from '../srs/forecast'
-import { ACHIEVEMENTS, newAchievements, type AchievementStats } from './achievements'
+import { ACHIEVEMENTS, newAchievements, stripBadges, type AchievementStats } from './achievements'
 import { lessonCelebrations, type LessonEvents } from './celebrate'
 import { pickQuests, questNews, questTitle, updateQuests, type QuestDayStats } from './quests'
 import { countStreakDay } from './streak'
@@ -90,6 +90,15 @@ describe('достижения (8.1)', () => {
     const ids = newAchievements({ words: 120, mastered: 1, bestStreak: 7, totalXp: 1000, lessons: 30, perfectLessons: 10 }, []).map((a) => a.id)
     expect(ids).toEqual(expect.arrayContaining(['words-100', 'mastered-1', 'streak-7', 'xp-1000', 'perfect-10']))
     expect(ids).not.toContain('words-500')
+  })
+})
+
+describe('ряд значков в «Профиле»', () => {
+  it('полученные — новые первыми, остальное место — неполученные по порядку', () => {
+    expect(stripBadges(['first-word', 'streak-7']).map((a) => a.id)).toEqual(['streak-7', 'first-word', 'first-lesson', 'words-50', 'words-100'])
+    expect(stripBadges([]).map((a) => a.id)).toEqual(ACHIEVEMENTS.slice(0, 5).map((a) => a.id))
+    // Неизвестный значок (из будущей версии) пропускается.
+    expect(stripBadges(['zzz'])).toHaveLength(5)
   })
 })
 

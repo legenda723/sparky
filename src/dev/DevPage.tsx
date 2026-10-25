@@ -1,7 +1,7 @@
 import { ChevronLeft, Flame, Plus, Trash2, Volume2 } from 'lucide-react'
 import { useRef, useState, type ReactNode } from 'react'
 import { setPref, usePrefs, type ThemePref } from '../app/prefs'
-import { navigate } from '../app/routes'
+import { navigateSub } from '../app/routes'
 import { feedback, type FeedbackEvent } from '../feedback/feedback'
 import { getDevClockOffset, now, setDevClockOffset } from '../srs/clock'
 import { AnswerBanner } from '../ui/AnswerBanner'
@@ -34,7 +34,8 @@ export default function DevPage() {
           aria-label="Назад"
           onClick={() => {
             feedback('tap')
-            navigate('profile')
+            // Витрина открывается из «Настроек» — туда и назад.
+            navigateSub('profile', 'settings')
           }}
           className="flex size-11 items-center justify-center rounded-full text-muted active:bg-surface"
         >

@@ -10,7 +10,7 @@ import { countStreakDay, reconcileStreak, streakFromHistory, type Counted, type 
 import { dayKey } from '../srs/day'
 import { extraReviewsEstimate } from '../srs/forecast'
 import { todayCounts } from '../srs/lesson'
-import { MASTERED_DAYS } from '../srs/status'
+import { cardStatus, MASTERED_DAYS } from '../srs/status'
 import { changeDay, dayTables, getDay, questStats } from './day'
 import type { SparkyDb } from './db'
 import { loadLessonInput, type LessonInput } from './review'
@@ -203,11 +203,15 @@ export async function moreNewWords(db: SparkyDb, at: Date): Promise<LessonTarget
 /** Ключ памяти игровой части «Профиля» (liveCache). */
 export const PROFILE_GAME_KEY = 'profile-game'
 
-/** Игровая часть «Профиля» (SPEC 7.5): уровень, стрик, достижения, дневная цель. */
+/** «Профиль» (SPEC 7.5): имя и фото, уровень, стрик, слова, достижения, дневная цель. */
 export interface ProfileGame {
+  name: string
+  avatar?: Blob
   totalXp: number
   streak: number
   bestStreak: number
+  /** Слова в состояниях «знаю» и «освоены» (как фильтры колоды, SPEC 7.3). */
+  knownWords: number
   achievements: string[]
   goalXp: number
 }
@@ -215,10 +219,18 @@ export interface ProfileGame {
 export async function loadProfileGame(db: SparkyDb, at: Date): Promise<ProfileGame> {
   const [profile, settings] = await Promise.all([db.profile.get('me'), db.settings.get('me')])
   const p = { ...DEFAULT_PROFILE, ...profile }
+  let knownWords = 0
+  await db.cards.each((c) => {
+    const s = cardStatus(c)
+    if (c.deletedAt === undefined && (s === 'known' || s === 'mastered')) knownWords++
+  })
   return {
+    name: p.name,
+    avatar: p.avatarId ? (await db.media.get(p.avatarId))?.blob : undefined,
     totalXp: p.totalXp,
     streak: reconcileStreak(streakOf(p), dayKey(at)).state.streak,
     bestStreak: p.bestStreak,
+    knownWords,
     achievements: p.achievements,
     goalXp: { ...DEFAULT_SETTINGS, ...settings }.dailyGoalXp,
   }
