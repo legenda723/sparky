@@ -9,7 +9,7 @@ interface HeaderChipProps {
   colorClass: string
   label: string
   onClick?: () => void
-  /** Крупный (полоса «Пути»): число 20/900 вместо 17. */
+  /** Крупный (полоса «Пути»): число 18/900 вместо 17. */
   large?: boolean
 }
 
@@ -30,7 +30,7 @@ export const HeaderChip = forwardRef<HTMLButtonElement, HeaderChipProps>(functio
         feedback('tap')
         onClick?.()
       }}
-      className={`flex h-11 items-center rounded-full px-2 font-black text-text press-soft ${large ? 'gap-2 text-heading' : 'gap-1.5 text-body'}`}
+      className={`flex h-11 items-center rounded-full px-2 font-black text-text press-soft ${large ? 'gap-2 text-[18px]' : 'gap-1.5 text-body'}`}
     >
       <span className={`flex ${colorClass}`}>{icon}</span>
       <span>{value}</span>
