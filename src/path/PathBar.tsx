@@ -15,28 +15,29 @@ export function StreakChip({ header, chipRef, onClick }: { header: PathHeader; c
   return (
     <HeaderChip
       ref={chipRef}
-      icon={<Flame size={26} strokeWidth={2.25} className={`fill-current ${motion}`} />}
+      icon={<Flame size={32} strokeWidth={2.25} className={`fill-current ${motion}`} />}
       value={n}
       colorClass={n > 0 ? 'text-streak' : 'text-muted'}
       label={`Стрик: ${n} ${plural(n, 'день', 'дня', 'дней')}`}
       onClick={onClick}
+      large
     />
   )
 }
 
-const R = 12
+const R = 14
 const C = 2 * Math.PI * R
 
-/** Кольцо цели 28: дорожка и заливка по доле, молния внутри. */
+/** Кольцо цели 32: дорожка и заливка по доле, молния внутри. */
 function GoalRing({ ratio, done }: { ratio: number; done: boolean }) {
   return (
-    <span className="relative flex size-7 items-center justify-center">
-      <svg width={28} height={28} viewBox="0 0 28 28" className="absolute inset-0 -rotate-90" aria-hidden>
-        <circle cx={14} cy={14} r={R} fill="none" stroke="var(--c-border)" strokeWidth={4} />
+    <span className="relative flex size-8 items-center justify-center">
+      <svg width={32} height={32} viewBox="0 0 32 32" className="absolute inset-0 -rotate-90" aria-hidden>
+        <circle cx={16} cy={16} r={R} fill="none" stroke="var(--c-border)" strokeWidth={4} />
         {ratio > 0 && (
           <circle
-            cx={14}
-            cy={14}
+            cx={16}
+            cy={16}
             r={R}
             fill="none"
             stroke="var(--c-xp)"
@@ -46,7 +47,7 @@ function GoalRing({ ratio, done }: { ratio: number; done: boolean }) {
           />
         )}
       </svg>
-      <Zap size={14} strokeWidth={2.75} className={`relative text-xp-ink ${done ? 'fill-current' : ''}`} />
+      <Zap size={16} strokeWidth={2.75} className={`relative text-xp-ink ${done ? 'fill-current' : ''}`} />
     </span>
   )
 }
@@ -61,6 +62,7 @@ export function GoalChip({ header, chipRef, onClick }: { header: PathHeader; chi
       colorClass=""
       label={`Цель дня: ${g.xp} из ${g.goal} XP`}
       onClick={onClick}
+      large
     />
   )
 }
