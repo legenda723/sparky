@@ -25,19 +25,19 @@ export function StreakChip({ header, chipRef, onClick }: { header: PathHeader; c
   )
 }
 
-const R = 13
+const R = 14
 const C = 2 * Math.PI * R
 
-/** Кольцо цели 30: дорожка и заливка по доле, молния внутри. */
+/** Кольцо цели 32: дорожка и заливка по доле, молния внутри. */
 function GoalRing({ ratio, done }: { ratio: number; done: boolean }) {
   return (
-    <span className="relative flex size-[30px] items-center justify-center">
-      <svg width={30} height={30} viewBox="0 0 30 30" className="absolute inset-0 -rotate-90" aria-hidden>
-        <circle cx={15} cy={15} r={R} fill="none" stroke="var(--c-border)" strokeWidth={4} />
+    <span className="relative flex size-8 items-center justify-center">
+      <svg width={32} height={32} viewBox="0 0 32 32" className="absolute inset-0 -rotate-90" aria-hidden>
+        <circle cx={16} cy={16} r={R} fill="none" stroke="var(--c-border)" strokeWidth={4} />
         {ratio > 0 && (
           <circle
-            cx={15}
-            cy={15}
+            cx={16}
+            cy={16}
             r={R}
             fill="none"
             stroke="var(--c-xp)"
@@ -47,7 +47,7 @@ function GoalRing({ ratio, done }: { ratio: number; done: boolean }) {
           />
         )}
       </svg>
-      <Zap size={15} strokeWidth={2.75} className={`relative text-xp-ink ${done ? 'fill-current' : ''}`} />
+      <Zap size={16} strokeWidth={2.75} className={`relative text-xp-ink ${done ? 'fill-current' : ''}`} />
     </span>
   )
 }
