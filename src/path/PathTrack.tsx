@@ -1,7 +1,7 @@
 // Дорожка раздела (DESIGN.md → «Дорожка пути»): места по волне, маскот и искорки по бокам.
 import type { DeckColor } from '../db/types'
 import type { PathItem } from '../game/path'
-import type { ViewEntry } from '../game/pathView'
+import { FUTURES_CLEAR, type ViewEntry } from '../game/pathView'
 import { Mascot } from '../ui/Mascot'
 import { PathNodeButton } from './PathNodeButton'
 
@@ -69,8 +69,8 @@ interface TrackProps {
 export function PathTrack({ entries, color, number, nodeCount, setRef, onSelect }: TrackProps) {
   const sign = number % 2 === 0 ? -1 : 1
   const firstFogged = entries.findIndex((e) => e.fogged)
-  // Чистые места — до тумана. Первый будущий урок стоит ещё на чистом месте (туман опущен под него), остальные — в дыму.
-  const clear = firstFogged < 0 ? entries.length : firstFogged + (entries[firstFogged].item.kind === 'future' ? 1 : 0)
+  // Чистые места — до тумана. Первые FUTURES_CLEAR будущих уроков стоят ещё на чистом месте (туман опущен под них).
+  const clear = firstFogged < 0 ? entries.length : firstFogged + (entries[firstFogged].item.kind === 'future' ? FUTURES_CLEAR : 0)
   // Маскот — у 3-го видимого места, но не под туманом.
   const mascotAt = clear > 1 ? Math.min(MASCOT_AT, clear - 1) : -1
   const curAt = entries.findIndex((e) => e.item.kind === 'node' && e.item.state === 'current')

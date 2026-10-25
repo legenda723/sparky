@@ -102,10 +102,15 @@ export function pathView(model: PathModel, expanded: ReadonlySet<string>, showAl
 
 /**
  * Путь всегда уходит в туман (решение владельца): если под туманом нет ни одного места (слова кончились),
- * в конец добавляются два будущих урока подряд — последний уходит в туман, длина пути почти не меняется.
+ * в конец подряд добавляются будущие уроки: первые FUTURES_CLEAR — на чистом месте, остальные уходят в туман.
  */
 /** Будущих уроков в конце пути, когда настоящие места кончились. */
-export const FUTURES = 3
+export const FUTURES = 4
+/**
+ * Сколько из них на чистом месте. Два — туман стоит там же, где стоял, пока в конце раздела был сундук-цель
+ * (просьба владельца после того, как сундуки убрали: «опусти дым, как был»).
+ */
+export const FUTURES_CLEAR = 2
 
 function withFuture(sections: ViewSection[]): ViewSection[] {
   const last = sections.at(-1)
@@ -113,7 +118,7 @@ function withFuture(sections: ViewSection[]): ViewSection[] {
   if (sections.some((s) => s.entries.some((e) => e.fogged))) return sections
   const deckId = last.section.deck.id
   const next = (last.entries.at(-1)?.index ?? -1) + 1
-  // Будущие уроки подряд: туман стоит там же, где без них, — первый на чистом месте, дальше уходят в дым.
+  // Будущие уроки подряд: первые FUTURES_CLEAR на чистом месте, дальше уходят в дым (туман ставит экран).
   const futures: ViewEntry[] = Array.from({ length: FUTURES }, (_, k) => ({
     item: { kind: 'future', key: `${deckId}:~${k}`, deckId },
     index: next + k,

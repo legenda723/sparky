@@ -7,12 +7,12 @@ import { db } from '../db/db'
 import { useCachedLiveQuery } from '../db/liveCache'
 import { loadPath, PATH_KEY, type PathData } from '../db/path'
 import type { PathItem, PathNode, PathSection } from '../game/path'
-import { pathView } from '../game/pathView'
+import { FUTURES_CLEAR, pathView } from '../game/pathView'
 import { unlockSpeech } from '../media/speech'
 import { CollapsedSection } from '../path/CollapsedSection'
 import { Fog } from '../path/Fog'
 import { GhostInfo, NodeInfo } from '../path/NodeInfo'
-import { itemId, PathTrack } from '../path/PathTrack'
+import { itemId, PathTrack, ROW } from '../path/PathTrack'
 import { SectionBanner } from '../path/SectionBanner'
 import { now } from '../srs/clock'
 import { plural } from '../srs/status'
@@ -26,10 +26,10 @@ const FOG_TAIL = 120
 /** Туман начинается ниже первого скрытого места на столько px (просьба владельца: «опусти ниже»). */
 const FOG_DROP = 140
 /**
- * Путь кончается будущими уроками — туман стоит там же, где стоял бы без них (над хвостом: зазор 24 + FOG_DROP):
- * первый будущий урок на чистом месте, второй в дыму.
+ * Путь кончается будущими уроками — туман опущен под FUTURES_CLEAR из них (над хвостом: зазор 24 + FOG_DROP
+ * за ещё одним местом): там же, где он стоял, пока в конце раздела был сундук-цель.
  */
-const FOG_FUTURE_DROP = 24 + 140
+const FOG_FUTURE_DROP = 24 + FOG_DROP + (FUTURES_CLEAR - 1) * ROW
 
 type Selected = { id: string }
 
