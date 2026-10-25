@@ -29,6 +29,7 @@ import {
   afterPractice,
   buildLesson,
   currentTask,
+  earnsXp,
   isFinished,
   isNewWordBonus,
   isTraining,
@@ -234,7 +235,7 @@ export function useLesson(): LessonApi {
         db,
         at,
         training
-          ? { xp: trainingLessonXp(next.checkedWrong, next.checked), countsStreak: (await planStatus(db, at)).done }
+          ? { xp: trainingLessonXp(next.checkedWrong, next.checked), countsStreak: (await planStatus(db, at)).done, training: true }
           : { xp: lessonXp(next.checkedWrong, next.checked), perfect: isPerfect(next.checkedWrong, next.checked) },
       )
       // «План на сегодня выполнен!» — раз в день, после обычного урока.
@@ -286,7 +287,9 @@ export function useLesson(): LessonApi {
     const ok = isCorrect(g)
     // Переворот: оценку ставит сам владелец — XP одинаковый при любой оценке, серию он не трогает.
     const selfGraded = exercise === 'flip'
-    const xp = answerXp({ correct: ok, newWord: isNewWordBonus(state, cardId), streak: ok ? state.streak + 1 : 0, selfGraded })
+    const xp = earnsXp(state, cardId)
+      ? answerXp({ correct: ok, newWord: isNewWordBonus(state, cardId), streak: ok ? state.streak + 1 : 0, selfGraded })
+      : 0
     const l = { ...loaded, cards: new Map(loaded.cards).set(cardId, outcome.card) }
     const next = prepare(afterGrade(state, cardId, g, outcome.card.due, outcome.log.review, xp, selfGraded), l)
     // Лучшая серия дня (задание «N верных подряд») — только задания, которые проверяет приложение.

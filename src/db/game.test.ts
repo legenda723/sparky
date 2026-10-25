@@ -101,9 +101,12 @@ describe('конец урока', () => {
 
   it('тренировка, которая день не засчитывает, стрик не трогает', async () => {
     const { db } = await setup()
-    const r = await finishLesson(db, T, { xp: 5, countsStreak: false })
+    const r = await finishLesson(db, T, { xp: 5, countsStreak: false, training: true })
     expect(r.streak).toBeUndefined()
     expect((await db.profile.get('me'))?.streak ?? 0).toBe(0)
+    // Тренировка — не урок: в счёт уроков не идёт, XP — идёт.
+    expect(await db.days.get('2026-10-25')).toMatchObject({ lessons: 0, xp: 5 })
+    expect(r.achievements.map((a) => a.id)).not.toContain('first-lesson')
   })
 })
 
@@ -135,6 +138,27 @@ describe('стрик при открытии', () => {
     expect((await db.days.get('2026-10-22'))!.streakDay).toBe(true)
     const r = await finishLesson(db, T, { xp: 10 })
     expect(r.streak?.state.streak).toBe(4)
+  })
+
+  it('первый урок после обновления раньше открытия «Пути» — стрик тоже по прошлым урокам', async () => {
+    const db = freshDb()
+    for (const key of ['2026-10-23', '2026-10-24']) {
+      await db.days.put({ dayKey: key, xp: 20, lessons: 1, reviews: 5, newLearned: 0, correct: 5, wrong: 0, msSpent: 60_000, goalMet: false, freezeUsed: false })
+    }
+    const r = await finishLesson(db, T, { xp: 10 })
+    expect(r.streak).toMatchObject({ counted: true, state: { streak: 3, lastStreakDay: '2026-10-25' } })
+  })
+
+  it('прошлый стрик давно сгорел — пересчёт по истории один раз, профиль больше не переписывается', async () => {
+    const db = freshDb()
+    await db.days.put({ dayKey: '2026-10-20', xp: 20, lessons: 1, reviews: 5, newLearned: 0, correct: 5, wrong: 0, msSpent: 60_000, goalMet: false, freezeUsed: false })
+    await settleDay(db, T)
+    const p = await db.profile.get('me')
+    expect(p).toMatchObject({ streak: 0, bestStreak: 1, lastStreakDay: '2026-10-20' })
+    await db.profile.put({ ...p!, bestStreak: 5 })
+    await settleDay(db, T)
+    expect((await db.profile.get('me'))!.bestStreak).toBe(5)
+    expect((await finishLesson(db, T, { xp: 10 })).streak?.state.streak).toBe(1)
   })
 })
 

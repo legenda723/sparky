@@ -4,6 +4,7 @@ import { useRef, useState, type ReactNode } from 'react'
 import { db } from '../db/db'
 import { loadProfileGame, PROFILE_GAME_KEY, setDailyGoal, type ProfileGame } from '../db/game'
 import { useCachedLiveQuery } from '../db/liveCache'
+import { useToast } from '../ui/Toast'
 import { feedback } from '../feedback/feedback'
 import { ACHIEVEMENTS, type Achievement } from '../game/achievements'
 import { GOAL_OPTIONS, levelInfo } from '../game/progress'
@@ -127,6 +128,7 @@ const GOALS = GOAL_OPTIONS.map((v) => ({ value: v as number, label: `${v} XP` })
 /** Уровень, стрик, достижения и дневная цель — вверху «Профиля». */
 export function ProfileGameSection() {
   const g = useCachedLiveQuery(PROFILE_GAME_KEY, () => loadProfileGame(db, now()), [])
+  const toast = useToast()
   if (!g) return null
   return (
     <>
@@ -134,7 +136,8 @@ export function ProfileGameSection() {
       <Achievements have={g.achievements} />
       <section className="mb-6">
         <h2 className="m-0 mb-3 text-heading font-black text-text">Дневная цель</h2>
-        <ChoiceChips label="Дневная цель" options={GOALS} value={g.goalXp} onChange={(v) => void setDailyGoal(db, now(), v)} />
+        <ChoiceChips label="Дневная цель" options={GOALS} value={g.goalXp} onChange={(v) => void setDailyGoal(db, now(), v).catch(() => toast({ message: 'Не получилось сохранить цель' }))}
+        />
       </section>
     </>
   )

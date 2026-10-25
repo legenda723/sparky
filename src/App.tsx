@@ -2,7 +2,7 @@ import { MotionConfig } from 'motion/react'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { isStandalone, readContinued, requestPersistentStorage, saveContinued, shouldShowInstall } from './app/install'
 import { loadPrefs, usePrefs } from './app/prefs'
-import { useRoute, useSubPath } from './app/routes'
+import { useHash, useRoute } from './app/routes'
 import { useApplyTheme } from './app/theme'
 import { Updater } from './app/Updater'
 import { InstallScreen } from './screens/InstallScreen'
@@ -19,7 +19,7 @@ export default function App() {
   const prefs = usePrefs()
   const route = useRoute()
   // Урок за уроком («+5 новых», «Тренировка» с экрана «План выполнен») — новый экран урока.
-  const sub = useSubPath()
+  const hash = useHash()
   useApplyTheme(prefs.theme, prefs.simIphone)
   const [showInstall, setShowInstall] = useState(() =>
     shouldShowInstall(import.meta.env.PROD, isStandalone(), readContinued()),
@@ -52,7 +52,7 @@ export default function App() {
           </Suspense>
         ) : route === 'lesson' ? (
           <Suspense fallback={null}>
-            <LessonScreen key={sub} />
+            <LessonScreen key={hash} />
           </Suspense>
         ) : (
           <Shell route={route} />

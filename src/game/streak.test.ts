@@ -150,7 +150,7 @@ describe('стрик (8.1)', () => {
     // Уже занимался сегодня.
     expect(streakFromHistory(new Set([...days, '2026-10-23']), '2026-10-23').streak).toBe(4)
     // Был пропуск — стрик 0, лучший сохраняется.
-    expect(streakFromHistory(days, '2026-10-25')).toMatchObject({ streak: 0, bestStreak: 3, lastStreakDay: undefined })
+    expect(streakFromHistory(days, '2026-10-25')).toMatchObject({ streak: 0, bestStreak: 3, lastStreakDay: '2026-10-22' })
     // Неделя подряд — заморозка.
     const week = new Set(Array.from({ length: 8 }, (_, i) => addDays('2026-10-15', i)))
     expect(streakFromHistory(week, '2026-10-23')).toMatchObject({ streak: 8, freezes: 1 })

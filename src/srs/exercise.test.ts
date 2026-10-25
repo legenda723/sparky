@@ -19,6 +19,7 @@ import {
   afterPractice,
   buildLesson,
   currentTask,
+  earnsXp,
   isFinished,
   TRAINING_SIZE,
   isNewWordBonus,
@@ -354,6 +355,36 @@ describe('целый урок', () => {
     expect(currentTask(s)!.cardId).not.toBe(first)
     s = prepareCurrent(afterPractice(s, 0, false), ctx)
     expect(isFinished(s)).toBe(true)
+  })
+
+  it('«Снова» на перевороте: слово возвращается, но его ответы XP больше не дают («Снова» = «Хорошо» по XP)', () => {
+    let s = startLesson({ tasks: [{ kind: 'graded' as const, cardId: 'c0', exercise: 'flip' as const }], newCount: 0, reviewCount: 1 })
+    const soon = new Date(NOW.getTime() + 10 * 60_000)
+    expect(earnsXp(s, 'c0')).toBe(true)
+    s = afterGrade(s, 'c0', Rating.Again, soon, NOW, 2, true)
+    expect(s.queue).toHaveLength(2)
+    expect(earnsXp(s, 'c0')).toBe(false)
+    // Ошибка в проверяемом задании возвращает слово как раньше — с XP за следующий ответ.
+    const t = afterGrade(startLesson({ tasks: [{ kind: 'graded' as const, cardId: 'c1', exercise: 'choice-en-ru' as const }], newCount: 0, reviewCount: 1 }), 'c1', Rating.Again, soon, NOW)
+    expect(earnsXp(t, 'c1')).toBe(true)
+  })
+
+  it('лёгкое задание в конце идёт в «урок без ошибок», но не в точность по оценкам FSRS', () => {
+    const cards = mixed()
+    const map = new Map(cards.map((c) => [c.id, c as ExerciseCard]))
+    const ctxPool = cards.map((c) => ({ id: c.id, deckId: c.deckId, front: c.front, back: c.back, introduced: true }))
+    const ctx = { cards: map, pool: ctxPool, rng: seeded(3) }
+    const far = new Date(NOW.getTime() + 86400_000 * 3)
+    let s = startLesson({ tasks: ['c0', 'c1'].map((cardId) => ({ kind: 'graded' as const, cardId, exercise: 'flip' as const })), newCount: 0, reviewCount: 2 })
+    for (const id of ['c0', 'c1']) s = prepareCurrent(afterGrade(s, id, Rating.Good, far, NOW, 2, true), ctx)
+    expect(s.checked).toBe(0)
+    const ok = afterPractice(s, 1, true)
+    expect(isPerfect(ok.checkedWrong, ok.checked)).toBe(true)
+    expect([ok.correct, ok.wrong]).toEqual([s.correct, s.wrong])
+    const bad = afterPractice(s, 0, false)
+    expect(isPerfect(bad.checkedWrong, bad.checked)).toBe(false)
+    // «Пары» — не проверка: ничего не меняют.
+    expect(afterPractice(s, 5).checked).toBe(0)
   })
 
   it('бонус «новое слово выучено» — за первый верный ответ после знакомства, даже после ошибки', () => {

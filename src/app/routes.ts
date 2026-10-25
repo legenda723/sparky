@@ -67,6 +67,18 @@ export function parseLessonTarget(hash: string): LessonTarget {
   return { kind: 'review' }
 }
 
+/** Весь адрес после «#» — ключ экрана урока: новый адрес = новый урок. */
+export function useHash(): string {
+  return useSyncExternalStore(
+    subscribe,
+    () => window.location.hash,
+    () => '',
+  )
+}
+
 export function openLesson(target: LessonTarget): void {
-  window.location.replace(lessonHref(target))
+  const href = lessonHref(target)
+  // Тот же урок ещё раз («+5 новых» после урока этого же узла) — адрес с меткой, иначе экран не обновится.
+  const same = window.location.hash.split('?')[0] === href
+  window.location.replace(same ? `${href}?run=${Date.now()}` : href)
 }

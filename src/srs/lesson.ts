@@ -250,6 +250,11 @@ export interface LessonState {
   newPending: string[]
   /** XP за ответы урока (бонус за завершение — отдельно). */
   xp: number
+  /**
+   * Слова, вернувшиеся в урок после оценки на перевороте («Снова»): их следующие ответы XP не дают,
+   * иначе «Снова» приносило бы больше XP, чем «Хорошо» (честная оценка, SPEC 8.1).
+   */
+  selfReturned: string[]
 }
 
 export function startLesson(plan: LessonPlan): LessonState {
@@ -267,6 +272,7 @@ export function startLesson(plan: LessonPlan): LessonState {
     easyCount: 0,
     newPending: [],
     xp: 0,
+    selfReturned: [],
   }
 }
 
@@ -286,6 +292,11 @@ export function afterIntro(s: LessonState, cardId?: string): LessonState {
 /** Верный ответ на это слово будет первым после знакомства — +3 XP «новое слово выучено». */
 export function isNewWordBonus(s: LessonState, cardId: string): boolean {
   return s.newPending.includes(cardId)
+}
+
+/** Ответ на это слово даёт XP (не возврат после оценки на перевороте). */
+export function earnsXp(s: LessonState, cardId: string): boolean {
+  return !s.selfReturned.includes(cardId)
 }
 
 function withStreak(s: LessonState, ok: boolean): Pick<LessonState, 'streak' | 'bestStreak'> {
@@ -323,26 +334,28 @@ export function afterGrade(
     lastOk: ok,
     newPending: ok || selfGraded ? s.newPending.filter((id) => id !== cardId) : s.newPending,
     xp: s.xp + xp,
+    selfReturned: selfGraded && comesBack && !s.selfReturned.includes(cardId) ? [...s.selfReturned, cardId] : s.selfReturned,
   }
 }
 
 /**
- * После «Пар», лёгкого задания или задания тренировки (FSRS не трогают). Ответ продолжает или обрывает серию.
- * counted — задание тренировки: оно идёт в точность и «идеальный урок» тренировки (проверяет приложение).
+ * После «Пар», лёгкого задания или задания тренировки (FSRS не трогают). Ответ (streakOk) продолжает
+ * или обрывает серию и идёт в «идеальный урок» — эти задания проверяет приложение.
+ * counted — задание тренировки: оно идёт и в точность (в обычном уроке точность — только по оценкам FSRS).
  */
 export function afterPractice(s: LessonState, xp: number, streakOk?: boolean, counted = false): LessonState {
   const ok = streakOk === true
   return {
     ...s,
-    ...(streakOk === undefined ? {} : { ...withStreak(s, streakOk), lastOk: streakOk }),
-    ...(counted
-      ? {
-          correct: s.correct + (ok ? 1 : 0),
-          wrong: s.wrong + (ok ? 0 : 1),
+    ...(streakOk === undefined
+      ? {}
+      : {
+          ...withStreak(s, streakOk),
+          lastOk: streakOk,
           checked: s.checked + 1,
           checkedWrong: s.checkedWrong + (ok ? 0 : 1),
-        }
-      : {}),
+        }),
+    ...(counted ? { correct: s.correct + (ok ? 1 : 0), wrong: s.wrong + (ok ? 0 : 1) } : {}),
     index: s.index + 1,
     xp: s.xp + xp,
   }

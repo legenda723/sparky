@@ -32,6 +32,8 @@ export interface FinishInput {
   perfect?: boolean
   /** Урок засчитывает день в стрик (тренировка — только когда учить нечего, SPEC 8.1). По умолчанию — да. */
   countsStreak?: boolean
+  /** Тренировка — не урок: не идёт в счёт уроков (задание «Пройди 2 урока», значки за уроки). */
+  training?: boolean
 }
 
 export interface FinishResult {
@@ -62,11 +64,27 @@ async function achievementStats(db: SparkyDb, p: Profile): Promise<AchievementSt
   return { words, mastered, bestStreak: p.bestStreak, totalXp: p.totalXp, lessons, perfectLessons }
 }
 
+/**
+ * Стрик до этапа 8 не считался: первый раз он считается по прошлым дням с уроками.
+ * Потом lastStreakDay уже есть — пересчёта нет. Вызывать внутри транзакции с profile и days.
+ */
+async function streakFromPast(db: SparkyDb, profile: Profile, today: string): Promise<Profile> {
+  if (profile.lastStreakDay !== undefined || profile.streak !== 0) return profile
+  const past = (await db.days.toArray()).filter((d) => d.lessons > 0)
+  if (past.length === 0) return profile
+  const next = { ...profile, ...streakFromHistory(new Set(past.map((d) => d.dayKey)), today, profile.bestStreak) }
+  for (const d of past) if (!d.streakDay) await db.days.put({ ...d, streakDay: true })
+  await db.profile.put(next)
+  return next
+}
+
 /** Урок завершён: +1 урок, бонус XP, день в стрик, новый уровень, достижения — одной транзакцией. */
 export async function finishLesson(db: SparkyDb, at: Date, f: FinishInput = {}): Promise<FinishResult> {
   const key = dayKey(at)
   return db.transaction('rw', [db.cards, ...dayTables(db)], async () => {
-    await changeDay(db, key, { delta: { lessons: 1, xp: f.xp ?? 0, perfectLessons: f.perfect ? 1 : 0 } })
+    // Прошлые дни — до записи этого урока, чтобы сегодняшний засчитался праздником «Стрик +1».
+    await streakFromPast(db, { ...DEFAULT_PROFILE, ...(await db.profile.get('me')) }, key)
+    await changeDay(db, key, { delta: { lessons: f.training ? 0 : 1, xp: f.xp ?? 0, perfectLessons: f.perfect ? 1 : 0 } })
     let profile = { ...DEFAULT_PROFILE, ...(await db.profile.get('me')) }
     let streak: Counted | undefined
     if (f.countsStreak ?? true) {
@@ -99,16 +117,7 @@ export interface Settled {
 export async function settleDay(db: SparkyDb, at: Date): Promise<Settled> {
   const today = dayKey(at)
   return db.transaction('rw', db.profile, db.days, async () => {
-    let profile = { ...DEFAULT_PROFILE, ...(await db.profile.get('me')) }
-    if (profile.lastStreakDay === undefined && profile.streak === 0) {
-      const past = (await db.days.toArray()).filter((d) => d.lessons > 0)
-      if (past.length > 0) {
-        const s = streakFromHistory(new Set(past.map((d) => d.dayKey)), today, profile.bestStreak)
-        profile = { ...profile, ...s }
-        for (const d of past) if (!d.streakDay) await db.days.put({ ...d, streakDay: true })
-        await db.profile.put(profile)
-      }
-    }
+    const profile = await streakFromPast(db, { ...DEFAULT_PROFILE, ...(await db.profile.get('me')) }, today)
     const r = reconcileStreak(streakOf(profile), today)
     if (r.frozen.length === 0 && !r.lost) return { frozen: [], lost: false }
     await markFrozen(db, r.frozen)

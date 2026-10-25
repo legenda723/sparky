@@ -122,7 +122,8 @@ export function streakFromHistory(days: ReadonlySet<string>, today: string, best
   return {
     streak,
     bestStreak: Math.max(bestStreak, longest),
-    lastStreakDay: streak > 0 ? end : undefined,
+    // Стрик сгорел — последний день с уроком всё равно запоминаем: пересчёт по истории больше не нужен.
+    lastStreakDay: streak > 0 ? end : [...days].sort().at(-1),
     freezes: Math.min(FREEZE_MAX, Math.floor(streak / FREEZE_EVERY)),
   }
 }
