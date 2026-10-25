@@ -70,8 +70,8 @@ describe('задания дня (8.1)', () => {
     const base = pickQuests('2026-10-25', rich)
     const before = base.map((q, i) => ({ ...q, done: i === 0 }))
     const after = base.map((q) => ({ ...q, done: true }))
-    expect(questNews(before, after)).toEqual({ done: after.slice(1), all: true })
-    expect(questNews(after, after)).toEqual({ done: [], all: false })
+    expect(questNews(before, after)).toEqual({ done: after.slice(1), all: true, after })
+    expect(questNews(after, after)).toEqual({ done: [], all: false, after })
   })
 })
 
@@ -94,7 +94,7 @@ describe('достижения (8.1)', () => {
 })
 
 describe('праздники после урока', () => {
-  const none: LessonEvents = { quests: { done: [], all: false }, levelBefore: 2, levelAfter: 2, achievements: [] }
+  const none: LessonEvents = { quests: { done: [], all: false, after: [] }, levelBefore: 2, levelAfter: 2, achievements: [] }
 
   it('первый урок за день — «Стрик +1»; второй в тот же день — ничего лишнего', () => {
     const first = countStreakDay({ streak: 3, bestStreak: 3, lastStreakDay: '2026-10-24', freezes: 0 }, '2026-10-25')
@@ -109,7 +109,7 @@ describe('праздники после урока', () => {
     const streak = countStreakDay({ streak: 6, bestStreak: 6, lastStreakDay: '2026-10-24', freezes: 0 }, '2026-10-25')
     const quest = { kind: 'xp' as const, target: 50, progress: 50, done: true }
     const ach = ACHIEVEMENTS.filter((a) => a.id === 'streak-7')
-    const list = lessonCelebrations({ quests: { done: [quest], all: false }, streak, levelBefore: 2, levelAfter: 3, achievements: ach })
+    const list = lessonCelebrations({ quests: { done: [quest], all: false, after: [quest] }, streak, levelBefore: 2, levelAfter: 3, achievements: ach })
     expect(list.map((c) => c.kind)).toEqual(['quests', 'streak', 'level', 'achievements'])
     expect(list[1]).toMatchObject({ streak: 7, milestone: 7, freezeEarned: true, freezes: 1 })
     expect(list[2]).toEqual({ kind: 'level', level: 3 })

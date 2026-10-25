@@ -7,6 +7,10 @@ import { getDevClockOffset, now, setDevClockOffset } from '../srs/clock'
 import { AnswerBanner } from '../ui/AnswerBanner'
 import { Button } from '../ui/Button'
 import { ChoiceChips } from '../ui/ChoiceChips'
+import type { Celebration } from '../game/celebrate'
+import { ACHIEVEMENTS } from '../game/achievements'
+import type { Quest } from '../game/quests'
+import { CelebrationScreen } from '../lesson/Celebrations'
 import { HeaderChip } from '../ui/HeaderChip'
 import { ListRow } from '../ui/ListRow'
 import { Mascot, type MascotMood } from '../ui/Mascot'
@@ -58,6 +62,7 @@ export default function DevPage() {
         </Section>
 
         <MotionLab />
+        <PartySection />
         {import.meta.env.DEV && <SeedSection />}
         <MascotSection />
         <ButtonsSection />
@@ -438,5 +443,42 @@ function ClockDemo() {
         </Button>
       </Row>
     </div>
+  )
+}
+
+/** Праздники после урока (этап 8) — каждый можно открыть отдельно. Только показ: база не меняется. */
+function PartySection() {
+  const [open, setOpen] = useState<Celebration | null>(null)
+  const quests: Quest[] = [
+    { kind: 'xp', target: 50, progress: 50, done: true },
+    { kind: 'combo', target: 10, progress: 10, done: true },
+    { kind: 'newWords', target: 5, progress: 3, done: false },
+  ]
+  const samples: { label: string; c: Celebration }[] = [
+    { label: 'Задания дня', c: { kind: 'quests', news: { done: quests.slice(1, 2), all: false, after: quests } } },
+    {
+      label: 'Все задания',
+      c: { kind: 'quests', news: { done: [quests[2]], all: true, after: quests.map((q) => ({ ...q, progress: q.target, done: true })) } },
+    },
+    { label: 'Стрик +1', c: { kind: 'streak', streak: 4, freezeEarned: false, freezes: 0 } },
+    { label: 'Отметка 7 дней', c: { kind: 'streak', streak: 7, milestone: 7, freezeEarned: true, freezes: 1 } },
+    { label: 'Новый уровень', c: { kind: 'level', level: 5 } },
+    { label: 'Достижения', c: { kind: 'achievements', list: ACHIEVEMENTS.slice(0, 3) } },
+  ]
+  return (
+    <Section title="Праздники после урока">
+      <div className="flex flex-wrap gap-2">
+        {samples.map((x) => (
+          <Button key={x.label} variant="secondary" onClick={() => setOpen(x.c)}>
+            {x.label}
+          </Button>
+        ))}
+      </div>
+      {open && (
+        <div className="fixed inset-0 z-50 bg-bg">
+          <CelebrationScreen c={open} last onNext={() => setOpen(null)} />
+        </div>
+      )}
+    </Section>
   )
 }

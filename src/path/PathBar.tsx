@@ -98,20 +98,12 @@ export function StreakInfo({ header }: { header: PathHeader }) {
       ? 'Вечер! Пройди урок, чтобы огонь не погас'
       : 'Пройди урок — огонь разгорится'
   const f = header.streak.freezes
-  const today = todayKey(header)
   return (
     <>
       <p className="m-0 text-body font-black text-text">{title}</p>
       <p className="m-0 mt-1 text-small font-semibold text-muted">{text}</p>
-      <div className="mt-4 flex justify-between">
-        {header.week.map((d) => (
-          <div key={d.key} className="flex flex-col items-center gap-1">
-            <WeekCircle day={d} />
-            <span className={`text-caption font-extrabold ${d.key === today ? 'text-text' : 'text-muted'}`}>
-              {d.label}
-            </span>
-          </div>
-        ))}
+      <div className="mt-4">
+        <WeekRow week={header.week} />
       </div>
       <div className="mt-4 flex items-center gap-2 border-t-2 border-border pt-3">
         {Array.from({ length: FREEZE_MAX }, (_, i) => (
@@ -126,9 +118,20 @@ export function StreakInfo({ header }: { header: PathHeader }) {
   )
 }
 
-/** Сегодняшний день недели — последний не будущий. */
-function todayKey(header: PathHeader): string | undefined {
-  return header.week.filter((d) => d.state !== 'future').at(-1)?.key
+/** Неделя стрика: 7 кругов с понедельника, под ними буквы дня (сегодня — ярче). */
+export function WeekRow({ week }: { week: WeekDay[] }) {
+  // Сегодня — последний не будущий день.
+  const today = week.filter((d) => d.state !== 'future').at(-1)?.key
+  return (
+    <div className="flex justify-between">
+      {week.map((d) => (
+        <div key={d.key} className="flex flex-col items-center gap-1">
+          <WeekCircle day={d} />
+          <span className={`text-caption font-extrabold ${d.key === today ? 'text-text' : 'text-muted'}`}>{d.label}</span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export function GoalInfo({ header }: { header: PathHeader }) {

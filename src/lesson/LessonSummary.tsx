@@ -36,10 +36,12 @@ interface LessonSummaryProps {
   accuracy: number
   elapsedMs: number
   onDone: () => void
+  /** «Далее», если после итога будут праздники. */
+  doneLabel?: string
 }
 
 /** Итог урока (DESIGN.md → «Итог урока»): салют, XP, точность, время. */
-export function LessonSummary({ xp, bestStreak, accuracy, elapsedMs, onDone }: LessonSummaryProps) {
+export function LessonSummary({ xp, bestStreak, accuracy, elapsedMs, onDone, doneLabel = 'Готово' }: LessonSummaryProps) {
   useConfetti()
   const nudge = useWeeklyBackupNudge()
   const [saveOpen, setSaveOpen] = useState(false)
@@ -65,7 +67,7 @@ export function LessonSummary({ xp, bestStreak, accuracy, elapsedMs, onDone }: L
       <SaveBackupSheet open={saveOpen} onClose={() => setSaveOpen(false)} />
       <div className="px-[calc(16px+var(--safe-left))] pt-2 pb-[calc(16px+var(--safe-bottom))]">
         <Button block onClick={onDone}>
-          Готово
+          {doneLabel}
         </Button>
       </div>
     </div>
@@ -92,10 +94,10 @@ function useWeeklyBackupNudge() {
   return nudge
 }
 
-/** Салют при показе итога (без него — при «Уменьшении движения»). Библиотека грузится только здесь. */
-function useConfetti() {
+/** Салют при показе итога и праздников (без него — при «Уменьшении движения»). Библиотека грузится только здесь. */
+export function useConfetti(enabled = true) {
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (!enabled || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     let alive = true
     let reset: (() => void) | undefined
     void import('canvas-confetti').then(({ default: confetti }) => {
@@ -113,5 +115,5 @@ function useConfetti() {
       // Ушли с итога раньше, чем салют догорел, — убираем его.
       reset?.()
     }
-  }, [])
+  }, [enabled])
 }

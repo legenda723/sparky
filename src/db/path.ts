@@ -34,7 +34,7 @@ export interface PathHeader {
   quests: Quest[]
 }
 
-async function loadHeader(db: SparkyDb, at: Date, goalXp: number): Promise<PathHeader> {
+export async function loadHeader(db: SparkyDb, at: Date, goalXp: number): Promise<PathHeader> {
   const today = dayKey(at)
   const monday = addDays(today, -weekday(today))
   const [profile, days, questDay] = await Promise.all([

@@ -126,11 +126,13 @@ export interface QuestNews {
   done: Quest[]
   /** Этим уроком выполнены все задания дня — праздник побольше. */
   all: boolean
+  /** Все задания дня после урока (для экрана праздника). */
+  after: Quest[]
 }
 
 /** Что выполнилось между началом и концом урока. */
 export function questNews(before: Quest[], after: Quest[]): QuestNews {
   const done = after.filter((q, i) => q.done && !before[i]?.done)
   const all = after.length > 0 && after.every((q) => q.done) && !before.every((q) => q.done)
-  return { done, all }
+  return { done, all, after }
 }

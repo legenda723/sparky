@@ -5,7 +5,7 @@ import { navigate, parseLessonTarget } from '../app/routes'
 import { setUpdateBlocked } from '../app/updates'
 import { db } from '../db/db'
 import { feedback } from '../feedback/feedback'
-import { finishLesson } from '../db/game'
+import { ensureQuests, finishLesson } from '../db/game'
 import {
   loadLessonInput,
   markIntroduced,
@@ -15,7 +15,9 @@ import {
   type UndoToken,
 } from '../db/review'
 import type { Card, Settings } from '../db/types'
+import { lessonCelebrations, type Celebration } from '../game/celebrate'
 import { nodeCardIds } from '../game/path'
+import { questNews, type Quest } from '../game/quests'
 import { answerXp, isPerfect, lessonXp, practiceXp, XP } from '../game/xp'
 import { stopSpeech } from '../media/speech'
 import { now } from '../srs/clock'
@@ -79,6 +81,8 @@ export interface LessonApi {
   totalXp: number
   /** Сколько раз отменяли оценку: часть ключа задания, чтобы вернувшееся задание было новым, а не гаснущим. */
   undoCount: number
+  /** Праздники после итога (задания дня, стрик, уровень, достижения); null — урок ещё не записан. */
+  celebrations: Celebration[] | null
   introDone: (cardId: string, durationMs: number) => void
   /** Переворот: оценка владельца, без плашки. */
   gradeFlip: (cardId: string, grade: Grade, outcome: Outcome<Card>, durationMs: number) => void
@@ -105,6 +109,9 @@ export function useLesson(): LessonApi {
   const [reaction, setReaction] = useState<Reaction | null>(null)
   const [elapsedMs, setElapsedMs] = useState(0)
   const [undoCount, setUndoCount] = useState(0)
+  const [celebrations, setCelebrations] = useState<Celebration[] | null>(null)
+  // Задания дня в начале урока — чтобы в конце понять, что выполнено именно этим уроком.
+  const questsBefore = useRef<Quest[]>([])
   const startedAt = useRef(Date.now())
   // Записи в базу идут строго по очереди: быстрые касания не обгоняют друг друга.
   const chain = useRef<Promise<unknown>>(Promise.resolve())
@@ -170,6 +177,7 @@ export function useLesson(): LessonApi {
       try {
         const at = now()
         const input = await loadLessonInput(db, at)
+        questsBefore.current = await ensureQuests(db, at).catch(() => [])
         const target = parseLessonTarget(window.location.hash)
         const mode =
           target.kind === 'node'
@@ -217,7 +225,18 @@ export function useLesson(): LessonApi {
     setUndoSnap(null)
     void enqueue(() =>
       finishLesson(db, now(), { xp: lessonXp(next.checkedWrong, next.checked), perfect: isPerfect(next.checkedWrong, next.checked) }),
-    )
+    ).then((r) => {
+      if (!r) return setCelebrations([])
+      setCelebrations(
+        lessonCelebrations({
+          quests: questNews(questsBefore.current, r.quests),
+          streak: r.streak,
+          levelBefore: r.levelBefore,
+          levelAfter: r.levelAfter,
+          achievements: r.achievements,
+        }),
+      )
+    })
   }
 
   /** Звук ответа: верно, «серия» на каждых 5 подряд, неверно. */
@@ -367,6 +386,7 @@ export function useLesson(): LessonApi {
     elapsedMs,
     totalXp: shown ? shown.xp + (isFinished(shown) ? lessonXp(shown.checkedWrong, shown.checked) : 0) : 0,
     undoCount,
+    celebrations,
     introDone,
     gradeFlip,
     check,

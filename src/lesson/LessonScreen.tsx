@@ -14,6 +14,7 @@ import { Mascot } from '../ui/Mascot'
 import { ProgressBar } from '../ui/ProgressBar'
 import { Sheet } from '../ui/Sheet'
 import { ChoiceTask } from './ChoiceTask'
+import { CelebrationScreen } from './Celebrations'
 import { formatDuration, LessonSummary } from './LessonSummary'
 import { PairsTask } from './PairsTask'
 import { ReactionPill } from './ReactionPill'
@@ -94,6 +95,8 @@ export default function LessonScreen() {
   const lesson = useLesson()
   const { loaded, state, checked } = lesson
   const [confirmExit, setConfirmExit] = useState(false)
+  // Какой праздник после итога показан (-1 — ещё итог).
+  const [party, setParty] = useState(-1)
 
   const finished = state ? isFinished(state) : false
   const task = state ? currentTask(state) : undefined
@@ -130,6 +133,17 @@ export default function LessonScreen() {
         </div>
       </div>
     )
+  } else if (state && finished && party >= 0 && lesson.celebrations?.[party]) {
+    // Праздники после итога — по одному экрану на событие (DESIGN.md → «Праздники после урока»).
+    const list = lesson.celebrations
+    key = `party-${party}`
+    body = (
+      <CelebrationScreen
+        c={list[party]}
+        last={party === list.length - 1}
+        onNext={() => (party < list.length - 1 ? setParty(party + 1) : leave())}
+      />
+    )
   } else if (state && finished) {
     key = 'summary'
     body = (
@@ -138,7 +152,9 @@ export default function LessonScreen() {
         accuracy={accuracy(state)}
         elapsedMs={lesson.elapsedMs}
         bestStreak={state.bestStreak}
-        onDone={leave}
+        // Урок ещё записывается (обычно мгновенно) или праздников нет — сразу на «Путь».
+        onDone={() => (lesson.celebrations?.length ? setParty(0) : leave())}
+        doneLabel={lesson.celebrations?.length ? 'Далее' : 'Готово'}
       />
     )
   } else if (task && loaded) {
