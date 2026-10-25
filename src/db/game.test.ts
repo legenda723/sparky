@@ -5,7 +5,7 @@ import { outcomes } from '../srs/scheduler'
 import { addCards } from './cards'
 import { SparkyDb } from './db'
 import { createDeck } from './decks'
-import { addExtraNew, claimPlanScreen, ensureQuests, finishLesson, moreNewWords, planStatus, settleDay } from './game'
+import { addExtraNew, claimPlanScreen, ensureQuests, finishLesson, loadProfileGame, moreNewWords, planStatus, setDailyGoal, settleDay } from './game'
 import { loadLessonInput, saveAnswer, undoAnswer } from './review'
 import { DEFAULT_PROFILE } from './types'
 
@@ -171,6 +171,19 @@ describe('«План на сегодня выполнен» (6.5)', () => {
     const target = await moreNewWords(db, T)
     expect(target).toMatchObject({ kind: 'node', index: 2 })
     expect((await planStatus(db, T)).done).toBe(false)
+  })
+})
+
+describe('дневная цель в «Профиле»', () => {
+  it('новая цель — и настройки, и задание «Набери N XP» на сегодня, и отметка «цель выполнена»', async () => {
+    const { db } = await setup()
+    await ensureQuests(db, T)
+    await finishLesson(db, T, { xp: 30 })
+    expect((await db.days.get('2026-10-25'))!.goalMet).toBe(false)
+    await setDailyGoal(db, T, 20)
+    expect((await loadProfileGame(db, T)).goalXp).toBe(20)
+    expect((await db.quests.get('2026-10-25'))!.quests[0]).toMatchObject({ kind: 'xp', target: 20, progress: 20, done: true })
+    expect((await db.days.get('2026-10-25'))!.goalMet).toBe(true)
   })
 })
 

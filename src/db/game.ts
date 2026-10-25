@@ -14,7 +14,7 @@ import { MASTERED_DAYS } from '../srs/status'
 import { changeDay, dayTables, getDay, questStats } from './day'
 import type { SparkyDb } from './db'
 import { loadLessonInput, type LessonInput } from './review'
-import { DEFAULT_PROFILE, type Profile } from './types'
+import { DEFAULT_PROFILE, DEFAULT_SETTINGS, type Profile } from './types'
 
 function streakOf(p: Profile): StreakState {
   return { streak: p.streak, bestStreak: p.bestStreak, lastStreakDay: p.lastStreakDay, freezes: p.freezes }
@@ -189,5 +189,45 @@ export async function moreNewWords(db: SparkyDb, at: Date): Promise<LessonTarget
   const [decks, input] = await Promise.all([db.decks.toArray(), loadLessonInput(db, at)])
   const cur = buildPath(decks, input.cards).current
   return cur ? { kind: 'node', deckId: cur.deckId, index: cur.index } : null
+}
+
+/** Ключ памяти игровой части «Профиля» (liveCache). */
+export const PROFILE_GAME_KEY = 'profile-game'
+
+/** Игровая часть «Профиля» (SPEC 7.5): уровень, стрик, достижения, дневная цель. */
+export interface ProfileGame {
+  totalXp: number
+  streak: number
+  bestStreak: number
+  achievements: string[]
+  goalXp: number
+}
+
+export async function loadProfileGame(db: SparkyDb, at: Date): Promise<ProfileGame> {
+  const [profile, settings] = await Promise.all([db.profile.get('me'), db.settings.get('me')])
+  const p = { ...DEFAULT_PROFILE, ...profile }
+  return {
+    totalXp: p.totalXp,
+    streak: reconcileStreak(streakOf(p), dayKey(at)).state.streak,
+    bestStreak: p.bestStreak,
+    achievements: p.achievements,
+    goalXp: { ...DEFAULT_SETTINGS, ...settings }.dailyGoalXp,
+  }
+}
+
+/** Новая дневная цель: настройки и задание «Набери N XP» на сегодня — вместе. */
+export async function setDailyGoal(db: SparkyDb, at: Date, goal: number): Promise<void> {
+  const key = dayKey(at)
+  await db.transaction('rw', dayTables(db), async () => {
+    const settings = { ...DEFAULT_SETTINGS, ...(await db.settings.get('me')) }
+    await db.settings.put({ ...settings, id: 'me', dailyGoalXp: goal })
+    const q = await db.quests.get(key)
+    if (q) {
+      const quests = (q.quests as Quest[]).map((x) => (x.kind === 'xp' ? { ...x, target: goal } : x))
+      await db.quests.put({ ...q, quests })
+    }
+    // Пересчёт прогресса заданий и отметки «цель выполнена» — по новой цели.
+    await changeDay(db, key, {})
+  })
 }
 

@@ -8,6 +8,7 @@ import { BackupNudge } from '../backup/BackupNudge'
 import { SaveBackupSheet, useBackupStatus, useRestore } from '../backup/BackupSheets'
 import { backupAgeText, isBackupStale } from '../backup/reminder'
 import { changeTheme } from '../app/theme'
+import { ProfileGameSection } from '../profile/ProfileGame'
 import { Screen } from '../shell/Screen'
 import { ChoiceChips } from '../ui/ChoiceChips'
 import { ListRow } from '../ui/ListRow'
@@ -31,6 +32,8 @@ export function ProfileScreen() {
   const applyUpdate = useSyncExternalStore(subscribePendingUpdate, getPendingUpdate)
   return (
     <Screen title="Профиль">
+      <ProfileGameSection />
+
       <section className="mb-6">
         <h2 className="m-0 mb-3 flex items-center gap-2 text-heading font-black text-text">
           <Palette size={22} className="text-gem" /> Тема
@@ -82,7 +85,7 @@ export function ProfileScreen() {
       </section>
 
       <p className="m-0 mb-2 text-small font-semibold text-muted">
-        Скоро здесь будут уровень, достижения и магазин.
+        Скоро здесь будет магазин: темы и наряды для Спарки — за уровни и достижения.
       </p>
 
       <section className="-mx-4 border-t-2 border-border">
