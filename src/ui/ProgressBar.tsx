@@ -4,10 +4,12 @@ interface ProgressBarProps {
   /** 0–1 */
   value: number
   label?: string
+  /** Цвет заливки (по умолчанию — основной зелёный; цель дня — `bg-xp`). */
+  colorClass?: string
 }
 
 /** Прогресс-бар (DESIGN.md → «Прогресс-бар»): плавно заполняется, с бликом сверху. */
-export function ProgressBar({ value, label = 'Прогресс' }: ProgressBarProps) {
+export function ProgressBar({ value, label = 'Прогресс', colorClass = 'bg-primary' }: ProgressBarProps) {
   const v = Math.min(1, Math.max(0, value))
   // Ширину Motion сам не глушит при «Уменьшении движения» — делаем мгновенной.
   const reduce = useReducedMotion()
@@ -21,7 +23,7 @@ export function ProgressBar({ value, label = 'Прогресс' }: ProgressBarPr
       className="h-4 w-full overflow-hidden rounded-lg bg-border"
     >
       <motion.div
-        className="relative h-full rounded-lg bg-primary"
+        className={`relative h-full rounded-lg ${colorClass}`}
         style={{ minWidth: v > 0 ? 16 : 0 }}
         initial={false}
         animate={{ width: `${v * 100}%` }}

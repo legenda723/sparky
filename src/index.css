@@ -340,6 +340,20 @@ html.theme-anim *::after {
   50% { transform: scale(1) rotate(20deg); opacity: 1; }
 }
 .path-twinkle { animation: path-twinkle 2.6s ease-in-out infinite; }
+/* Огонь стрика (DESIGN.md → «Чип стрика»): спокойно пульсирует; вечером, пока день не засчитан, тревожно покачивается. */
+@keyframes streak-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+@keyframes streak-alarm {
+  0%, 36%, 100% { transform: rotate(0deg); }
+  6% { transform: rotate(-12deg); }
+  15% { transform: rotate(12deg); }
+  24% { transform: rotate(-8deg); }
+  30% { transform: rotate(5deg); }
+}
+.streak-pulse { animation: streak-pulse 2s ease-in-out infinite; }
+.streak-alarm { animation: streak-alarm 1.4s ease-in-out infinite; transform-origin: 50% 85%; }
 /* Туман пути (DESIGN.md → «Туман пути»): готовые картинки дыма (scripts/gen-fog.mjs), плитка 512 px.
    Слои медленно едут вбок ровно на одну плитку и повторяются — шва нет. Только transform. */
 /* Край и сплошной дым — узоры одной SVG-картинки (src/path/Fog.tsx), картинка по теме выбирается здесь. */

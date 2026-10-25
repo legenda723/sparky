@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { navigate, navigateSub, openLesson, type LessonTarget } from '../app/routes'
 import { db } from '../db/db'
 import { useCachedLiveQuery } from '../db/liveCache'
+import { ensureQuests, settleDay } from '../db/game'
 import { loadPath, PATH_KEY, type PathData } from '../db/path'
 import type { PathItem, PathNode, PathSection } from '../game/path'
 import { FUTURES_CLEAR, pathView } from '../game/pathView'
@@ -12,14 +13,17 @@ import { unlockSpeech } from '../media/speech'
 import { CollapsedSection } from '../path/CollapsedSection'
 import { Fog } from '../path/Fog'
 import { GhostInfo, NodeInfo } from '../path/NodeInfo'
+import { GoalChip, GoalInfo, StreakChip, StreakInfo } from '../path/PathBar'
 import { itemId, PathTrack, ROW } from '../path/PathTrack'
 import { SectionBanner } from '../path/SectionBanner'
 import { now } from '../srs/clock'
+import { dayKey } from '../srs/day'
 import { plural } from '../srs/status'
 import { Button } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { Popover } from '../ui/Popover'
 import { TextButton } from '../ui/TextButton'
+import { useToast } from '../ui/Toast'
 
 /** Сплошной дым ниже последнего места: до него можно долистать, дальше — только «резинка». */
 const FOG_TAIL = 120
@@ -32,6 +36,34 @@ const FOG_DROP = 140
 const FOG_FUTURE_DROP = 24 + FOG_DROP + (FUTURES_CLEAR - 1) * ROW
 
 type Selected = { id: string }
+
+/** Всплывашки полосы сверху (не места пути). */
+const STREAK_ID = 'bar:streak'
+const GOAL_ID = 'bar:goal'
+
+/**
+ * Новый день (и первое открытие): пропуски закрываются заморозками или стрик сгорает, выбираются задания дня.
+ * Запись в базе — путь обновится сам (liveQuery).
+ */
+function useSettleDay(tick: number) {
+  const toast = useToast()
+  const today = dayKey(now())
+  useEffect(() => {
+    void (async () => {
+      try {
+        const s = await settleDay(db, now())
+        // Тост — по факту записи: заморозка тратится один раз, и повторный запуск её уже не найдёт.
+        if (s.frozen.length > 0) toast({ message: 'Заморозка сохранила стрик ❄️' })
+        await ensureQuests(db, now())
+      } catch {
+        // Не вышло — попробуем при следующем открытии; путь показывается и без этого.
+      }
+    })()
+    // Раз в минуту и при возврате в приложение (tick): наступил новый день (после 04:00) — сверка и задания.
+    // Если день тот же, это одно короткое чтение.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [today, tick])
+}
 
 /** Раз в минуту и при возврате в приложение — свежий счёт: слова в обучении подходят по времени. */
 function useMinuteTick(): number {
@@ -72,6 +104,7 @@ const toggle = (set: ReadonlySet<string>, id: string) => {
 
 export function PathScreen() {
   const tick = useMinuteTick()
+  useSettleDay(tick)
   const data = useCachedLiveQuery(PATH_KEY, () => loadPath(db, now()), [tick])
   const reduce = useReducedMotion() ?? false
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -150,6 +183,7 @@ export function PathScreen() {
   }
 
   const found = data && selected ? findItem(data, selected.id) : null
+  const barOpen = selected?.id === STREAK_ID || selected?.id === GOAL_ID ? selected.id : null
   const close = () => setSelected(null)
   const hasDue = !!data && data.today.due > 0
 
@@ -158,6 +192,12 @@ export function PathScreen() {
       {/* Шапка не прокручивается, плашка раздела прилипает под ней. Высота строки — 44, как у чипов полосы этапа 8. */}
       <header className="flex min-h-11 shrink-0 items-center gap-1 bg-bg pt-[calc(12px+var(--safe-top))] pr-[calc(16px+var(--safe-right))] pb-2 pl-[calc(16px+var(--safe-left))]">
         <h1 className="m-0 min-w-0 flex-1 truncate text-title leading-11 font-black text-text">Путь</h1>
+        {data && (
+          <div className="flex items-center gap-1">
+            <StreakChip header={data.header} chipRef={(el) => setRef(STREAK_ID, el)} onClick={() => show({ id: STREAK_ID })} />
+            <GoalChip header={data.header} chipRef={(el) => setRef(GOAL_ID, el)} onClick={() => show({ id: GOAL_ID })} />
+          </div>
+        )}
       </header>
 
       {/* Родная «резинка» iPhone: оттянешь путь за конец — снизу тянется тот же туман (Fog рисует его за краем). */}
@@ -226,7 +266,9 @@ export function PathScreen() {
         </div>
       )}
 
-      <Popover open={!!found} onClose={close} anchorRef={anchor} width={300} gap={22}>
+      <Popover open={!!found || barOpen !== null} onClose={close} anchorRef={anchor} width={300} gap={barOpen ? 8 : 22}>
+        {barOpen === STREAK_ID && data && <StreakInfo header={data.header} />}
+        {barOpen === GOAL_ID && data && <GoalInfo header={data.header} />}
         {found && data && found.item.kind === 'node' ? (
           <NodeInfo
             node={found.item}
