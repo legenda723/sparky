@@ -1,4 +1,4 @@
-// Очки опыта (SPEC 8.1). Чистые функции; уровни и дневная цель — этап 8.
+// Очки опыта (SPEC 8.1). Чистые функции.
 
 export const XP = {
   /** Верный ответ. */
@@ -7,7 +7,7 @@ export const XP = {
   newWord: 3,
   /** Урок завершён. */
   lesson: 10,
-  /** Идеальный урок — без ошибок. */
+  /** Идеальный урок — без ошибок в заданиях, которые проверяет приложение. */
   perfect: 5,
   /** В серии от 5 верных подряд — +1 к каждому ответу. */
   streakBonus: 1,
@@ -22,10 +22,16 @@ export interface AnswerXpInput {
   newWord: boolean
   /** Серия верных подряд вместе с этим ответом. */
   streak: number
+  /**
+   * Оценку поставил сам владелец (карточка с переворотом): XP одинаковый при любой оценке и без бонуса серии —
+   * чтобы награда не тянула нажать кнопку получше (решение владельца, SPEC 8.1).
+   */
+  selfGraded?: boolean
 }
 
-/** XP за ответ в задании с оценкой FSRS. Ошибка — 0 (без наказания). */
-export function answerXp({ correct, newWord, streak }: AnswerXpInput): number {
+/** XP за ответ в задании с оценкой FSRS. Ошибка в проверяемом задании — 0 (без наказания). */
+export function answerXp({ correct, newWord, streak, selfGraded }: AnswerXpInput): number {
+  if (selfGraded) return XP.correct + (newWord ? XP.newWord : 0)
   if (!correct) return 0
   return XP.correct + (newWord ? XP.newWord : 0) + (streak >= XP.streakFrom ? XP.streakBonus : 0)
 }
@@ -35,7 +41,17 @@ export function practiceXp(correct: boolean): number {
   return correct ? XP.practice : 0
 }
 
-/** Бонус за завершение урока: +10, без ошибок — ещё +5. */
-export function lessonXp(wrong: number, graded: number): number {
-  return XP.lesson + (wrong === 0 && graded > 0 ? XP.perfect : 0)
+/** Урок идеальный: были задания, которые проверяет приложение, и ни одной ошибки в них. */
+export function isPerfect(checkedWrong: number, checked: number): boolean {
+  return checked > 0 && checkedWrong === 0
+}
+
+/** Бонус за завершение урока: +10, идеальный — ещё +5 (считаются только задания, которые проверяет приложение). */
+export function lessonXp(checkedWrong: number, checked: number): number {
+  return XP.lesson + (isPerfect(checkedWrong, checked) ? XP.perfect : 0)
+}
+
+/** Тренировка (SPEC 6.5): бонус за завершение — вдвое меньше. */
+export function trainingLessonXp(checkedWrong: number, checked: number): number {
+  return Math.floor(lessonXp(checkedWrong, checked) / 2)
 }

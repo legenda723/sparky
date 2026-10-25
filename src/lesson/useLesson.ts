@@ -215,7 +215,7 @@ export function useLesson(): LessonApi {
     if (!isFinished(next)) return
     setElapsedMs(Date.now() - startedAt.current)
     setUndoSnap(null)
-    void enqueue(() => finishLesson(db, now(), lessonXp(next.wrong, next.correct + next.wrong)))
+    void enqueue(() => finishLesson(db, now(), lessonXp(next.checkedWrong, next.checked)))
   }
 
   /** Звук ответа: верно, «серия» на каждых 5 подряд, неверно. */
@@ -249,9 +249,11 @@ export function useLesson(): LessonApi {
     const before = loaded.cards.get(cardId)
     if (!before) return null
     const ok = isCorrect(g)
-    const xp = answerXp({ correct: ok, newWord: isNewWordBonus(state, cardId), streak: ok ? state.streak + 1 : 0 })
+    // Переворот: оценку ставит сам владелец — XP одинаковый при любой оценке, серию он не трогает.
+    const selfGraded = exercise === 'flip'
+    const xp = answerXp({ correct: ok, newWord: isNewWordBonus(state, cardId), streak: ok ? state.streak + 1 : 0, selfGraded })
     const l = { ...loaded, cards: new Map(loaded.cards).set(cardId, outcome.card) }
-    const next = prepare(afterGrade(state, cardId, g, outcome.card.due, outcome.log.review, xp), l)
+    const next = prepare(afterGrade(state, cardId, g, outcome.card.due, outcome.log.review, xp, selfGraded), l)
     const token = enqueue(() => saveAnswer(db, { before, grade: g, outcome, exerciseType: exercise, durationMs, xp }))
     return { prev: state, next, l, token, ok }
   }
@@ -264,7 +266,8 @@ export function useLesson(): LessonApi {
     const comesBack = r.next.returns[cardId] !== r.prev.returns[cardId]
     react(g === Rating.Again ? (comesBack ? 'again' : 'later') : g === Rating.Hard ? 'hard' : 'correct')
     if (isFinished(r.next)) feedback('finish')
-    else answerSound(r.ok, r.next)
+    // Серию переворот не продлевает — звук «серия» здесь не звучит.
+    else feedback(r.ok ? 'correct' : 'wrong')
     const seq = ++actionSeq.current
     setUndoSnap(null)
     void r.token.then((token) => {
@@ -358,7 +361,7 @@ export function useLesson(): LessonApi {
     canUndo: undoSnap !== null && !checked,
     reaction,
     elapsedMs,
-    totalXp: shown ? shown.xp + (isFinished(shown) ? lessonXp(shown.wrong, shown.correct + shown.wrong) : 0) : 0,
+    totalXp: shown ? shown.xp + (isFinished(shown) ? lessonXp(shown.checkedWrong, shown.checked) : 0) : 0,
     undoCount,
     introDone,
     gradeFlip,

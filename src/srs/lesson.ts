@@ -209,7 +209,16 @@ export interface LessonState {
   /** Верных и ошибок — только по заданиям с оценкой FSRS (для точности). */
   correct: number
   wrong: number
-  /** Верных подряд (задания с оценкой и лёгкое задание) — «5 ПОДРЯД!». */
+  /**
+   * Заданий, которые проверяет приложение (выбор, ввод, аудирование), и ошибок в них — для «идеального урока».
+   * Переворот (оценку ставит сам владелец) сюда не входит.
+   */
+  checked: number
+  checkedWrong: number
+  /**
+   * Верных подряд — «5 ПОДРЯД!». Считают только задания, которые проверяет приложение (и лёгкое задание);
+   * переворот серию не рвёт и не продлевает (решение владельца, SPEC 8.1).
+   */
   streak: number
   bestStreak: number
   /** Последний ответ (с оценкой или лёгкое задание) был верным. */
@@ -229,6 +238,8 @@ export function startLesson(plan: LessonPlan): LessonState {
     returns: {},
     correct: 0,
     wrong: 0,
+    checked: 0,
+    checkedWrong: 0,
     streak: 0,
     bestStreak: 0,
     lastOk: true,
@@ -261,21 +272,35 @@ function withStreak(s: LessonState, ok: boolean): Pick<LessonState, 'streak' | '
   return { streak, bestStreak: Math.max(s.bestStreak, streak) }
 }
 
-/** После оценки: если слово скоро понадобится снова — в конец урока. */
-export function afterGrade(s: LessonState, cardId: string, grade: Grade, nextDue: Date, at: Date, xp = 0): LessonState {
+/**
+ * После оценки: если слово скоро понадобится снова — в конец урока.
+ * selfGraded — оценку поставил сам владелец (переворот): серия и «идеальный урок» её не видят,
+ * бонус «новое слово» не зависит от оценки.
+ */
+export function afterGrade(
+  s: LessonState,
+  cardId: string,
+  grade: Grade,
+  nextDue: Date,
+  at: Date,
+  xp = 0,
+  selfGraded = false,
+): LessonState {
   const returned = s.returns[cardId] ?? 0
   const comesBack = nextDue.getTime() - at.getTime() <= RETURN_WINDOW_MS && returned < MAX_RETURNS
   const ok = isCorrect(grade)
   return {
     ...s,
-    ...withStreak(s, ok),
+    ...(selfGraded ? {} : withStreak(s, ok)),
+    checked: s.checked + (selfGraded ? 0 : 1),
+    checkedWrong: s.checkedWrong + (selfGraded || ok ? 0 : 1),
     queue: comesBack ? [...s.queue, { kind: 'graded', cardId }] : s.queue,
     index: s.index + 1,
     returns: comesBack ? { ...s.returns, [cardId]: returned + 1 } : s.returns,
     correct: s.correct + (ok ? 1 : 0),
     wrong: s.wrong + (ok ? 0 : 1),
     lastOk: ok,
-    newPending: ok ? s.newPending.filter((id) => id !== cardId) : s.newPending,
+    newPending: ok || selfGraded ? s.newPending.filter((id) => id !== cardId) : s.newPending,
     xp: s.xp + xp,
   }
 }

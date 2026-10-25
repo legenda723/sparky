@@ -1,6 +1,6 @@
 import { createEmptyCard, Rating, State } from 'ts-fsrs'
 import { describe, expect, it } from 'vitest'
-import { answerXp, lessonXp, practiceXp } from '../game/xp'
+import { answerXp, isPerfect, lessonXp, practiceXp, trainingLessonXp } from '../game/xp'
 import {
   checkTyped,
   exerciseCandidates,
@@ -201,6 +201,19 @@ describe('XP (8.1)', () => {
     expect(practiceXp(false)).toBe(0)
     expect(lessonXp(0, 12)).toBe(15)
     expect(lessonXp(1, 12)).toBe(10)
+    expect(trainingLessonXp(0, 8)).toBe(7)
+    expect(trainingLessonXp(2, 8)).toBe(5)
+  })
+  it('переворот: XP одинаковый при любой оценке и без бонуса серии', () => {
+    const flip = (correct: boolean, streak: number) => answerXp({ correct, newWord: false, streak, selfGraded: true })
+    expect(new Set([flip(false, 0), flip(true, 1), flip(true, 9)])).toEqual(new Set([2]))
+    expect(answerXp({ correct: false, newWord: true, streak: 0, selfGraded: true })).toBe(5)
+  })
+  it('идеальный урок — только по заданиям, которые проверяет приложение, и хотя бы одно такое было', () => {
+    expect(isPerfect(0, 3)).toBe(true)
+    expect(isPerfect(1, 3)).toBe(false)
+    expect(isPerfect(0, 0)).toBe(false)
+    expect(lessonXp(0, 0)).toBe(10)
   })
 })
 
@@ -361,5 +374,36 @@ describe('целый урок', () => {
     expect([s.streak, s.xp]).toEqual([2, 4])
     s = afterGrade(s, 'c2', Rating.Again, far, NOW, 0)
     expect([s.streak, s.bestStreak, s.xp]).toEqual([0, 2, 4])
+  })
+
+  it('переворот серию не рвёт и не продлевает, «Снова» на нём — не ошибка для идеального урока', () => {
+    let s = startLesson({ tasks: [0, 1, 2, 3].map((i) => ({ kind: 'graded' as const, cardId: `c${i}` })), newCount: 0, reviewCount: 4 })
+    const far = new Date(NOW.getTime() + 86400_000 * 3)
+    s = afterGrade(s, 'c0', Rating.Good, far, NOW, 2)
+    s = afterGrade(s, 'c1', Rating.Again, far, NOW, 2, true)
+    expect([s.streak, s.checked, s.checkedWrong]).toEqual([1, 1, 0])
+    s = afterGrade(s, 'c2', Rating.Easy, far, NOW, 2, true)
+    expect(s.streak).toBe(1)
+    s = afterGrade(s, 'c3', Rating.Good, far, NOW, 2)
+    expect([s.streak, s.bestStreak, s.checked, s.checkedWrong]).toEqual([2, 2, 2, 0])
+    // Точность — по всем оценкам (и переворота): «Снова» там честно видно.
+    expect([s.correct, s.wrong]).toEqual([3, 1])
+    expect(isPerfect(s.checkedWrong, s.checked)).toBe(true)
+  })
+
+  it('ошибка в проверяемом задании — урок не идеальный', () => {
+    let s = startLesson({ tasks: [0, 1].map((i) => ({ kind: 'graded' as const, cardId: `c${i}` })), newCount: 0, reviewCount: 2 })
+    const far = new Date(NOW.getTime() + 86400_000 * 3)
+    s = afterGrade(s, 'c0', Rating.Again, far, NOW)
+    s = afterGrade(s, 'c1', Rating.Good, far, NOW)
+    expect([s.checked, s.checkedWrong]).toEqual([2, 1])
+    expect(isPerfect(s.checkedWrong, s.checked)).toBe(false)
+  })
+
+  it('переворот нового слова: бонус «новое слово» не зависит от оценки', () => {
+    let s = startLesson({ tasks: [{ kind: 'intro', cardId: 'n' }, { kind: 'graded', cardId: 'n' }], newCount: 1, reviewCount: 0 })
+    s = afterIntro(s, 'n')
+    s = afterGrade(s, 'n', Rating.Again, new Date(NOW.getTime() + 60_000), NOW, 5, true)
+    expect(isNewWordBonus(s, 'n')).toBe(false)
   })
 })
