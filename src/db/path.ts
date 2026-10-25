@@ -5,6 +5,7 @@ import { isDayDone, isStreakAlarm, reconcileStreak, streakWeek, type StreakState
 import { addDays, dayKey, weekday } from '../srs/day'
 import { newPerLesson, todayCounts, type TodayCounts } from '../srs/lesson'
 import type { SparkyDb } from './db'
+import { planFrom, type PlanStatus } from './game'
 import { loadLessonInput } from './review'
 import { DEFAULT_PROFILE } from './types'
 
@@ -19,6 +20,8 @@ export interface PathData {
   /** Английское слово и перевод — для списка слов пройденного узла. */
   words: Map<string, { front: string; back: string }>
   header: PathHeader
+  /** План на сегодня (SPEC 6.5): выполнен ли, есть ли ещё новые слова, сколько повторений добавят «+5 новых». */
+  plan: PlanStatus
 }
 
 /** Полоса «Пути» (DESIGN.md → «Полоса пути»). */
@@ -69,6 +72,7 @@ export async function loadPath(db: SparkyDb, at: Date): Promise<PathData> {
   const header = await loadHeader(db, at, input.settings.dailyGoalXp)
   return {
     header,
+    plan: planFrom(input, at),
     path: buildPath(decks, input.cards),
     today: todayCounts(input.cards, input.deckOrder, at, input.limits),
     newPerLesson: newPerLesson(input.limits.size),

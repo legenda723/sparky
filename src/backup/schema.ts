@@ -104,6 +104,7 @@ const dayRecord = z.looseObject({
   perfectLessons: z.number().default(0),
   streakDay: z.boolean().default(false),
   extraNew: z.number().default(0),
+  planShown: z.boolean().default(false),
 })
 
 const profile = z.looseObject({

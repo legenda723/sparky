@@ -9,6 +9,8 @@ export type Celebration =
   | { kind: 'streak'; streak: number; milestone?: number; freezeEarned: boolean; freezes: number }
   | { kind: 'level'; level: number }
   | { kind: 'achievements'; list: Achievement[] }
+  /** «План на сегодня выполнен!» (SPEC 6.5) — всегда последним, раз в день. */
+  | { kind: 'plan'; freshLeft: number; extraEstimate: number }
 
 export interface LessonEvents {
   quests: QuestNews

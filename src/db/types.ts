@@ -83,6 +83,8 @@ export interface DayRecord {
   streakDay?: boolean
   /** «Выучить ещё 5 новых слов» — на сколько поднят сегодняшний лимит новых. */
   extraNew?: number
+  /** Экран «План на сегодня выполнен!» уже показан (раз в день). */
+  planShown?: boolean
 }
 
 export interface Profile {

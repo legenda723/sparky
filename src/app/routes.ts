@@ -51,16 +51,17 @@ export function navigate(route: Route): void {
   window.location.replace(routeHref(route))
 }
 
-/** Какой урок открыть: повторения (кнопка «ПОВТОРИТЬ») или узел пути. */
-export type LessonTarget = { kind: 'review' } | { kind: 'node'; deckId: string; index: number }
+/** Какой урок открыть: повторения (кнопка «ПОВТОРИТЬ»), узел пути или тренировка (SPEC 6.5). */
+export type LessonTarget = { kind: 'review' } | { kind: 'training' } | { kind: 'node'; deckId: string; index: number }
 
 /** «#/lesson/review», «#/lesson/<колода>/<номер узла>». */
 export function lessonHref(target: LessonTarget): string {
-  return target.kind === 'review' ? '#/lesson/review' : `#/lesson/${target.deckId}/${target.index}`
+  return target.kind === 'node' ? `#/lesson/${target.deckId}/${target.index}` : `#/lesson/${target.kind}`
 }
 
 export function parseLessonTarget(hash: string): LessonTarget {
   const [deckId, index] = parseSubPath(hash).split('/')
+  if (deckId === 'training') return { kind: 'training' }
   const n = Number(index)
   if (deckId && deckId !== 'review' && Number.isInteger(n) && n >= 0) return { kind: 'node', deckId, index: n }
   return { kind: 'review' }

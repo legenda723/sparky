@@ -38,10 +38,12 @@ interface LessonSummaryProps {
   onDone: () => void
   /** «Далее», если после итога будут праздники. */
   doneLabel?: string
+  /** «Тренировка пройдена!» после тренировки. */
+  title?: string
 }
 
 /** Итог урока (DESIGN.md → «Итог урока»): салют, XP, точность, время. */
-export function LessonSummary({ xp, bestStreak, accuracy, elapsedMs, onDone, doneLabel = 'Готово' }: LessonSummaryProps) {
+export function LessonSummary({ xp, bestStreak, accuracy, elapsedMs, onDone, doneLabel = 'Готово', title = 'Урок пройден!' }: LessonSummaryProps) {
   useConfetti()
   const nudge = useWeeklyBackupNudge()
   const [saveOpen, setSaveOpen] = useState(false)
@@ -50,7 +52,7 @@ export function LessonSummary({ xp, bestStreak, accuracy, elapsedMs, onDone, don
     <div className="flex h-full flex-col">
       <div className="flex flex-1 flex-col items-center justify-center gap-3 overflow-y-auto px-[calc(16px+var(--safe-left))] text-center">
         <Mascot mood="cheer" size={140} />
-        <h1 className="m-0 text-display font-black text-text">Урок пройден!</h1>
+        <h1 className="m-0 text-display font-black text-text">{title}</h1>
         <p className="m-0 text-body font-bold text-muted">{phrase}</p>
         <div className="mt-4 flex w-full gap-3">
           <Tile order={0} icon={<Zap size={24} strokeWidth={2.5} className="fill-current" />} value={String(xp)} label="XP" ink="text-xp-ink" />

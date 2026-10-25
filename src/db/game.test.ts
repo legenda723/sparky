@@ -5,7 +5,7 @@ import { outcomes } from '../srs/scheduler'
 import { addCards } from './cards'
 import { SparkyDb } from './db'
 import { createDeck } from './decks'
-import { addExtraNew, ensureQuests, finishLesson, settleDay } from './game'
+import { addExtraNew, claimPlanScreen, ensureQuests, finishLesson, moreNewWords, planStatus, settleDay } from './game'
 import { loadLessonInput, saveAnswer, undoAnswer } from './review'
 import { DEFAULT_PROFILE } from './types'
 
@@ -147,3 +147,30 @@ describe('«Выучить ещё 5 новых слов»', () => {
     expect((await loadLessonInput(db, new Date('2026-10-26T15:00'))).limits.newPerDay).toBe(10)
   })
 })
+
+describe('«План на сегодня выполнен» (6.5)', () => {
+  it('выполнен, когда повторять нечего и новые на сегодня кончились; экран — раз в день', async () => {
+    const { db, cards } = await setup(12)
+    expect((await planStatus(db, T)).done).toBe(false)
+    // Сегодня уже познакомились с 10 словами (лимит), остальные новые ждут.
+    for (const c of cards.slice(0, 10)) {
+      await db.cards.update(c.id, { state: State.Review, stability: 5, due: new Date('2026-10-30T10:00'), introducedAt: T.getTime() - 1000 })
+    }
+    const st = await planStatus(db, T)
+    expect(st).toMatchObject({ done: true, freshLeft: 2, known: 10 })
+    expect(st.extraEstimate).toBeGreaterThan(0)
+    expect(await claimPlanScreen(db, T)).not.toBeNull()
+    expect(await claimPlanScreen(db, T)).toBeNull()
+  })
+
+  it('«Ещё 5 новых слов» поднимает лимит и ведёт в урок текущего узла', async () => {
+    const { db, cards } = await setup(12)
+    for (const c of cards.slice(0, 10)) {
+      await db.cards.update(c.id, { state: State.Review, stability: 5, due: new Date('2026-10-30T10:00'), introducedAt: T.getTime() - 1000 })
+    }
+    const target = await moreNewWords(db, T)
+    expect(target).toMatchObject({ kind: 'node', index: 2 })
+    expect((await planStatus(db, T)).done).toBe(false)
+  })
+})
+

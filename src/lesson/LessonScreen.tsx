@@ -1,12 +1,15 @@
 import { Undo2, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useRef, useState } from 'react'
-import { navigate } from '../app/routes'
-import { speak } from '../media/speech'
+import { navigate, openLesson } from '../app/routes'
+import { db } from '../db/db'
+import { moreNewWords } from '../db/game'
+import { now } from '../srs/clock'
+import { speak, unlockSpeech } from '../media/speech'
 import { screenFade } from '../shell/screenFade'
 import type { PoolCard } from '../srs/exercise'
 import { isChoice, isTyping } from '../srs/grade'
-import { accuracy, currentTask, isFinished } from '../srs/lesson'
+import { accuracy, currentTask, isFinished, isTraining } from '../srs/lesson'
 import { AnswerBanner } from '../ui/AnswerBanner'
 import { Button } from '../ui/Button'
 import { IconButton } from '../ui/IconButton'
@@ -142,6 +145,19 @@ export default function LessonScreen() {
         c={list[party]}
         last={party === list.length - 1}
         onNext={() => (party < list.length - 1 ? setParty(party + 1) : leave())}
+        plan={{
+          onTraining: () => {
+            // iOS разрешает озвучку только из касания — «будим» её на весь следующий урок.
+            unlockSpeech()
+            openLesson({ kind: 'training' })
+          },
+          onMore: () => {
+            unlockSpeech()
+            void moreNewWords(db, now())
+              .then((target) => (target ? openLesson(target) : leave()))
+              .catch(leave)
+          },
+        }}
       />
     )
   } else if (state && finished) {
@@ -155,6 +171,7 @@ export default function LessonScreen() {
         // Урок ещё записывается (обычно мгновенно) или праздников нет — сразу на «Путь».
         onDone={() => (lesson.celebrations?.length ? setParty(0) : leave())}
         doneLabel={lesson.celebrations?.length ? 'Далее' : 'Готово'}
+        title={isTraining(state) ? 'Тренировка пройдена!' : 'Урок пройден!'}
       />
     )
   } else if (task && loaded) {

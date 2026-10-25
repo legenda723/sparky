@@ -44,9 +44,10 @@ export interface LessonLimits {
 
 /**
  * Место в уроке: «intro» — знакомство; «graded» — задание с оценкой FSRS (какое именно — решается при показе,
- * по тогдашнему состоянию слова); «pairs» — бонус «Пары»; «easy» — лёгкий выбор в конце, без оценки.
+ * по тогдашнему состоянию слова); «pairs» — бонус «Пары»; «easy» — лёгкий выбор в конце, без оценки;
+ * «practice» — задание тренировки (SPEC 6.5), без оценки FSRS.
  */
-export type TaskKind = 'intro' | 'graded' | 'pairs' | 'easy'
+export type TaskKind = 'intro' | 'graded' | 'pairs' | 'easy' | 'practice'
 
 export interface Task {
   kind: TaskKind
@@ -103,7 +104,10 @@ function newRoom(limits: LessonLimits): number {
  * Какой урок собрать: «review» — только повторения (кнопка «ПОВТОРИТЬ»);
  * «node» — новые слова узла пути (SPEC 7.1), но только когда сегодняшние повторения сделаны.
  */
-export type LessonMode = { kind: 'review' } | { kind: 'node'; cardIds: string[] }
+export type LessonMode = { kind: 'review' } | { kind: 'node'; cardIds: string[] } | { kind: 'training'; rng: Rng }
+
+/** Заданий в тренировке. */
+export const TRAINING_SIZE = 10
 
 function sortCards(cards: LessonCardInput[], deckOrder: Map<string, number>, at: Date, retention: number) {
   const tomorrow = nextDayStart(at).getTime()
@@ -142,6 +146,7 @@ export function buildLesson(
   limits: LessonLimits,
   mode?: LessonMode,
 ): LessonPlan {
+  if (mode?.kind === 'training') return buildTraining(cards, deckOrder, mode.rng)
   const { reviews, learning, fresh } = sortCards(cards, deckOrder, at, limits.retention)
   const due = [...reviews.slice(0, reviewRoom(limits)), ...learning]
   let old: LessonCardInput[]
@@ -179,6 +184,22 @@ export function buildLesson(
   return { tasks: withPairs(tasks), newCount: newCards.length, reviewCount: old.length }
 }
 
+/**
+ * Тренировка (SPEC 6.5): случайные знакомые слова (прошли знакомство), разные задания, FSRS не меняется.
+ * Расписание не трогается — поэтому можно брать любые знакомые слова, не только те, что к сроку.
+ */
+function buildTraining(cards: LessonCardInput[], deckOrder: Map<string, number>, rng: Rng): LessonPlan {
+  const known = cards.filter((c) => !c.suspended && c.deletedAt === undefined && deckOrder.has(c.deckId) && c.state !== State.New)
+  const tasks: Task[] = shuffle(known, rng)
+    .slice(0, TRAINING_SIZE)
+    .map((c) => ({ kind: 'practice', cardId: c.id }))
+  return { tasks: withPairs(tasks), newCount: 0, reviewCount: 0 }
+}
+
+export function isTraining(s: LessonState): boolean {
+  return s.queue.some((t) => t.kind === 'practice')
+}
+
 /** Доля урока, после которой ставятся «Пары». */
 const PAIRS_AT = 0.6
 
@@ -190,7 +211,7 @@ function withPairs(tasks: Task[]): Task[] {
   const seen = new Set<string>()
   let after = -1
   for (let i = 0; i < tasks.length; i++) {
-    if (tasks[i].kind === 'graded') seen.add(tasks[i].cardId)
+    if (tasks[i].kind === 'graded' || tasks[i].kind === 'practice') seen.add(tasks[i].cardId)
     if (seen.size >= PAIRS_COUNT) {
       after = i
       break
@@ -305,11 +326,23 @@ export function afterGrade(
   }
 }
 
-/** После «Пар» или лёгкого задания (FSRS не трогают). Лёгкое задание продолжает или обрывает серию. */
-export function afterPractice(s: LessonState, xp: number, streakOk?: boolean): LessonState {
+/**
+ * После «Пар», лёгкого задания или задания тренировки (FSRS не трогают). Ответ продолжает или обрывает серию.
+ * counted — задание тренировки: оно идёт в точность и «идеальный урок» тренировки (проверяет приложение).
+ */
+export function afterPractice(s: LessonState, xp: number, streakOk?: boolean, counted = false): LessonState {
+  const ok = streakOk === true
   return {
     ...s,
     ...(streakOk === undefined ? {} : { ...withStreak(s, streakOk), lastOk: streakOk }),
+    ...(counted
+      ? {
+          correct: s.correct + (ok ? 1 : 0),
+          wrong: s.wrong + (ok ? 0 : 1),
+          checked: s.checked + 1,
+          checkedWrong: s.checkedWrong + (ok ? 0 : 1),
+        }
+      : {}),
     index: s.index + 1,
     xp: s.xp + xp,
   }
@@ -389,7 +422,8 @@ export function prepareCurrent(s: LessonState, ctx: PrepareContext): LessonState
   let state = s
   for (;;) {
     if (isFinished(state)) {
-      if (state.easyCount >= MAX_EASY || endsEasy(state)) return state
+      // Тренировка и так целиком из лёгкого — отдельное лёгкое задание в конце не нужно.
+      if (state.easyCount >= MAX_EASY || endsEasy(state) || isTraining(state)) return state
       const easy = easyTask(state, ctx)
       if (!easy) return { ...state, easyCount: MAX_EASY }
       return { ...state, queue: [...state.queue, easy], easyCount: state.easyCount + 1 }
@@ -403,7 +437,7 @@ export function prepareCurrent(s: LessonState, ctx: PrepareContext): LessonState
     } else {
       const card = ctx.cards.get(task.cardId)
       const last = state.queue[state.index - 1]?.exercise
-      if (card) ready = { ...task, ...pickExercise(card, ctx.pool, last, ctx.rng) }
+      if (card) ready = { ...task, ...pickExercise(card, ctx.pool, last, ctx.rng, task.kind === 'practice') }
     }
     if (!ready) {
       state = { ...state, index: state.index + 1 }

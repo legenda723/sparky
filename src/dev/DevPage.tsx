@@ -464,6 +464,8 @@ function PartySection() {
     { label: 'Отметка 7 дней', c: { kind: 'streak', streak: 7, milestone: 7, freezeEarned: true, freezes: 1 } },
     { label: 'Новый уровень', c: { kind: 'level', level: 5 } },
     { label: 'Достижения', c: { kind: 'achievements', list: ACHIEVEMENTS.slice(0, 3) } },
+    { label: 'План выполнен', c: { kind: 'plan', freshLeft: 12, extraEstimate: 10 } },
+    { label: 'План: слов нет', c: { kind: 'plan', freshLeft: 0, extraEstimate: 0 } },
   ]
   return (
     <Section title="Праздники после урока">

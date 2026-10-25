@@ -1,11 +1,11 @@
 // Экран «Путь» (SPEC 7.1): разделы-колоды, извилистая тропинка узлов, туман впереди, кнопка «ПОВТОРИТЬ · N».
 import { useReducedMotion } from 'motion/react'
-import { RotateCcw } from 'lucide-react'
+import { Dumbbell, RotateCcw } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { navigate, navigateSub, openLesson, type LessonTarget } from '../app/routes'
 import { db } from '../db/db'
 import { useCachedLiveQuery } from '../db/liveCache'
-import { ensureQuests, settleDay } from '../db/game'
+import { ensureQuests, moreNewWords, settleDay } from '../db/game'
 import { loadPath, PATH_KEY, type PathData } from '../db/path'
 import type { PathItem, PathNode, PathSection } from '../game/path'
 import { FUTURES_CLEAR, pathView } from '../game/pathView'
@@ -107,6 +107,7 @@ export function PathScreen() {
   useSettleDay(tick)
   const data = useCachedLiveQuery(PATH_KEY, () => loadPath(db, now()), [tick])
   const reduce = useReducedMotion() ?? false
+  const toast = useToast()
   const scrollRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const refs = useRef(new Map<string, HTMLElement>())
@@ -256,6 +257,15 @@ export function PathScreen() {
       </div>
 
       {/* Поверх прилипающих плашек разделов (у них z-10): плашка, проезжая внизу, не закрывает кнопку. */}
+      {!hasDue && data?.plan.done && data.plan.known > 0 && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center">
+          <div className="pointer-events-auto">
+            <Button variant="info" icon={<Dumbbell size={22} strokeWidth={2.5} />} onClick={() => startLesson({ kind: 'training' })}>
+              Тренировка
+            </Button>
+          </div>
+        </div>
+      )}
       {hasDue && (
         <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center">
           <div className="path-pulse pointer-events-auto">
@@ -282,6 +292,14 @@ export function PathScreen() {
             onReview={() => {
               close()
               startLesson({ kind: 'review' })
+            }}
+            onMore={() => {
+              close()
+              // Касание «будит» озвучку сразу, урок открывается, когда лимит уже поднят.
+              unlockSpeech()
+              void moreNewWords(db, now())
+                .then((target) => target && openLesson(target))
+                .catch(() => toast({ message: 'Не получилось добавить новые слова' }))
             }}
           />
         ) : found && found.item.kind === 'ghost' ? (

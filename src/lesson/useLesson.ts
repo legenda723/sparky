@@ -5,7 +5,7 @@ import { navigate, parseLessonTarget } from '../app/routes'
 import { setUpdateBlocked } from '../app/updates'
 import { db } from '../db/db'
 import { feedback } from '../feedback/feedback'
-import { ensureQuests, finishLesson } from '../db/game'
+import { claimPlanScreen, ensureQuests, finishLesson, planStatus } from '../db/game'
 import {
   loadLessonInput,
   markIntroduced,
@@ -18,7 +18,7 @@ import type { Card, Settings } from '../db/types'
 import { lessonCelebrations, type Celebration } from '../game/celebrate'
 import { nodeCardIds } from '../game/path'
 import { questNews, type Quest } from '../game/quests'
-import { answerXp, isPerfect, lessonXp, practiceXp, XP } from '../game/xp'
+import { answerXp, isPerfect, lessonXp, practiceXp, trainingLessonXp, XP } from '../game/xp'
 import { stopSpeech } from '../media/speech'
 import { now } from '../srs/clock'
 import type { PoolCard } from '../srs/exercise'
@@ -31,6 +31,7 @@ import {
   currentTask,
   isFinished,
   isNewWordBonus,
+  isTraining,
   prepareCurrent,
   startLesson,
   type LessonState,
@@ -182,7 +183,9 @@ export function useLesson(): LessonApi {
         const mode =
           target.kind === 'node'
             ? { kind: 'node' as const, cardIds: nodeCardIds(input.cards, target.deckId, target.index) }
-            : target
+            : target.kind === 'training'
+              ? { kind: 'training' as const, rng: Math.random }
+              : target
         const plan = buildLesson(input.cards, input.deckOrder, at, input.limits, mode)
         const ids = new Set(plan.tasks.map((t) => t.cardId))
         const cards = new Map(input.cards.filter((c) => ids.has(c.id)).map((c) => [c.id, c]))
@@ -218,24 +221,35 @@ export function useLesson(): LessonApi {
 
   const react = (kind: Reaction['kind']) => setReaction({ kind, id: ++reactionId.current })
 
-  /** Урок закончился этим ответом: время и бонус за завершение — сразу в базу. */
+  /** Урок закончился этим ответом: время, бонус за завершение, день в стрик — сразу в базу; потом праздники. */
   const finishIfDone = (next: LessonState) => {
     if (!isFinished(next)) return
     setElapsedMs(Date.now() - startedAt.current)
     setUndoSnap(null)
-    void enqueue(() =>
-      finishLesson(db, now(), { xp: lessonXp(next.checkedWrong, next.checked), perfect: isPerfect(next.checkedWrong, next.checked) }),
-    ).then((r) => {
-      if (!r) return setCelebrations([])
-      setCelebrations(
-        lessonCelebrations({
-          quests: questNews(questsBefore.current, r.quests),
-          streak: r.streak,
-          levelBefore: r.levelBefore,
-          levelAfter: r.levelAfter,
-          achievements: r.achievements,
-        }),
+    const training = isTraining(next)
+    void enqueue(async () => {
+      const at = now()
+      // Тренировка засчитывает день, только если учить сегодня больше нечего (SPEC 8.1); бонус — вдвое меньше.
+      const result = await finishLesson(
+        db,
+        at,
+        training
+          ? { xp: trainingLessonXp(next.checkedWrong, next.checked), countsStreak: (await planStatus(db, at)).done }
+          : { xp: lessonXp(next.checkedWrong, next.checked), perfect: isPerfect(next.checkedWrong, next.checked) },
       )
+      // «План на сегодня выполнен!» — раз в день, после обычного урока.
+      const plan = training ? null : await claimPlanScreen(db, at).catch(() => null)
+      return { result, plan }
+    }).then((r) => {
+      if (!r) return setCelebrations([])
+      const list = lessonCelebrations({
+        quests: questNews(questsBefore.current, r.result.quests),
+        streak: r.result.streak,
+        levelBefore: r.result.levelBefore,
+        levelAfter: r.result.levelAfter,
+        achievements: r.result.achievements,
+      })
+      setCelebrations(r.plan ? [...list, { kind: 'plan', freshLeft: r.plan.freshLeft, extraEstimate: r.plan.extraEstimate }] : list)
     })
   }
 
@@ -302,15 +316,15 @@ export function useLesson(): LessonApi {
 
   const check = (cardId: string, answer: AutoAnswer) => {
     const { state, loaded } = live.current
-    if (!state || !loaded || !isCurrent(['graded', 'easy'], cardId)) return
+    if (!state || !loaded || !isCurrent(['graded', 'easy', 'practice'], cardId)) return
     const task = currentTask(state)!
     actionSeq.current++
     setUndoSnap(null)
     pendingUndo.current = null
-    if (task.kind === 'easy') {
-      // Лёгкое задание в конце — тренировка: без оценки FSRS, половина XP.
+    if (task.kind === 'easy' || task.kind === 'practice') {
+      // Лёгкое задание в конце и задания тренировки: без оценки FSRS, половина XP.
       const xp = practiceXp(answer.correct)
-      const next = prepare(afterPractice(state, xp, answer.correct), loaded)
+      const next = prepare(afterPractice(state, xp, answer.correct, task.kind === 'practice'), loaded)
       void enqueue(() => savePractice(db, now(), xp, answer.durationMs, next.streak))
       answerSound(answer.correct, next)
       showChecked({ correct: answer.correct, cardId, exercise: answer.type, next })

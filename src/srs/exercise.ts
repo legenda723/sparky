@@ -42,6 +42,15 @@ export function exerciseCandidates(card: ExerciseCard): ExerciseType[] {
   return byState.filter((t) => t !== 'listen' && t !== 'listen-type')
 }
 
+/**
+ * Тренировка (SPEC 6.5): FSRS не меняется, поэтому можно и выбор, и ввод — разные задания по знакомым словам.
+ * Переворота нет: его смысл — оценка памяти, а здесь оценки нет.
+ */
+export function practiceCandidates(card: ExerciseCard): ExerciseType[] {
+  const all: ExerciseType[] = ['choice-en-ru', 'choice-ru-en', 'listen', 'type', ...(card.imageId ? (['picture'] as const) : [])]
+  return card.front && hasHomophone(card.front) ? all.filter((t) => t !== 'listen') : all
+}
+
 function candidatesByState(card: ExerciseCard): ExerciseType[] {
   if (card.state === State.New) return ['choice-en-ru']
   if (card.state === State.Learning || card.state === State.Relearning) {
@@ -110,10 +119,11 @@ export function pickExercise(
   pool: PoolCard[],
   last: ExerciseType | undefined,
   rng: Rng,
+  practice = false,
 ): PreparedExercise {
   const target = pool.find((c) => c.id === card.id)
   const ready: PreparedExercise[] = []
-  for (const exercise of exerciseCandidates(card)) {
+  for (const exercise of practice ? practiceCandidates(card) : exerciseCandidates(card)) {
     if (exercise === 'choice-en-ru' || exercise === 'choice-ru-en' || exercise === 'listen' || exercise === 'picture') {
       // В аудировании слова-созвучия не бывают и вариантами: their / there вообще не звучат в этом задании.
       const from = exercise === 'listen' ? pool.filter((c) => !hasHomophone(c.front)) : pool
@@ -123,7 +133,7 @@ export function pickExercise(
       ready.push({ exercise })
     }
   }
-  if (ready.length === 0) return { exercise: 'flip' }
+  if (ready.length === 0) return { exercise: practice ? 'type' : 'flip' }
   const fresh = ready.filter((r) => r.exercise !== last)
   const from = fresh.length ? fresh : ready
   return from[Math.floor(rng() * from.length)]

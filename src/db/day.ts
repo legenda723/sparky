@@ -20,6 +20,7 @@ export function emptyDay(key: string): DayRecord {
     perfectLessons: 0,
     streakDay: false,
     extraNew: 0,
+    planShown: false,
   }
 }
 

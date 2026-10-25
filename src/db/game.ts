@@ -1,16 +1,19 @@
 // Игра в базе (SPEC 8.1): конец урока (стрик, уровень, достижения), сверка стрика при открытии
 // (заморозки за пропущенные дни), задания дня, «Выучить ещё 5 новых слов».
 import { State } from 'ts-fsrs'
+import type { LessonTarget } from '../app/routes'
 import { newAchievements, type Achievement, type AchievementStats } from '../game/achievements'
+import { buildPath } from '../game/path'
 import { levelInfo } from '../game/progress'
 import { pickQuests, updateQuests, type Quest } from '../game/quests'
 import { countStreakDay, reconcileStreak, streakFromHistory, type Counted, type StreakState } from '../game/streak'
 import { dayKey } from '../srs/day'
+import { extraReviewsEstimate } from '../srs/forecast'
 import { todayCounts } from '../srs/lesson'
 import { MASTERED_DAYS } from '../srs/status'
 import { changeDay, dayTables, getDay, questStats } from './day'
 import type { SparkyDb } from './db'
-import { loadLessonInput } from './review'
+import { loadLessonInput, type LessonInput } from './review'
 import { DEFAULT_PROFILE, type Profile } from './types'
 
 function streakOf(p: Profile): StreakState {
@@ -140,3 +143,51 @@ export async function addExtraNew(db: SparkyDb, at: Date, n = 5): Promise<void> 
     await changeDay(db, key, { patch: { extraNew: (day.extraNew ?? 0) + n } })
   })
 }
+
+/** «План на сегодня выполнен» (SPEC 6.5): повторять нечего и новые на сегодня кончились. */
+export interface PlanStatus {
+  done: boolean
+  /** Новых слов в колодах вообще (без дневного лимита) — есть ли смысл в «+5 новых». */
+  freshLeft: number
+  /** Сколько примерно повторений за неделю добавят 5 новых слов (с запасом на «Снова»). */
+  extraEstimate: number
+  /** Знакомых слов (есть что тренировать). */
+  known: number
+}
+
+/** План на сегодня — по уже загруженным словам и лимитам. */
+export function planFrom(input: LessonInput, at: Date): PlanStatus {
+  const today = todayCounts(input.cards, input.deckOrder, at, input.limits)
+  const freshLeft = input.cards.filter((c) => c.state === State.New && !c.suspended).length
+  return {
+    done: today.due === 0 && today.newAvailable === 0,
+    freshLeft,
+    extraEstimate: extraReviewsEstimate(Math.min(5, freshLeft), at, input.settings.retention),
+    known: input.cards.filter((c) => c.state !== State.New && !c.suspended).length,
+  }
+}
+
+export async function planStatus(db: SparkyDb, at: Date): Promise<PlanStatus> {
+  return planFrom(await loadLessonInput(db, at), at)
+}
+
+/** Экран «План выполнен» после урока — один раз за день: если план выполнен и экрана сегодня ещё не было. */
+export async function claimPlanScreen(db: SparkyDb, at: Date): Promise<PlanStatus | null> {
+  const status = await planStatus(db, at)
+  if (!status.done) return null
+  const key = dayKey(at)
+  return db.transaction('rw', dayTables(db), async () => {
+    if ((await getDay(db, key)).planShown) return null
+    await changeDay(db, key, { patch: { planShown: true } })
+    return status
+  })
+}
+
+/** «Выучить ещё 5 новых слов»: лимит выше — и сразу урок текущего узла (его новые слова). Нет узла — null. */
+export async function moreNewWords(db: SparkyDb, at: Date): Promise<LessonTarget | null> {
+  await addExtraNew(db, at)
+  const [decks, input] = await Promise.all([db.decks.toArray(), loadLessonInput(db, at)])
+  const cur = buildPath(decks, input.cards).current
+  return cur ? { kind: 'node', deckId: cur.deckId, index: cur.index } : null
+}
+

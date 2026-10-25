@@ -23,9 +23,11 @@ interface NodeInfoProps {
   data: PathData
   onStart: () => void
   onReview: () => void
+  /** «Ещё 5 новых слов» (SPEC 6.5). */
+  onMore: () => void
 }
 
-export function NodeInfo({ node, total, data, onStart, onReview }: NodeInfoProps) {
+export function NodeInfo({ node, total, data, onStart, onReview, onMore }: NodeInfoProps) {
   const title = `Урок ${node.index + 1} из ${total}`
   const { today } = data
   const review = (
@@ -76,11 +78,23 @@ export function NodeInfo({ node, total, data, onStart, onReview }: NodeInfoProps
   const left = node.cardIds.length - node.introduced
   const n = Math.min(left, today.newAvailable, data.newPerLesson)
   if (n === 0) {
+    const est = data.plan.extraEstimate
     return (
       <>
         <Title>{title}</Title>
-        <Text>Новые слова — завтра: на сегодня лимит исчерпан</Text>
-        {today.due > 0 && review}
+        <Text>Новые слова на сегодня — всё</Text>
+        {today.due > 0 ? (
+          review
+        ) : (
+          <div className="mt-4">
+            <Button variant="secondary" block onClick={onMore}>
+              {`Ещё ${Math.min(5, left)} новых слов`}
+            </Button>
+            <p className="m-0 mt-1 text-center text-caption font-bold text-muted">
+              {`≈ ${est} ${plural(est, 'повторение', 'повторения', 'повторений')} за неделю`}
+            </p>
+          </div>
+        )}
       </>
     )
   }

@@ -1,5 +1,5 @@
 // Праздники после урока (DESIGN.md → «Праздники после урока»): задания дня, стрик, уровень, достижения.
-import { Check, Flame, Snowflake } from 'lucide-react'
+import { Check, Dumbbell, Flame, Snowflake } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { db } from '../db/db'
@@ -13,6 +13,7 @@ import { now } from '../srs/clock'
 import { plural } from '../srs/status'
 import { Button } from '../ui/Button'
 import { Mascot } from '../ui/Mascot'
+import { TextButton } from '../ui/TextButton'
 import { useConfetti } from './LessonSummary'
 
 const POP = { duration: 0.35, ease: [0.34, 1.4, 0.64, 1] as const }
@@ -119,11 +120,54 @@ function StreakScreen({ c, last, onNext }: { c: Extract<Celebration, { kind: 'st
   )
 }
 
-export function CelebrationScreen({ c, last, onNext }: { c: Celebration; last: boolean; onNext: () => void }) {
+/** Что делать дальше с экрана «План выполнен» (SPEC 6.5). */
+export interface PlanActions {
+  onTraining: () => void
+  onMore: () => void
+}
+
+function Hint({ children }: { children: string }) {
+  return <p className="m-0 mt-1 text-center text-caption font-bold text-muted">{children}</p>
+}
+
+/** «План на сегодня выполнен!» — тренировка или ещё 5 новых слов, не ломая расписание. */
+function PlanScreen({ c, actions, onDone }: { c: Extract<Celebration, { kind: 'plan' }>; actions?: PlanActions; onDone: () => void }) {
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 overflow-y-auto px-[calc(16px+var(--safe-left))] pt-[calc(16px+var(--safe-top))] text-center">
+        <Mascot mood="cheer" size={140} />
+        <h1 className="m-0 text-display font-black text-text">План на сегодня выполнен!</h1>
+        <p className="m-0 text-body font-bold text-muted">Повторения сделаны, новые слова на сегодня — всё</p>
+      </div>
+      <div className="flex flex-col gap-3 px-[calc(16px+var(--safe-left))] pt-2 pb-[calc(16px+var(--safe-bottom))]">
+        <div>
+          <Button variant="info" block icon={<Dumbbell size={22} strokeWidth={2.5} />} onClick={actions?.onTraining}>
+            Тренировка
+          </Button>
+          <Hint>Знакомые слова — расписание не меняется</Hint>
+        </div>
+        {c.freshLeft > 0 ? (
+          <div>
+            <Button variant="secondary" block onClick={actions?.onMore}>
+              {`Ещё ${Math.min(5, c.freshLeft)} новых слов`}
+            </Button>
+            <Hint>{`≈ ${c.extraEstimate} ${plural(c.extraEstimate, 'повторение', 'повторения', 'повторений')} за неделю`}</Hint>
+          </div>
+        ) : (
+          <Hint>Новые слова кончились — добавь их в «Словах»</Hint>
+        )}
+        <TextButton onClick={onDone}>На путь</TextButton>
+      </div>
+    </div>
+  )
+}
+
+export function CelebrationScreen({ c, last, onNext, plan }: { c: Celebration; last: boolean; onNext: () => void; plan?: PlanActions }) {
   const confetti =
     (c.kind === 'streak' && c.milestone !== undefined) ||
     c.kind === 'level' ||
     c.kind === 'achievements' ||
+    c.kind === 'plan' ||
     (c.kind === 'quests' && c.news.all)
   useConfetti(confetti)
   useEffect(() => {
@@ -131,6 +175,8 @@ export function CelebrationScreen({ c, last, onNext }: { c: Celebration; last: b
   }, [])
 
   switch (c.kind) {
+    case 'plan':
+      return <PlanScreen c={c} actions={plan} onDone={onNext} />
     case 'quests': {
       const n = c.news.done.length
       return (

@@ -20,6 +20,7 @@ import {
   buildLesson,
   currentTask,
   isFinished,
+  TRAINING_SIZE,
   isNewWordBonus,
   prepareCurrent,
   startLesson,
@@ -407,3 +408,39 @@ describe('целый урок', () => {
     expect(isNewWordBonus(s, 'n')).toBe(false)
   })
 })
+
+describe('тренировка (6.5)', () => {
+  const cards = [...Array.from({ length: 14 }, (_, i) => reviewCard(i, i < 7 ? 3 : 30)), lessonCard(20), lessonCard(21, { suspended: true, state: State.Review, stability: 5 })]
+  const map = new Map(cards.map((c) => [c.id, c as ExerciseCard & LessonCardInput]))
+  const pool: PoolCard[] = cards.map((c) => ({ id: c.id, deckId: c.deckId, front: c.front, back: c.back, introduced: c.state !== State.New }))
+
+  it('только знакомые слова (не новые и не замороженные), не больше 10, плюс «Пары»', () => {
+    const plan = buildLesson(cards, DECKS, NOW, LIMITS, { kind: 'training', rng: seeded(3) })
+    const practice = plan.tasks.filter((t) => t.kind === 'practice')
+    expect(practice).toHaveLength(TRAINING_SIZE)
+    expect(practice.map((t) => t.cardId)).not.toContain('c20')
+    expect(practice.map((t) => t.cardId)).not.toContain('c21')
+    expect(plan.tasks.some((t) => t.kind === 'pairs')).toBe(true)
+    expect(plan.tasks.some((t) => t.kind === 'graded' || t.kind === 'intro')).toBe(false)
+  })
+
+  it('разные задания без переворота — и у зрелых слов бывает выбор; лёгкого задания в конце нет', () => {
+    const rng = seeded(5)
+    const ctx: PrepareContext = { cards: map, pool, rng }
+    let s = prepareCurrent(startLesson(buildLesson(cards, DECKS, NOW, LIMITS, { kind: 'training', rng })), ctx)
+    const seen = new Set<string>()
+    for (let i = 0; i < 30 && !isFinished(s); i++) {
+      const t = currentTask(s)!
+      if (t.kind === 'practice') seen.add(t.exercise!)
+      s = prepareCurrent(afterPractice(s, 1, t.kind === 'pairs' ? undefined : i % 3 !== 0, t.kind === 'practice'), ctx)
+    }
+    expect(isFinished(s)).toBe(true)
+    expect(seen.has('flip')).toBe(false)
+    expect(seen.size).toBeGreaterThan(1)
+    expect(s.queue.some((t) => t.kind === 'easy')).toBe(false)
+    // Ответы тренировки идут в точность и «без ошибок» тренировки.
+    expect(s.checked).toBe(TRAINING_SIZE)
+    expect(s.checkedWrong).toBeGreaterThan(0)
+  })
+})
+
