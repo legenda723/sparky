@@ -1,6 +1,5 @@
-// Данные экрана «Путь» (SPEC 7.1): путь и полоса сверху (стрик, цель дня, задания дня).
+// Данные экрана «Путь» (SPEC 7.1): путь и полоса сверху (стрик).
 import { buildPath, type PathModel } from '../game/path'
-import type { Quest } from '../game/quests'
 import { isDayDone, isStreakAlarm, reconcileStreak, streakWeek, type StreakState, type WeekDay } from '../game/streak'
 import { addDays, dayKey, weekday } from '../srs/day'
 import { newPerLesson, todayCounts, type TodayCounts } from '../srs/lesson'
@@ -32,18 +31,14 @@ export interface PathHeader {
   /** Вечер, а день не засчитан — огонь тревожится. */
   alarm: boolean
   week: WeekDay[]
-  dayXp: number
-  goalXp: number
-  quests: Quest[]
 }
 
-export async function loadHeader(db: SparkyDb, at: Date, goalXp: number): Promise<PathHeader> {
+export async function loadHeader(db: SparkyDb, at: Date): Promise<PathHeader> {
   const today = dayKey(at)
   const monday = addDays(today, -weekday(today))
-  const [profile, days, questDay] = await Promise.all([
+  const [profile, days] = await Promise.all([
     db.profile.get('me'),
     db.days.where('dayKey').between(monday, today, true, true).toArray(),
-    db.quests.get(today),
   ])
   const p = { ...DEFAULT_PROFILE, ...profile }
   const streak = reconcileStreak(
@@ -60,16 +55,13 @@ export async function loadHeader(db: SparkyDb, at: Date, goalXp: number): Promis
     dayDone: isDayDone(streak, today),
     alarm: isStreakAlarm(streak, today, at),
     week: streakWeek(today, marks),
-    dayXp: days.find((d) => d.dayKey === today)?.xp ?? 0,
-    goalXp,
-    quests: (questDay?.quests ?? []) as Quest[],
   }
 }
 
 /** Путь, что ждёт сегодня и полоса сверху — одним чтением. */
 export async function loadPath(db: SparkyDb, at: Date): Promise<PathData> {
   const [decks, input] = await Promise.all([db.decks.orderBy('order').toArray(), loadLessonInput(db, at)])
-  const header = await loadHeader(db, at, input.settings.dailyGoalXp)
+  const header = await loadHeader(db, at)
   return {
     header,
     plan: planFrom(input, at),

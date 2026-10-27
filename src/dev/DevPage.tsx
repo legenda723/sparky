@@ -239,13 +239,13 @@ function SwitchDemo() {
 }
 
 function ChipsDemo() {
-  const [goal, setGoal] = useState(50)
+  const [size, setSize] = useState(15)
   return (
     <ChoiceChips
-      label="Дневная цель"
-      options={[20, 50, 100, 150].map((n) => ({ value: n, label: `${n} XP` }))}
-      value={goal}
-      onChange={setGoal}
+      label="Размер урока"
+      options={[10, 15, 20].map((n) => ({ value: n, label: `${n} заданий` }))}
+      value={size}
+      onChange={setSize}
     />
   )
 }
@@ -451,7 +451,7 @@ function ClockDemo() {
 function PartySection() {
   const [open, setOpen] = useState<Celebration | null>(null)
   const quests: Quest[] = [
-    { kind: 'xp', target: 50, progress: 50, done: true },
+    { kind: 'minutes', target: 10, progress: 10, done: true },
     { kind: 'combo', target: 10, progress: 10, done: true },
     { kind: 'newWords', target: 5, progress: 3, done: false },
   ]

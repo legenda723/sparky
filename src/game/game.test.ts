@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { extraReviewsEstimate } from '../srs/forecast'
 import { ACHIEVEMENTS, newAchievements, stripBadges, type AchievementStats } from './achievements'
 import { lessonCelebrations, type LessonEvents } from './celebrate'
-import { pickQuests, questNews, questTitle, updateQuests, type QuestDayStats } from './quests'
+import { activeQuests, pickQuests, questNews, questTitle, updateQuests, type QuestDayStats } from './quests'
 import { countStreakDay } from './streak'
 
 const day = (d: Partial<QuestDayStats> = {}): QuestDayStats => ({
@@ -16,15 +16,38 @@ const day = (d: Partial<QuestDayStats> = {}): QuestDayStats => ({
   ...d,
 })
 
-const rich = { goalXp: 50, newAvailable: 10, due: 30 }
+const rich = { newAvailable: 10, due: 30, lessonSize: 15 }
 
 describe('задания дня (8.1)', () => {
-  it('три разных задания, первое — «Набери XP» по цели дня; для одного дня — всегда те же', () => {
-    const q = pickQuests('2026-10-25', rich)
-    expect(q).toHaveLength(3)
-    expect(q[0]).toEqual({ kind: 'xp', target: 50, progress: 0, done: false })
-    expect(new Set(q.map((x) => x.kind)).size).toBe(3)
-    expect(pickQuests('2026-10-25', rich)).toEqual(q)
+  it('три разных задания из выполнимых, без «Набери XP» (дневной цели нет); для одного дня — всегда те же', () => {
+    for (let i = 0; i < 30; i++) {
+      const q = pickQuests(`2026-10-${String(i + 1).padStart(2, '0')}`, rich)
+      expect(q).toHaveLength(3)
+      expect(q.map((x) => x.kind)).not.toContain('xp')
+      expect(new Set(q.map((x) => x.kind)).size).toBe(3)
+    }
+    expect(pickQuests('2026-10-25', rich)).toEqual(pickQuests('2026-10-25', rich))
+  })
+
+  it('учить нечего — меньше заданий: только «Позанимайся 10 минут» (минуты набираются и тренировкой)', () => {
+    expect(pickQuests('2026-10-25', { newAvailable: 0, due: 0, lessonSize: 15 }).map((q) => q.kind)).toEqual(['minutes'])
+  })
+
+  it('«Пройди 2 урока» — только если на два урока хватит слов (тренировка — не урок)', () => {
+    const kinds = (ctx: typeof rich) => Array.from({ length: 40 }, (_, i) => pickQuests(`2027-02-${i}`, ctx).map((q) => q.kind)).flat()
+    expect(kinds({ newAvailable: 0, due: 10, lessonSize: 15 })).not.toContain('lessons')
+    expect(kinds({ newAvailable: 3, due: 10, lessonSize: 15 })).toContain('lessons') // урок повторений + урок узла
+    expect(kinds({ newAvailable: 0, due: 16, lessonSize: 15 })).toContain('lessons')
+  })
+
+  it('старое «Набери XP» (записи до 2026-10-27) не показывается и не меняется', () => {
+    const old = [
+      { kind: 'xp' as const, target: 50, progress: 10, done: false },
+      { kind: 'minutes' as const, target: 10, progress: 0, done: false },
+    ]
+    const after = updateQuests(old, day({ xp: 80, msSpent: 11 * 60_000 }))
+    expect(after[0]).toEqual(old[0])
+    expect(activeQuests(after)).toEqual([{ kind: 'minutes', target: 10, progress: 10, done: true }])
   })
 
   it('в разные дни набор меняется', () => {
@@ -34,7 +57,7 @@ describe('задания дня (8.1)', () => {
 
   it('невыполнимого не бывает: нет новых слов — нет «Выучи новые», нечего повторять — нет «Повтори»', () => {
     for (let i = 0; i < 30; i++) {
-      const kinds = pickQuests(`2026-12-${String(i + 1).padStart(2, '0')}`, { goalXp: 20, newAvailable: 0, due: 0 }).map((x) => x.kind)
+      const kinds = pickQuests(`2026-12-${String(i + 1).padStart(2, '0')}`, { newAvailable: 0, due: 0, lessonSize: 15 }).map((x) => x.kind)
       expect(kinds).not.toContain('newWords')
       expect(kinds).not.toContain('reviews')
       expect(kinds).not.toContain('combo')
@@ -43,7 +66,7 @@ describe('задания дня (8.1)', () => {
   })
 
   it('цели по силам: новых 3 — «Выучи 3 новых слова», повторений 12 — «Повтори 10 слов»', () => {
-    const all = Array.from({ length: 40 }, (_, i) => pickQuests(`2027-01-${i}`, { goalXp: 50, newAvailable: 3, due: 12 })).flat()
+    const all = Array.from({ length: 40 }, (_, i) => pickQuests(`2027-01-${i}`, { newAvailable: 3, due: 12, lessonSize: 15 })).flat()
     expect(all.find((q) => q.kind === 'newWords')?.target).toBe(3)
     expect(all.find((q) => q.kind === 'reviews')?.target).toBe(10)
     expect(questTitle({ kind: 'newWords', target: 3 })).toBe('Выучи 3 новых слова')
@@ -52,18 +75,18 @@ describe('задания дня (8.1)', () => {
 
   it('прогресс — по итогам дня, не больше цели; отмена оценки возвращает его назад', () => {
     const q = [
-      { kind: 'xp' as const, target: 50, progress: 0, done: false },
+      { kind: 'reviews' as const, target: 10, progress: 0, done: false },
       { kind: 'combo' as const, target: 10, progress: 0, done: false },
       { kind: 'minutes' as const, target: 10, progress: 0, done: false },
     ]
-    const a = updateQuests(q, day({ xp: 62, bestCombo: 4, msSpent: 9 * 60_000 + 59_000 }))
+    const a = updateQuests(q, day({ reviews: 12, bestCombo: 4, msSpent: 9 * 60_000 + 59_000 }))
     expect(a.map((x) => [x.progress, x.done])).toEqual([
-      [50, true],
+      [10, true],
       [4, false],
       [9, false],
     ])
-    const b = updateQuests(a, day({ xp: 48, bestCombo: 4, msSpent: 9 * 60_000 }))
-    expect(b[0]).toMatchObject({ progress: 48, done: false })
+    const b = updateQuests(a, day({ reviews: 9, bestCombo: 4, msSpent: 9 * 60_000 }))
+    expect(b[0]).toMatchObject({ progress: 9, done: false })
   })
 
   it('что выполнилось за урок; все три — праздник побольше', () => {

@@ -83,7 +83,7 @@ function useWeek(): WeekDay[] | null {
   const [week, setWeek] = useState<WeekDay[] | null>(null)
   useEffect(() => {
     let alive = true
-    void loadHeader(db, now(), 0)
+    void loadHeader(db, now())
       .then((h) => alive && setWeek(h.week))
       .catch(() => {})
     return () => {

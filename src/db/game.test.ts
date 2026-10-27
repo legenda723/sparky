@@ -5,7 +5,7 @@ import { outcomes } from '../srs/scheduler'
 import { addCards } from './cards'
 import { SparkyDb } from './db'
 import { createDeck } from './decks'
-import { addExtraNew, claimPlanScreen, ensureQuests, finishLesson, loadProfileGame, moreNewWords, planStatus, setDailyGoal, settleDay } from './game'
+import { addExtraNew, claimPlanScreen, ensureQuests, finishLesson, loadProfileGame, moreNewWords, planStatus, settleDay } from './game'
 import { loadLessonInput, saveAnswer, undoAnswer } from './review'
 import { DEFAULT_PROFILE } from './types'
 
@@ -38,7 +38,8 @@ describe('задания дня в базе', () => {
     const q1 = await ensureQuests(db, T)
     expect(q1).toHaveLength(3)
     expect(await ensureQuests(db, T)).toEqual(q1)
-    // Подменим задания на известные — проверить прогресс XP и серии.
+    expect(q1.map((q) => q.kind)).not.toContain('xp')
+    // Подменим задания на известные (как в записи до 2026-10-27 — со старым «Набери XP»).
     await db.quests.put({
       dayKey: '2026-10-25',
       chestClaimed: false,
@@ -48,28 +49,23 @@ describe('задания дня в базе', () => {
         { kind: 'reviews', target: 5, progress: 0, done: false },
       ],
     })
+    expect((await ensureQuests(db, T)).map((q) => q.kind)).toEqual(['combo', 'reviews'])
     const c = cards[0]
     const o = outcomes(c, T, 0.9)[Rating.Good]
-    const token = await saveAnswer(db, { before: c, grade: Rating.Good, outcome: o, exerciseType: 'choice-en-ru', durationMs: 1000, xp: 5, combo: 3 })
+    const token = await saveAnswer(db, { before: c, grade: Rating.Good, outcome: o, exerciseType: 'choice-en-ru', durationMs: 1000, xp: 60, combo: 3 })
     let q = (await db.quests.get('2026-10-25'))!.quests
+    // Старое «Набери XP» в записи остаётся как было — его не двигают и не празднуют.
     expect(q.map((x) => [x.progress, x.done])).toEqual([
-      [4, true],
+      [0, false],
       [3, false],
       [1, false],
     ])
+    // Дневной цели нет: отметка «цель выполнена» не ставится.
     expect((await db.days.get('2026-10-25'))!.goalMet).toBe(false)
     await undoAnswer(db, token)
     q = (await db.quests.get('2026-10-25'))!.quests
     expect(q.map((x) => x.progress)).toEqual([0, 0, 0])
     expect((await db.days.get('2026-10-25'))!.bestCombo).toBe(0)
-  })
-
-  it('цель дня отмечается в итогах дня', async () => {
-    const { db, cards } = await setup()
-    const c = cards[0]
-    const o = outcomes(c, T, 0.9)[Rating.Good]
-    await saveAnswer(db, { before: c, grade: Rating.Good, outcome: o, exerciseType: 'type', durationMs: 1000, xp: 60 })
-    expect((await db.days.get('2026-10-25'))!.goalMet).toBe(true)
   })
 })
 
@@ -195,19 +191,6 @@ describe('«План на сегодня выполнен» (6.5)', () => {
     const target = await moreNewWords(db, T)
     expect(target).toMatchObject({ kind: 'node', index: 2 })
     expect((await planStatus(db, T)).done).toBe(false)
-  })
-})
-
-describe('дневная цель в «Профиле»', () => {
-  it('новая цель — и настройки, и задание «Набери N XP» на сегодня, и отметка «цель выполнена»', async () => {
-    const { db } = await setup()
-    await ensureQuests(db, T)
-    await finishLesson(db, T, { xp: 30 })
-    expect((await db.days.get('2026-10-25'))!.goalMet).toBe(false)
-    await setDailyGoal(db, T, 20)
-    expect((await loadProfileGame(db, T)).goalXp).toBe(20)
-    expect((await db.quests.get('2026-10-25'))!.quests[0]).toMatchObject({ kind: 'xp', target: 20, progress: 20, done: true })
-    expect((await db.days.get('2026-10-25'))!.goalMet).toBe(true)
   })
 })
 

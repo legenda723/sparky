@@ -13,7 +13,7 @@ import { unlockSpeech } from '../media/speech'
 import { CollapsedSection } from '../path/CollapsedSection'
 import { Fog } from '../path/Fog'
 import { GhostInfo, NodeInfo } from '../path/NodeInfo'
-import { GoalChip, GoalInfo, StreakChip, StreakInfo } from '../path/PathBar'
+import { StreakChip, StreakInfo } from '../path/PathBar'
 import { itemId, PathTrack, ROW } from '../path/PathTrack'
 import { SectionBanner } from '../path/SectionBanner'
 import { now } from '../srs/clock'
@@ -37,9 +37,8 @@ const FOG_FUTURE_DROP = 24 + FOG_DROP + (FUTURES_CLEAR - 1) * ROW
 
 type Selected = { id: string }
 
-/** Всплывашки полосы сверху (не места пути). */
+/** Всплывашка полосы сверху (не место пути). */
 const STREAK_ID = 'bar:streak'
-const GOAL_ID = 'bar:goal'
 
 /**
  * Новый день (и первое открытие): пропуски закрываются заморозками или стрик сгорает, выбираются задания дня.
@@ -184,7 +183,7 @@ export function PathScreen() {
   }
 
   const found = data && selected ? findItem(data, selected.id) : null
-  const barOpen = selected?.id === STREAK_ID || selected?.id === GOAL_ID ? selected.id : null
+  const barOpen = selected?.id === STREAK_ID ? selected.id : null
   const close = () => setSelected(null)
   const hasDue = !!data && data.today.due > 0
 
@@ -193,12 +192,7 @@ export function PathScreen() {
       {/* Шапка не прокручивается, плашка раздела прилипает под ней. Высота строки — 44, как у чипов полосы этапа 8. */}
       <header className="flex min-h-11 shrink-0 items-center gap-1 bg-bg pt-[calc(12px+var(--safe-top))] pr-[calc(16px+var(--safe-right))] pb-2 pl-[calc(16px+var(--safe-left))]">
         <h1 className="m-0 min-w-0 flex-1 truncate text-title leading-11 font-black text-text">Путь</h1>
-        {data && (
-          <div className="flex items-center gap-1">
-            <StreakChip header={data.header} chipRef={(el) => setRef(STREAK_ID, el)} onClick={() => show({ id: STREAK_ID })} />
-            <GoalChip header={data.header} chipRef={(el) => setRef(GOAL_ID, el)} onClick={() => show({ id: GOAL_ID })} />
-          </div>
-        )}
+        {data && <StreakChip header={data.header} chipRef={(el) => setRef(STREAK_ID, el)} onClick={() => show({ id: STREAK_ID })} />}
       </header>
 
       {/* Родная «резинка» iPhone: оттянешь путь за конец — снизу тянется тот же туман (Fog рисует его за краем). */}
@@ -278,7 +272,6 @@ export function PathScreen() {
 
       <Popover open={!!found || barOpen !== null} onClose={close} anchorRef={anchor} width={300} gap={barOpen ? 8 : 22}>
         {barOpen === STREAK_ID && data && <StreakInfo header={data.header} />}
-        {barOpen === GOAL_ID && data && <GoalInfo header={data.header} />}
         {found && data && found.item.kind === 'node' ? (
           <NodeInfo
             node={found.item}

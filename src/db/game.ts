@@ -5,7 +5,7 @@ import type { LessonTarget } from '../app/routes'
 import { newAchievements, type Achievement, type AchievementStats } from '../game/achievements'
 import { buildPath } from '../game/path'
 import { levelInfo } from '../game/progress'
-import { pickQuests, updateQuests, type Quest } from '../game/quests'
+import { activeQuests, pickQuests, updateQuests, type Quest } from '../game/quests'
 import { countStreakDay, reconcileStreak, streakFromHistory, type Counted, type StreakState } from '../game/streak'
 import { dayKey } from '../srs/day'
 import { extraReviewsEstimate } from '../srs/forecast'
@@ -14,7 +14,7 @@ import { cardStatus, MASTERED_DAYS } from '../srs/status'
 import { changeDay, dayTables, getDay, questStats } from './day'
 import type { SparkyDb } from './db'
 import { loadLessonInput, type LessonInput } from './review'
-import { DEFAULT_PROFILE, DEFAULT_SETTINGS, type Profile } from './types'
+import { DEFAULT_PROFILE, type Profile } from './types'
 
 function streakOf(p: Profile): StreakState {
   return { streak: p.streak, bestStreak: p.bestStreak, lastStreakDay: p.lastStreakDay, freezes: p.freezes }
@@ -98,7 +98,7 @@ export async function finishLesson(db: SparkyDb, at: Date, f: FinishInput = {}):
     const achievements = newAchievements(await achievementStats(db, profile), profile.achievements)
     profile = { ...profile, level: levelAfter, achievements: [...profile.achievements, ...achievements.map((a) => a.id)] }
     await db.profile.put(profile)
-    const quests = ((await db.quests.get(key))?.quests ?? []) as Quest[]
+    const quests = activeQuests(((await db.quests.get(key))?.quests ?? []) as Quest[])
     return { streak, levelBefore, levelAfter, achievements, quests }
   })
 }
@@ -126,18 +126,21 @@ export async function settleDay(db: SparkyDb, at: Date): Promise<Settled> {
   })
 }
 
-/** Задания на сегодня: выбираются один раз за день из выполнимых сегодня; прогресс — по итогам дня. */
+/**
+ * Задания на сегодня: выбираются один раз за день из выполнимых сегодня; прогресс — по итогам дня.
+ * Старое «Набери XP» (записи до 2026-10-27) остаётся в базе, но не возвращается.
+ */
 export async function ensureQuests(db: SparkyDb, at: Date): Promise<Quest[]> {
   const key = dayKey(at)
   const have = await db.quests.get(key)
-  if (have) return have.quests as Quest[]
+  if (have) return activeQuests(have.quests as Quest[])
   const input = await loadLessonInput(db, at)
   const today = todayCounts(input.cards, input.deckOrder, at, input.limits)
-  const picked = pickQuests(key, { goalXp: input.settings.dailyGoalXp, newAvailable: today.newAvailable, due: today.due })
+  const picked = pickQuests(key, { newAvailable: today.newAvailable, due: today.due, lessonSize: input.limits.size })
   return db.transaction('rw', db.quests, db.days, async () => {
     // Пока выбирали, задания мог создать другой вызов — не перезаписываем.
     const again = await db.quests.get(key)
-    if (again) return again.quests as Quest[]
+    if (again) return activeQuests(again.quests as Quest[])
     const quests = updateQuests(picked, questStats(await getDay(db, key)))
     await db.quests.put({ dayKey: key, quests, chestClaimed: false })
     return quests
@@ -203,7 +206,7 @@ export async function moreNewWords(db: SparkyDb, at: Date): Promise<LessonTarget
 /** Ключ памяти игровой части «Профиля» (liveCache). */
 export const PROFILE_GAME_KEY = 'profile-game'
 
-/** «Профиль» (SPEC 7.5): имя и фото, уровень, стрик, слова, достижения, дневная цель. */
+/** «Профиль» (SPEC 7.5): имя и фото, уровень, стрик, слова, достижения. */
 export interface ProfileGame {
   name: string
   avatar?: Blob
@@ -213,12 +216,10 @@ export interface ProfileGame {
   /** Слова в состояниях «знаю» и «освоены» (как фильтры колоды, SPEC 7.3). */
   knownWords: number
   achievements: string[]
-  goalXp: number
 }
 
 export async function loadProfileGame(db: SparkyDb, at: Date): Promise<ProfileGame> {
-  const [profile, settings] = await Promise.all([db.profile.get('me'), db.settings.get('me')])
-  const p = { ...DEFAULT_PROFILE, ...profile }
+  const p = { ...DEFAULT_PROFILE, ...(await db.profile.get('me')) }
   let knownWords = 0
   await db.cards.each((c) => {
     const s = cardStatus(c)
@@ -232,23 +233,6 @@ export async function loadProfileGame(db: SparkyDb, at: Date): Promise<ProfileGa
     bestStreak: p.bestStreak,
     knownWords,
     achievements: p.achievements,
-    goalXp: { ...DEFAULT_SETTINGS, ...settings }.dailyGoalXp,
   }
-}
-
-/** Новая дневная цель: настройки и задание «Набери N XP» на сегодня — вместе. */
-export async function setDailyGoal(db: SparkyDb, at: Date, goal: number): Promise<void> {
-  const key = dayKey(at)
-  await db.transaction('rw', dayTables(db), async () => {
-    const settings = { ...DEFAULT_SETTINGS, ...(await db.settings.get('me')) }
-    await db.settings.put({ ...settings, id: 'me', dailyGoalXp: goal })
-    const q = await db.quests.get(key)
-    if (q) {
-      const quests = (q.quests as Quest[]).map((x) => (x.kind === 'xp' ? { ...x, target: goal } : x))
-      await db.quests.put({ ...q, quests })
-    }
-    // Пересчёт прогресса заданий и отметки «цель выполнена» — по новой цели.
-    await changeDay(db, key, {})
-  })
 }
 

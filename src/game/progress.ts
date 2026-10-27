@@ -1,4 +1,4 @@
-// Уровни и дневная цель (SPEC 8.1). Чистые функции.
+// Уровни (SPEC 8.1). Чистые функции. Дневной цели нет (решение владельца, 2026-10-27).
 
 /** Сколько XP нужно пройти на уровне n, чтобы получить следующий: 100 + 50·(n−1). */
 export function levelNeed(n: number): number {
@@ -22,20 +22,4 @@ export function levelInfo(totalXp: number): LevelInfo {
     level++
   }
   return { level, into: left, need: levelNeed(level) }
-}
-
-/** Варианты дневной цели в настройках. */
-export const GOAL_OPTIONS = [20, 50, 100, 150] as const
-
-export interface GoalInfo {
-  xp: number
-  goal: number
-  /** Доля кольца 0–1. */
-  ratio: number
-  done: boolean
-}
-
-export function goalInfo(dayXp: number, goal: number): GoalInfo {
-  const g = Math.max(1, goal)
-  return { xp: dayXp, goal: g, ratio: Math.min(1, dayXp / g), done: dayXp >= g }
 }

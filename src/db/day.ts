@@ -1,8 +1,8 @@
 // Итоги дня (таблица days) и всё, что от них зависит, — в той же транзакции, что и ответ:
-// XP в профиле, отметка «цель дня выполнена», прогресс ежедневных заданий (SPEC 5, 8.1).
+// XP в профиле, прогресс ежедневных заданий (SPEC 5, 8.1).
 import { updateQuests, type Quest, type QuestDayStats } from '../game/quests'
 import type { SparkyDb } from './db'
-import { DEFAULT_PROFILE, DEFAULT_SETTINGS, type DayRecord } from './types'
+import { DEFAULT_PROFILE, type DayRecord } from './types'
 
 export function emptyDay(key: string): DayRecord {
   return {
@@ -78,8 +78,7 @@ export async function changeDay(db: SparkyDb, key: string, c: DayChange): Promis
   if (c.combo !== undefined) day.bestCombo = Math.max(day.bestCombo ?? 0, c.combo)
   if (c.restoreCombo !== undefined) day.bestCombo = c.restoreCombo
   Object.assign(day, c.patch)
-  const settings = { ...DEFAULT_SETTINGS, ...(await db.settings.get('me')) }
-  day.goalMet = day.xp >= settings.dailyGoalXp
+  // Дневной цели нет с 2026-10-27: отметка goalMet в записи дня остаётся как была (ради старых бэкапов) и не меняется.
   await db.days.put(day)
   // XP копится и в профиле (всего XP).
   if (c.delta?.xp) {

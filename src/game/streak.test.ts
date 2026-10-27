@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addDays, dayKey, daysBetween, weekday } from '../srs/day'
-import { goalInfo, levelInfo, levelNeed } from './progress'
+import { levelInfo, levelNeed } from './progress'
 import { countStreakDay, isDayDone, isStreakAlarm, reconcileStreak, streakFromHistory, streakWeek, type StreakState } from './streak'
 
 const fresh: StreakState = { streak: 0, bestStreak: 0, freezes: 0 }
@@ -21,7 +21,7 @@ describe('дни приложения', () => {
   })
 })
 
-describe('уровни и дневная цель (8.1)', () => {
+describe('уровни (8.1)', () => {
   it('уровень n требует 100 + 50·(n−1) XP', () => {
     expect([levelNeed(1), levelNeed(2), levelNeed(5)]).toEqual([100, 150, 300])
     expect(levelInfo(0)).toEqual({ level: 1, into: 0, need: 100 })
@@ -29,10 +29,6 @@ describe('уровни и дневная цель (8.1)', () => {
     expect(levelInfo(100)).toEqual({ level: 2, into: 0, need: 150 })
     expect(levelInfo(249).level).toBe(2)
     expect(levelInfo(250)).toEqual({ level: 3, into: 0, need: 200 })
-  })
-  it('кольцо цели заполняется и не переливается', () => {
-    expect(goalInfo(25, 50)).toEqual({ xp: 25, goal: 50, ratio: 0.5, done: false })
-    expect(goalInfo(70, 50)).toMatchObject({ ratio: 1, done: true })
   })
 })
 

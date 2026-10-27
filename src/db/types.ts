@@ -71,6 +71,7 @@ export interface DayRecord {
   correct: number
   wrong: number
   msSpent: number
+  /** Не обновляется с 2026-10-27 (дневной цели нет), остаётся ради старых бэкапов. */
   goalMet: boolean
   /** День закрыт заморозкой стрика. */
   freezeUsed: boolean
@@ -138,6 +139,7 @@ export interface Settings {
   theme: ThemePref
   sound: boolean
   haptics: boolean
+  /** Не используется с 2026-10-27 (дневной цели нет), остаётся ради старых бэкапов. */
   dailyGoalXp: number
   newPerDay: number
   lessonSize: number

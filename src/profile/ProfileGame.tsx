@@ -2,18 +2,15 @@
 import { BookOpen, Camera, ChevronRight, Flame, Pencil, Zap } from 'lucide-react'
 import { useRef, useState, type ReactNode } from 'react'
 import { db } from '../db/db'
-import { setDailyGoal, type ProfileGame } from '../db/game'
+import type { ProfileGame } from '../db/game'
 import { NAME_MAX, removeAvatar, setAvatar, setProfileName } from '../db/profile'
 import { feedback } from '../feedback/feedback'
 import { ACHIEVEMENTS, stripBadges, type Achievement } from '../game/achievements'
-import { GOAL_OPTIONS, levelInfo } from '../game/progress'
+import { levelInfo } from '../game/progress'
 import { compressImage } from '../media/image'
-import { JourneySection } from './Journey'
 import { Screen } from '../shell/Screen'
-import { now } from '../srs/clock'
 import { plural } from '../srs/status'
 import { Button } from '../ui/Button'
-import { ChoiceChips } from '../ui/ChoiceChips'
 import { FormSheet } from '../ui/FormSheet'
 import { Mascot } from '../ui/Mascot'
 import { Popover } from '../ui/Popover'
@@ -220,23 +217,6 @@ function ProfileTiles({ g }: { g: ProfileGame }) {
   )
 }
 
-const GOALS = GOAL_OPTIONS.map((v) => ({ value: v as number, label: `${v} XP` }))
-
-function DailyGoal({ goal }: { goal: number }) {
-  const toast = useToast()
-  return (
-    <section className="mb-6">
-      <h2 className="m-0 mb-3 text-heading font-black text-text">Дневная цель</h2>
-      <ChoiceChips
-        label="Дневная цель"
-        options={GOALS}
-        value={goal}
-        onChange={(v) => void setDailyGoal(db, now(), v).catch(() => toast({ message: 'Не получилось сохранить цель' }))}
-      />
-    </section>
-  )
-}
-
 function BadgeCircle({ a, got, small }: { a: Achievement; got: boolean; small?: boolean }) {
   return (
     <span
@@ -281,15 +261,13 @@ function AchievementStrip({ have, onOpen }: { have: string[]; onOpen: () => void
   )
 }
 
-/** Верх «Профиля»: шапка, плитки, цель, ряд значков. */
+/** «Профиль»: шапка, плитки, ряд значков. */
 export function ProfileGameSection({ g, onAchievements }: { g: ProfileGame; onAchievements: () => void }) {
   return (
     <>
       <ProfileHeader g={g} />
       <ProfileTiles g={g} />
-      <DailyGoal goal={g.goalXp} />
       <AchievementStrip have={g.achievements} onOpen={onAchievements} />
-      <JourneySection g={g} />
     </>
   )
 }

@@ -1,7 +1,8 @@
-// Ежедневные задания (SPEC 8.1): 3 в день, выполнил — праздник (без кристаллов и сундука). Чистые функции.
+// Ежедневные задания (SPEC 8.1): до 3 в день из выполнимых сегодня, выполнил — праздник. Чистые функции.
 // Прогресс считается по итогам дня (таблица days), поэтому «Отменить оценку» откатывает и его.
 import { plural } from '../srs/status'
 
+/** 'xp' («Набери N XP») с 2026-10-27 не выбирается (дневной цели нет), но остаётся в старых записях дней. */
 export type QuestKind = 'xp' | 'combo' | 'reviews' | 'perfect' | 'newWords' | 'lessons' | 'minutes'
 
 export interface Quest {
@@ -26,11 +27,12 @@ export interface QuestDayStats {
 
 /** Что можно сделать сегодня — чтобы не выпало невыполнимое задание. */
 export interface QuestContext {
-  goalXp: number
   /** Сколько новых слов ещё можно сегодня (с лимитом). */
   newAvailable: number
   /** Сколько повторений на сегодня. */
   due: number
+  /** Заданий в уроке (настройка) — сколько уроков наберётся из повторений. */
+  lessonSize: number
 }
 
 export const QUESTS_PER_DAY = 3
@@ -74,12 +76,13 @@ export function questValue(kind: QuestKind, d: QuestDayStats): number {
   }
 }
 
-/** Возможные задания на сегодня, кроме «Набери XP» (оно есть всегда). Цели — выполнимые. */
+/** Возможные задания на сегодня. Цели — выполнимые. */
 function candidates(ctx: QuestContext): Pick<Quest, 'kind' | 'target'>[] {
-  const out: Pick<Quest, 'kind' | 'target'>[] = [
-    { kind: 'lessons', target: 2 },
-    { kind: 'minutes', target: 10 },
-  ]
+  // Минуты набираются и тренировкой — это задание есть всегда.
+  const out: Pick<Quest, 'kind' | 'target'>[] = [{ kind: 'minutes', target: 10 }]
+  // Тренировка — не урок: «Пройди 2 урока» — только если на два урока хватит повторений и новых (по 5 в узле).
+  const lessons = Math.ceil(ctx.due / Math.max(1, ctx.lessonSize)) + Math.ceil(ctx.newAvailable / 5)
+  if (lessons >= 2) out.push({ kind: 'lessons', target: 2 })
   if (ctx.newAvailable >= 3) out.push({ kind: 'newWords', target: Math.min(5, ctx.newAvailable) })
   if (ctx.due >= 5) out.push({ kind: 'reviews', target: Math.min(20, Math.floor(ctx.due / 5) * 5) })
   // Каждое новое слово — 1–2 задания с выбором; в повторениях проверяемые — ввод и аудирование.
@@ -102,20 +105,26 @@ function seeded(key: string): () => number {
   }
 }
 
-/** Три задания на день: «Набери XP» (цель дня) и два разных из выполнимых сегодня. Для одного дня — всегда те же. */
+/** До трёх разных заданий на день из выполнимых сегодня (учить нечего — меньше). Для одного дня — всегда те же. */
 export function pickQuests(dayKey: string, ctx: QuestContext): Quest[] {
   const rng = seeded(dayKey)
   const pool = candidates(ctx)
-  const picked: Pick<Quest, 'kind' | 'target'>[] = [{ kind: 'xp', target: ctx.goalXp }]
+  const picked: Pick<Quest, 'kind' | 'target'>[] = []
   while (picked.length < QUESTS_PER_DAY && pool.length > 0) {
     picked.push(pool.splice(Math.floor(rng() * pool.length), 1)[0])
   }
   return picked.map((q) => ({ ...q, progress: 0, done: false }))
 }
 
-/** Прогресс по свежим итогам дня. Может и уменьшиться (отменили оценку). */
+/** Задания дня без «Набери XP»: в записях, сделанных до 2026-10-27, оно ещё есть — не показываем и не празднуем. */
+export function activeQuests(quests: Quest[]): Quest[] {
+  return quests.filter((q) => q.kind !== 'xp')
+}
+
+/** Прогресс по свежим итогам дня. Может и уменьшиться (отменили оценку). Старое «Набери XP» в записи не трогаем. */
 export function updateQuests(quests: Quest[], d: QuestDayStats): Quest[] {
   return quests.map((q) => {
+    if (q.kind === 'xp') return q
     const progress = Math.min(q.target, questValue(q.kind, d))
     return { ...q, progress, done: progress >= q.target }
   })
