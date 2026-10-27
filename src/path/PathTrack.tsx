@@ -91,6 +91,8 @@ export function PathTrack({ entries, color, number, nodeCount, setRef, onSelect 
             data-fog-start={i === firstFogged || undefined}
             data-fogged={fogged || undefined}
             data-future={item.kind === 'future' || undefined}
+            // Под туманом ничего не нажимается (первые будущие уроки на чистом месте — нажимаются).
+            inert={i >= clear || undefined}
             className="relative flex items-center justify-center"
             style={{ height: ROW }}
           >

@@ -127,6 +127,7 @@ export function PathScreen() {
   const [fogThick, setFogThick] = useState<number | null>(null)
   // Разделы, которые начинаются под туманом: их плашка — под дымом, как закрытые уроки (не поверх него).
   const [fogSections, setFogSections] = useState<ReadonlySet<string>>(new Set())
+  const [fogFade, setFogFade] = useState<{ from: number; to: number } | null>(null)
   useLayoutEffect(() => {
     const list = listRef.current
     if (!list || !view?.fog) return
@@ -135,10 +136,17 @@ export function PathScreen() {
     const listTop = list.getBoundingClientRect().top
     const top = start.getBoundingClientRect().top - listTop
     const startTop = start.getBoundingClientRect().top
-    const under = [...list.querySelectorAll<HTMLElement>('[data-section]')]
-      .filter((s) => s.getBoundingClientRect().top >= startTop)
-      .map((s) => s.dataset.section!)
+    const underEls = [...list.querySelectorAll<HTMLElement>('[data-section]')].filter((s) => s.getBoundingClientRect().top >= startTop)
+    const under = underEls.map((s) => s.dataset.section!)
     setFogSections((prev) => (prev.size === under.length && under.every((id) => prev.has(id)) ? prev : new Set(under)))
+    // Плашка первого раздела под туманом гаснет в фон, как уроки под дымом: растворение — от низа первого места
+    // под туманом (между ним и плашкой пусто — само место не меняется) до низа плашки.
+    const banner = underEls[0]?.querySelector('[data-banner]')
+    setFogFade(
+      banner
+        ? { from: Math.round(start.getBoundingClientRect().bottom - listTop), to: Math.round(banner.getBoundingClientRect().bottom - listTop) }
+        : null,
+    )
     // Будущие уроки стоят на обычном шаге сразу за последним местом, а туман — на прежнем месте.
     const drop = start.hasAttribute('data-future') ? FOG_FUTURE_DROP : FOG_DROP
     setFogTop(Math.round(top + drop))
@@ -221,7 +229,11 @@ export function PathScreen() {
               ) : (
                 <section key={section.deck.id} data-section={section.deck.id}>
                   {/* Плашка прилипает к верху, пока виден её раздел. Раздел под туманом — плашка под дымом, без подложки и z-10. */}
-                  <div className={`sticky -top-2 pt-2 pb-2 ${fogSections.has(section.deck.id) ? '' : 'z-10 bg-bg'}`}>
+                  <div
+                    data-banner
+                    inert={fogSections.has(section.deck.id) || undefined}
+                    className={`sticky -top-2 pt-2 pb-2 ${fogSections.has(section.deck.id) ? '' : 'z-10 bg-bg'}`}
+                  >
                     <SectionBanner deck={section.deck} number={section.number} />
                   </div>
                   {hiddenBefore > 0 && (
@@ -251,7 +263,7 @@ export function PathScreen() {
             )}
             {/* Место под сплошной дым: долистать до него можно, дальше — только «резинка». */}
             {view.fog && !endsWithFuture && <div ref={tailRef} aria-hidden className="shrink-0" style={{ height: FOG_TAIL }} />}
-            {view.fog && fogTop !== null && <Fog top={fogTop} thickAt={fogThick} />}
+            {view.fog && fogTop !== null && <Fog top={fogTop} thickAt={fogThick} fade={fogFade} />}
           </div>
         )}
         </div>
