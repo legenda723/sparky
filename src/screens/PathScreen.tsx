@@ -7,6 +7,7 @@ import { db } from '../db/db'
 import { useCachedLiveQuery } from '../db/liveCache'
 import { ensureQuests, moreNewWords, settleDay } from '../db/game'
 import { loadPath, PATH_KEY, type PathData } from '../db/path'
+import { demoPath, isDemoPath, setDemoPath } from '../game/demoPath'
 import type { PathItem, PathNode, PathSection } from '../game/path'
 import { FUTURES_CLEAR, pathView } from '../game/pathView'
 import { unlockSpeech } from '../media/speech'
@@ -104,7 +105,10 @@ const toggle = (set: ReadonlySet<string>, id: string) => {
 export function PathScreen() {
   const tick = useMinuteTick()
   useSettleDay(tick)
-  const data = useCachedLiveQuery(PATH_KEY, () => loadPath(db, now()), [tick])
+  const live = useCachedLiveQuery(PATH_KEY, () => loadPath(db, now()), [tick])
+  // Пример из витрины: вместо своих колод — два раздела, второй под туманом (база не меняется).
+  const [demo, setDemo] = useState(isDemoPath)
+  const data = useMemo(() => (live && demo ? { ...live, path: demoPath() } : live), [live, demo])
   const reduce = useReducedMotion() ?? false
   const toast = useToast()
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -209,6 +213,19 @@ export function PathScreen() {
         <h1 className="m-0 min-w-0 flex-1 truncate text-title leading-11 font-black text-text">Путь</h1>
         {data && <StreakChip header={data.header} chipRef={(el) => setRef(STREAK_ID, el)} onClick={() => show({ id: STREAK_ID })} />}
       </header>
+      {demo && (
+        <div className="flex shrink-0 items-center justify-between gap-2 bg-info-tint px-4">
+          <span className="text-caption font-extrabold text-info-ink">Пример из витрины — твои слова не тронуты</span>
+          <TextButton
+            onClick={() => {
+              setDemoPath(false)
+              setDemo(false)
+            }}
+          >
+            Выключить
+          </TextButton>
+        </div>
+      )}
 
       {/* Родная «резинка» iPhone: оттянешь путь за конец — снизу тянется тот же туман (Fog рисует его за краем). */}
       <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-y-contain">

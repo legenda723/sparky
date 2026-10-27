@@ -3,6 +3,7 @@ import { useRef, useState, type ReactNode } from 'react'
 import { setPref, usePrefs, type ThemePref } from '../app/prefs'
 import { navigateSub } from '../app/routes'
 import { feedback, type FeedbackEvent } from '../feedback/feedback'
+import { setDemoPath } from '../game/demoPath'
 import { getDevClockOffset, now, setDevClockOffset } from '../srs/clock'
 import { AnswerBanner } from '../ui/AnswerBanner'
 import { Button } from '../ui/Button'
@@ -60,6 +61,19 @@ export default function DevPage() {
             value={prefs.theme}
             onChange={(v) => setPref('theme', v)}
           />
+          <Button
+            variant="secondary"
+            block
+            onClick={() => {
+              setDemoPath(true)
+              navigateSub('path')
+            }}
+          >
+            Путь: раздел в тумане
+          </Button>
+          <p className="m-0 text-caption font-bold text-muted">
+            Пример на «Пути»: два раздела, второй начинается под туманом. Твои слова не меняются; выключить — кнопкой на «Пути».
+          </p>
         </Section>
 
         <MotionLab />
