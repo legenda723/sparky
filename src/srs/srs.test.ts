@@ -1,5 +1,6 @@
 import { createEmptyCard, Rating, State } from 'ts-fsrs'
 import { describe, expect, it } from 'vitest'
+import { buildPath, nodeCardIds } from '../game/path'
 import { dayKey, dayStart, nextDayStart } from './day'
 import { gradeAuto } from './grade'
 import {
@@ -130,14 +131,34 @@ const DECKS = new Map([
 ])
 
 describe('сборщик урока', () => {
-  it('новые слова — по порядку колод и слов, до 5, каждое: знакомство + задание с оценкой', () => {
-    const cards = [card('b2', 'd2', 0), card('a2', 'd1', 1), card('a1', 'd1', 0), ...['a3', 'a4', 'a5', 'a6'].map((id, i) => card(id, 'd1', i + 2))]
+  it('новые слова — по порядку добавления из всех колод (как узлы пути), до 5, каждое: знакомство + задание с оценкой', () => {
+    // Колода d1 выше d2, но слово b1 из d2 добавлено раньше — оно и первое (решение владельца 2026-10-27).
+    const cards = [
+      card('a2', 'd1', 1, { createdAt: 200 }),
+      card('b1', 'd2', 0, { createdAt: 100 }),
+      card('a1', 'd1', 0, { createdAt: 200 }),
+      ...['a3', 'a4', 'a5', 'a6'].map((id, i) => card(id, 'd1', i + 2, { createdAt: 300 })),
+    ]
     const plan = buildLesson(cards, DECKS, NOW, LIMITS)
     expect(plan.newCount).toBe(5)
     expect(plan.tasks.map((t) => `${t.kind}:${t.cardId}`)).toEqual(
       // «Пары» — после 5-го слова, перед возвратами слов в обучении
-      [...['a1', 'a2', 'a3', 'a4', 'a5'].flatMap((id) => [`intro:${id}`, `graded:${id}`]), 'pairs:'],
+      [...['b1', 'a1', 'a2', 'a3', 'a4'].flatMap((id) => [`intro:${id}`, `graded:${id}`]), 'pairs:'],
     )
+  })
+
+  it('урок узла — ровно слова этого узла пути, даже если они из разных колод', () => {
+    const cards = [
+      ...['a1', 'a2', 'a3', 'a4', 'a5'].map((id, i) => card(id, 'd1', i, { createdAt: 100 })),
+      card('v1', 'd2', 0, { createdAt: 200 }),
+      card('a6', 'd1', 5, { createdAt: 300 }),
+    ]
+    const path = buildPath([{ id: 'd1', order: 0, archived: false }, { id: 'd2', order: 1, archived: false }], cards)
+    const second = path.items[1]
+    expect(second.kind === 'node' && second.cardIds).toEqual(['v1', 'a6'])
+    const ids = nodeCardIds(cards, 1)
+    const plan = buildLesson(cards, DECKS, NOW, LIMITS, { kind: 'node', cardIds: ids })
+    expect(plan.tasks.filter((t) => t.kind === 'intro').map((t) => t.cardId)).toEqual(['v1', 'a6'])
   })
 
   it('дневной лимит новых: сегодня уже было 8 из 10 — в урок 2', () => {

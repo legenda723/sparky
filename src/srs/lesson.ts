@@ -3,6 +3,7 @@ import { State, type Card as FsrsCard, type Grade } from 'ts-fsrs'
 import { isChoice, isCorrect, type ExerciseType } from './grade'
 import { PAIRS_COUNT, pickExercise, pickOptions, shuffle, type ExerciseCard, type PoolCard, type Rng } from './exercise'
 import { nextDayStart } from './day'
+import { byAdded } from './order'
 import { scheduler } from './scheduler'
 
 /** Если следующий показ наступит в течение 20 минут — слово возвращается в конец этого же урока. */
@@ -24,6 +25,8 @@ export interface LessonCardInput extends FsrsCard {
   id: string
   deckId: string
   order: number
+  /** Когда слово добавлено — порядок новых слов (как узлы пути). */
+  createdAt?: number
   suspended: boolean
   deletedAt?: number
 }
@@ -124,10 +127,9 @@ function sortCards(cards: LessonCardInput[], deckOrder: Map<string, number>, at:
   const learning = live
     .filter((c) => (c.state === State.Learning || c.state === State.Relearning) && c.due.getTime() <= learnAhead)
     .sort((a, b) => a.due.getTime() - b.due.getTime())
-  // Новые — по порядку: колоды сверху вниз, внутри колоды — по порядку слов.
-  const fresh = live
-    .filter((c) => c.state === State.New)
-    .sort((a, b) => deckOrder.get(a.deckId)! - deckOrder.get(b.deckId)! || a.order - b.order)
+  // Новые — по порядку добавления из всех колод, как узлы пути (решение владельца 2026-10-27):
+  // урок узла — ровно слова этого узла, «Ещё 5 новых» — следующие по тому же порядку.
+  const fresh = live.filter((c) => c.state === State.New).sort(byAdded)
   return { reviews, learning, fresh }
 }
 

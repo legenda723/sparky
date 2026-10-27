@@ -23,19 +23,22 @@ afterEach(async () => {
 const T = new Date('2026-10-18T15:00')
 
 describe('путь из базы', () => {
-  it('узлы колоды, текущий, место следующего урока', async () => {
+  it('одна змейка из всех колод по порядку добавления, текущий, место следующего урока', async () => {
     const db = freshDb()
-    const deck = await createDeck(db, { title: 'Еда', emoji: '🍎', color: 'green' })
-    const cards = await addCards(db, deck.id, Array.from({ length: 7 }, (_, i) => ({ front: `w${i}`, back: `с${i}` })))
-    for (const c of cards.slice(0, 5)) {
+    const food = await createDeck(db, { title: 'Еда', emoji: '🍎', color: 'green' })
+    const verbs = await createDeck(db, { title: 'Глаголы', emoji: '🏃', color: 'blue' })
+    const cards = await addCards(db, food.id, Array.from({ length: 5 }, (_, i) => ({ front: `w${i}`, back: `с${i}` })), 1000)
+    const run = await addCards(db, verbs.id, [{ front: 'run', back: 'бегать' }], 2000)
+    const more = await addCards(db, food.id, [{ front: 'tea', back: 'чай' }], 3000)
+    for (const c of cards) {
       await db.cards.update(c.id, { state: State.Review, stability: 3, due: new Date('2026-10-25T10:00'), last_review: new Date('2026-10-17T10:00') })
     }
     const data = await loadPath(db, T)
-    expect(data.path.sections).toHaveLength(1)
-    expect(data.path.current?.key).toBe(`${deck.id}:1`)
+    expect(data.path.current?.key).toBe('n:1')
+    // Второй узел — слова в порядке добавления, из разных колод.
+    expect(data.path.current?.cardIds).toEqual([run[0].id, more[0].id])
     expect(data.today).toMatchObject({ due: 0, dueNow: 0, newAvailable: 2 })
-    // Места — только уроки и место следующего урока (сундуков нет).
-    expect(data.path.sections[0].items.map((x) => x.kind)).toEqual(['node', 'node', 'ghost'])
+    // Места — только уроки и место следующего урока (разделов и сундуков нет).
+    expect(data.path.items.map((x) => x.kind)).toEqual(['node', 'node', 'ghost'])
   })
-
 })

@@ -18,7 +18,7 @@ function Text({ children }: { children: string }) {
 
 interface NodeInfoProps {
   node: PathNode
-  /** Сколько узлов в разделе. */
+  /** Сколько узлов на пути. */
   total: number
   data: PathData
   onStart: () => void
@@ -111,12 +111,12 @@ export function NodeInfo({ node, total, data, onStart, onReview, onMore }: NodeI
   )
 }
 
-/** Место следующего урока в конце раздела (закрытый круг с замком). */
-export function GhostInfo({ deckTitle, onAdd }: { deckTitle: string; onAdd: () => void }) {
+/** Место следующего урока в конце пути (закрытый круг с замком). */
+export function GhostInfo({ onAdd }: { onAdd: () => void }) {
   return (
     <>
       <Title>Новый урок</Title>
-      <Text>{`Добавь слова в «${deckTitle}» — каждые 5 слов становятся уроком`}</Text>
+      <Text>Добавь слова в любую колоду — каждые 5 новых слов становятся уроком</Text>
       <div className="mt-4">
         <Button block onClick={onAdd}>
           Добавить слова

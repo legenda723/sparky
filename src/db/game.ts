@@ -200,7 +200,7 @@ export async function moreNewWords(db: SparkyDb, at: Date): Promise<LessonTarget
   await addExtraNew(db, at)
   const [decks, input] = await Promise.all([db.decks.toArray(), loadLessonInput(db, at)])
   const cur = buildPath(decks, input.cards).current
-  return cur ? { kind: 'node', deckId: cur.deckId, index: cur.index } : null
+  return cur ? { kind: 'node', index: cur.index } : null
 }
 
 /** Ключ памяти игровой части «Профиля» (liveCache). */

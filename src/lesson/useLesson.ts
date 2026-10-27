@@ -183,7 +183,7 @@ export function useLesson(): LessonApi {
         const target = parseLessonTarget(window.location.hash)
         const mode =
           target.kind === 'node'
-            ? { kind: 'node' as const, cardIds: nodeCardIds(input.cards, target.deckId, target.index) }
+            ? { kind: 'node' as const, cardIds: nodeCardIds(input.cards, target.index) }
             : target.kind === 'training'
               ? { kind: 'training' as const, rng: Math.random }
               : target

@@ -40,11 +40,14 @@ describe('parseSubPath', () => {
 describe('адрес урока', () => {
   it('повторения и узел пути — туда и обратно', () => {
     expect(parseLessonTarget(lessonHref({ kind: 'review' }))).toEqual({ kind: 'review' })
-    expect(parseLessonTarget(lessonHref({ kind: 'node', deckId: 'abc-1', index: 3 }))).toEqual({ kind: 'node', deckId: 'abc-1', index: 3 })
-    expect(parseRoute(lessonHref({ kind: 'node', deckId: 'abc', index: 0 }))).toBe('lesson')
+    expect(parseLessonTarget(lessonHref({ kind: 'node', index: 3 }))).toEqual({ kind: 'node', index: 3 })
+    expect(lessonHref({ kind: 'node', index: 3 })).toBe('#/lesson/node/3')
+    expect(parseRoute(lessonHref({ kind: 'node', index: 0 }))).toBe('lesson')
   })
   it('непонятный хвост — урок повторений', () => {
     expect(parseLessonTarget('#/lesson')).toEqual({ kind: 'review' })
-    expect(parseLessonTarget('#/lesson/abc/x')).toEqual({ kind: 'review' })
+    expect(parseLessonTarget('#/lesson/node/x')).toEqual({ kind: 'review' })
+    // Старый адрес «колода/номер» (до 2026-10-27) — просто повторения, без ошибки.
+    expect(parseLessonTarget('#/lesson/abc/2')).toEqual({ kind: 'review' })
   })
 })

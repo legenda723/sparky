@@ -52,18 +52,18 @@ export function navigate(route: Route): void {
 }
 
 /** Какой урок открыть: повторения (кнопка «ПОВТОРИТЬ»), узел пути или тренировка (SPEC 6.5). */
-export type LessonTarget = { kind: 'review' } | { kind: 'training' } | { kind: 'node'; deckId: string; index: number }
+export type LessonTarget = { kind: 'review' } | { kind: 'training' } | { kind: 'node'; index: number }
 
-/** «#/lesson/review», «#/lesson/<колода>/<номер узла>». */
+/** «#/lesson/review», «#/lesson/node/<номер узла на пути>». */
 export function lessonHref(target: LessonTarget): string {
-  return target.kind === 'node' ? `#/lesson/${target.deckId}/${target.index}` : `#/lesson/${target.kind}`
+  return target.kind === 'node' ? `#/lesson/node/${target.index}` : `#/lesson/${target.kind}`
 }
 
 export function parseLessonTarget(hash: string): LessonTarget {
-  const [deckId, index] = parseSubPath(hash).split('/')
-  if (deckId === 'training') return { kind: 'training' }
+  const [kind, index] = parseSubPath(hash).split('/')
+  if (kind === 'training') return { kind: 'training' }
   const n = Number(index)
-  if (deckId && deckId !== 'review' && Number.isInteger(n) && n >= 0) return { kind: 'node', deckId, index: n }
+  if (kind === 'node' && Number.isInteger(n) && n >= 0) return { kind: 'node', index: n }
   return { kind: 'review' }
 }
 

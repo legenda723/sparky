@@ -1,21 +1,19 @@
-// Экран «Путь» (SPEC 7.1): разделы-колоды, извилистая тропинка узлов, туман впереди, кнопка «ПОВТОРИТЬ · N».
+// Экран «Путь» (SPEC 7.1): одна извилистая змейка узлов (без разделов), туман впереди, кнопка «ПОВТОРИТЬ · N».
 import { useReducedMotion } from 'motion/react'
 import { Dumbbell, RotateCcw } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { navigate, navigateSub, openLesson, type LessonTarget } from '../app/routes'
+import { navigate, openLesson, type LessonTarget } from '../app/routes'
 import { db } from '../db/db'
 import { useCachedLiveQuery } from '../db/liveCache'
 import { ensureQuests, moreNewWords, settleDay } from '../db/game'
 import { loadPath, PATH_KEY, type PathData } from '../db/path'
-import type { PathItem, PathNode, PathSection } from '../game/path'
-import { FUTURES_CLEAR, pathView } from '../game/pathView'
+import type { PathItem, PathNode } from '../game/path'
+import { deepInFog, FUTURES_CLEAR, pathView } from '../game/pathView'
 import { unlockSpeech } from '../media/speech'
-import { CollapsedSection } from '../path/CollapsedSection'
 import { Fog } from '../path/Fog'
 import { GhostInfo, NodeInfo } from '../path/NodeInfo'
 import { StreakChip, StreakInfo } from '../path/PathBar'
 import { itemId, PathTrack, ROW } from '../path/PathTrack'
-import { SectionBanner } from '../path/SectionBanner'
 import { now } from '../srs/clock'
 import { dayKey } from '../srs/day'
 import { plural } from '../srs/status'
@@ -86,20 +84,12 @@ function startLesson(target: LessonTarget) {
   openLesson(target)
 }
 
-function findItem(data: PathData, id: string): { item: PathItem; section: PathSection } | null {
-  for (const section of data.path.sections) {
-    const item = section.items.find((x) => itemId(x) === id)
-    if (item) return { item, section }
-  }
-  return null
+function findItem(data: PathData, id: string): PathItem | null {
+  return data.path.items.find((x) => itemId(x) === id) ?? null
 }
 
-const toggle = (set: ReadonlySet<string>, id: string) => {
-  const next = new Set(set)
-  if (next.has(id)) next.delete(id)
-  else next.add(id)
-  return next
-}
+/** Касание будущего урока — та же подсказка, что у места следующего урока («добавь слова»). */
+const GHOST_ID = 'ghost:+'
 
 export function PathScreen() {
   const tick = useMinuteTick()
@@ -112,16 +102,17 @@ export function PathScreen() {
   const refs = useRef(new Map<string, HTMLElement>())
   const anchor = useRef<HTMLElement | null>(null)
   const [selected, setSelected] = useState<Selected | null>(null)
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
-  const [showAll, setShowAll] = useState<ReadonlySet<string>>(new Set())
+  const [showAll, setShowAll] = useState(false)
 
-  const view = useMemo(() => (data ? pathView(data.path, expanded, showAll) : null), [data, expanded, showAll])
+  const view = useMemo(() => (data ? pathView(data.path, showAll) : null), [data, showAll])
+  // Под туманом: место в лёгкой дымке нажимается, глубже — нет.
+  const deep = useMemo(() => (view ? deepInFog(view) : new Set<string>()), [view])
 
   // Туман: плотный дым начинается у первого места под туманом (или сразу под последним видимым).
   // Путь открылся дальше → край плавно отступает вниз (Fog).
   const tailRef = useRef<HTMLDivElement>(null)
   // Путь кончается будущим уроком — место под туман уже занято им, отдельный хвост не нужен.
-  const endsWithFuture = view?.sections.at(-1)?.entries.at(-1)?.item.kind === 'future'
+  const endsWithFuture = view?.entries.at(-1)?.item.kind === 'future'
   const [fogTop, setFogTop] = useState<number | null>(null)
   // Где дым густеет: у последнего места под туманом (просьба владельца).
   const [fogThick, setFogThick] = useState<number | null>(null)
@@ -175,21 +166,22 @@ export function PathScreen() {
   const select = (item: PathItem) => {
     const id = itemId(item)
     if (item.kind === 'future') {
-      // Будущий урок — как «+» своей колоды: «добавь слова».
-      show({ id: `ghost:${item.deckId}:+` }, id)
+      // Будущий урок — как место следующего урока: «добавь слова».
+      show({ id: GHOST_ID }, id)
       return
     }
     show({ id })
   }
 
   const found = data && selected ? findItem(data, selected.id) : null
+  const nodeCount = data ? data.path.items.filter((x) => x.kind === 'node').length : 0
   const barOpen = selected?.id === STREAK_ID ? selected.id : null
   const close = () => setSelected(null)
   const hasDue = !!data && data.today.due > 0
 
   return (
     <div className="relative flex h-full flex-col bg-bg">
-      {/* Шапка не прокручивается, плашка раздела прилипает под ней. Высота строки — 44, как у чипов полосы этапа 8. */}
+      {/* Шапка не прокручивается. Высота строки — 44, как у чипа стрика. */}
       <header className="flex min-h-11 shrink-0 items-center gap-1 bg-bg pt-[calc(12px+var(--safe-top))] pr-[calc(16px+var(--safe-right))] pb-2 pl-[calc(16px+var(--safe-left))]">
         <h1 className="m-0 min-w-0 flex-1 truncate text-title leading-11 font-black text-text">Путь</h1>
         {data && <StreakChip header={data.header} chipRef={(el) => setRef(STREAK_ID, el)} onClick={() => show({ id: STREAK_ID })} />}
@@ -199,49 +191,33 @@ export function PathScreen() {
       <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-y-contain">
         {/* Всегда на 2 px длиннее экрана: iPhone прокручивает и пружинит, только если есть что листать (короткий путь). */}
         <div className="flex min-h-[calc(100%+2px)] flex-col bg-bg pt-2 pr-[calc(16px+var(--safe-right))] pl-[calc(16px+var(--safe-left))]">
-        {data && view && data.path.sections.length === 0 && (
+        {data && view && data.path.items.length === 0 && (
           <EmptyState title="Добавь первые слова" text="Каждые 5 слов — новый урок на пути. Слова добавляешь ты сам — те, что встречаешь.">
             <Button block onClick={() => navigate('words')}>
               Добавить первые слова
             </Button>
           </EmptyState>
         )}
-        {data && view && view.sections.length > 0 && (
-          <div ref={listRef} className="relative flex flex-1 flex-col gap-6">
-            {view.sections.map(({ section, collapsed, hiddenBefore, entries }) =>
-              collapsed ? (
-                <CollapsedSection key={section.deck.id} section={section} onOpen={() => setExpanded((s) => toggle(s, section.deck.id))} />
-              ) : (
-                <section key={section.deck.id}>
-                  {/* Плашка прилипает к верху, пока виден её раздел. */}
-                  <div className="sticky -top-2 z-10 bg-bg pt-2 pb-2">
-                    <SectionBanner deck={section.deck} number={section.number} />
-                  </div>
-                  {hiddenBefore > 0 && (
-                    <div className="mt-2 flex justify-center">
-                      <TextButton onClick={() => setShowAll((s) => toggle(s, section.deck.id))}>
-                        {`Показать ещё ${hiddenBefore} ${plural(hiddenBefore, 'пройденный урок', 'пройденных урока', 'пройденных уроков')}`}
-                      </TextButton>
-                    </div>
-                  )}
-                  <div className="mt-4">
-                    <PathTrack
-                      entries={entries}
-                      color={section.deck.color}
-                      number={section.number}
-                      nodeCount={section.items.filter((x) => x.kind === 'node').length}
-                      setRef={setRef}
-                      onSelect={select}
-                    />
-                  </div>
-                  {expanded.has(section.deck.id) && (
-                    <div className="mt-2 flex justify-center">
-                      <TextButton onClick={() => setExpanded((s) => toggle(s, section.deck.id))}>Свернуть раздел</TextButton>
-                    </div>
-                  )}
-                </section>
-              ),
+        {data && view && view.entries.length > 0 && (
+          <div ref={listRef} className="relative flex flex-1 flex-col">
+            {/* Одна змейка без разделов: колоды — только папки во вкладке «Слова» (решение владельца 2026-10-27). */}
+            {view.hiddenBefore > 0 && (
+              <div className="mt-2 flex justify-center">
+                <TextButton onClick={() => setShowAll(true)}>
+                  {`Показать ещё ${view.hiddenBefore} ${plural(view.hiddenBefore, 'пройденный урок', 'пройденных урока', 'пройденных уроков')}`}
+                </TextButton>
+              </div>
             )}
+            <div className="mt-4">
+              <PathTrack
+                entries={view.entries}
+                color="green"
+                nodeCount={nodeCount}
+                setRef={setRef}
+                onSelect={select}
+                deep={deep}
+              />
+            </div>
             {/* Место под сплошной дым: долистать до него можно, дальше — только «резинка». */}
             {view.fog && !endsWithFuture && <div ref={tailRef} aria-hidden className="shrink-0" style={{ height: FOG_TAIL }} />}
             {view.fog && fogTop !== null && <Fog top={fogTop} thickAt={fogThick} />}
@@ -272,15 +248,15 @@ export function PathScreen() {
 
       <Popover open={!!found || barOpen !== null} onClose={close} anchorRef={anchor} width={300} gap={barOpen ? 8 : 22}>
         {barOpen === STREAK_ID && data && <StreakInfo header={data.header} />}
-        {found && data && found.item.kind === 'node' ? (
+        {found && data && found.kind === 'node' ? (
           <NodeInfo
-            node={found.item}
-            total={found.section.items.filter((x) => x.kind === 'node').length}
+            node={found}
+            total={nodeCount}
             data={data}
             onStart={() => {
-              const node = found.item as PathNode
+              const node = found as PathNode
               close()
-              startLesson({ kind: 'node', deckId: node.deckId, index: node.index })
+              startLesson({ kind: 'node', index: node.index })
             }}
             onReview={() => {
               close()
@@ -295,12 +271,11 @@ export function PathScreen() {
                 .catch(() => toast({ message: 'Не получилось добавить новые слова' }))
             }}
           />
-        ) : found && found.item.kind === 'ghost' ? (
+        ) : found && found.kind === 'ghost' ? (
           <GhostInfo
-            deckTitle={found.section.deck.title}
             onAdd={() => {
               close()
-              navigateSub('words', found.section.deck.id)
+              navigate('words')
             }}
           />
         ) : null}

@@ -1,4 +1,4 @@
-// Дорожка раздела (DESIGN.md → «Дорожка пути»): места по волне, маскот и искорки по бокам.
+// Дорожка пути (DESIGN.md → «Дорожка пути»): одна змейка, места по волне, маскот и искорки по бокам.
 import type { DeckColor } from '../db/types'
 import type { PathItem } from '../game/path'
 import { FUTURES_CLEAR, type ViewEntry } from '../game/pathView'
@@ -19,7 +19,7 @@ const SNAKE_PHASE = -0.25
 export function waveX(index: number): number {
   return Math.round(SNAKE_CENTER + SNAKE_SWING * Math.sin(((index + SNAKE_PHASE) * Math.PI) / 4))
 }
-/** Маскот сидит у 3-го места раздела. */
+/** Маскот сидит у 3-го видимого места. */
 const MASCOT_AT = 2
 /** Высота ряда — у всех мест одинаковая, как в образце (references/путь-duolingo.jpg): путь ровный. */
 /** Шаг между местами — одинаковый у всех (просьба владельца). */
@@ -36,7 +36,7 @@ export const itemId = (item: PathItem) => `${item.kind}:${item.key}`
 
 /**
  * Искорки — по одной (просьба владельца: парами смотрелось «не оч»), в пустых местах у змейки, на 8 мест волны
- * повторяются. x, y — от середины ряда (в чётных разделах x зеркально), size — размер.
+ * повторяются. x, y — от середины ряда, size — размер.
  */
 const STARS: Partial<Record<number, { x: number; y: number; size: number }>> = {
   0: { x: 120, y: -22, size: 20 },
@@ -57,17 +57,17 @@ function Sparkle({ size, delay }: { size: number; delay: number }) {
 
 interface TrackProps {
   entries: ViewEntry[]
+  /** Цвет узлов — основной (колоды на пути не показываются, решение владельца 2026-10-27). */
   color: DeckColor
-  /** Номер раздела: в чётных волна зеркальная. */
-  number: number
-  /** Сколько уроков в разделе всего (для «Урок 3 из 5»). */
+  /** Сколько уроков на пути всего (для «Урок 3 из 12»). */
   nodeCount: number
   setRef: (id: string, el: HTMLElement | null) => void
   onSelect: (item: PathItem) => void
+  /** Места глубоко в тумане — не нажимаются (deepInFog). */
+  deep: ReadonlySet<string>
 }
 
-export function PathTrack({ entries, color, number, nodeCount, setRef, onSelect }: TrackProps) {
-  const sign = number % 2 === 0 ? -1 : 1
+export function PathTrack({ entries, color, nodeCount, setRef, onSelect, deep }: TrackProps) {
   const firstFogged = entries.findIndex((e) => e.fogged)
   // Чистые места — до тумана. Первые FUTURES_CLEAR будущих уроков стоят ещё на чистом месте (туман опущен под них).
   const clear = firstFogged < 0 ? entries.length : firstFogged + (entries[firstFogged].item.kind === 'future' ? FUTURES_CLEAR : 0)
@@ -81,7 +81,7 @@ export function PathTrack({ entries, color, number, nodeCount, setRef, onSelect 
         const current = item.kind === 'node' && item.state === 'current'
         const locked = (item.kind === 'node' && item.state === 'locked') || item.kind === 'ghost' || item.kind === 'future'
         const scale = locked && curAt >= 0 && i === curAt + 1 ? NEXT_SCALE : locked ? LOCKED_SCALE : 1
-        const x = waveX(index) * sign
+        const x = waveX(index)
         const star = STARS[index % 8]
         // Свободная сторона волны — для маскота.
         const side = x > 0 ? -1 : x < 0 ? 1 : index % 2 === 0 ? -1 : 1
@@ -91,6 +91,8 @@ export function PathTrack({ entries, color, number, nodeCount, setRef, onSelect 
             data-fog-start={i === firstFogged || undefined}
             data-fogged={fogged || undefined}
             data-future={item.kind === 'future' || undefined}
+            // Глубоко в тумане не нажимается; место в лёгкой дымке — нажимается (deepInFog).
+            inert={deep.has(item.key) || undefined}
             className="relative flex items-center justify-center"
             style={{ height: ROW }}
           >
@@ -103,7 +105,7 @@ export function PathTrack({ entries, color, number, nodeCount, setRef, onSelect 
             {star && i < clear && i !== mascotAt && (
               <div
                 className="pointer-events-none absolute"
-                style={{ left: `calc(50% + ${star.x * sign - star.size / 2}px)`, top: `calc(50% + ${star.y - star.size / 2}px)` }}
+                style={{ left: `calc(50% + ${star.x - star.size / 2}px)`, top: `calc(50% + ${star.y - star.size / 2}px)` }}
               >
                 <Sparkle size={star.size} delay={-(index % 3) * 0.9} />
               </div>
@@ -122,7 +124,7 @@ export function PathTrack({ entries, color, number, nodeCount, setRef, onSelect 
                   // Место следующего урока и будущие уроки: выглядят как закрытый узел, касание — «добавь слова».
                   <PathNodeButton
                     ref={(el) => setRef(id, el)}
-                    node={{ kind: 'node', key: item.key, deckId: item.deckId, index, cardIds: [], introduced: 0, state: 'locked' }}
+                    node={{ kind: 'node', key: item.key, index, cardIds: [], introduced: 0, state: 'locked' }}
                     color={color}
                     label={item.kind === 'ghost' ? 'Новый урок: добавь слова' : 'Будущий урок'}
                     onSelect={() => onSelect(item)}

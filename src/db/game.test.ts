@@ -1,6 +1,8 @@
 import 'fake-indexeddb/auto'
 import { Rating, State } from 'ts-fsrs'
 import { afterEach, describe, expect, it } from 'vitest'
+import { nodeCardIds } from '../game/path'
+import { buildLesson } from '../srs/lesson'
 import { outcomes } from '../srs/scheduler'
 import { addCards } from './cards'
 import { SparkyDb } from './db'
@@ -189,8 +191,14 @@ describe('«План на сегодня выполнен» (6.5)', () => {
       await db.cards.update(c.id, { state: State.Review, stability: 5, due: new Date('2026-10-30T10:00'), introducedAt: T.getTime() - 1000 })
     }
     const target = await moreNewWords(db, T)
-    expect(target).toMatchObject({ kind: 'node', index: 2 })
+    expect(target).toEqual({ kind: 'node', index: 2 })
     expect((await planStatus(db, T)).done).toBe(false)
+    // Урок, который откроется, — ровно новые слова этого узла пути.
+    const input = await loadLessonInput(db, T)
+    const ids = nodeCardIds(input.cards, 2)
+    expect(ids).toEqual([cards[10].id, cards[11].id])
+    const plan = buildLesson(input.cards, input.deckOrder, T, input.limits, { kind: 'node', cardIds: ids })
+    expect(plan.tasks.filter((t) => t.kind === 'intro').map((t) => t.cardId)).toEqual(ids)
   })
 })
 
