@@ -125,6 +125,8 @@ export function PathScreen() {
   const [fogTop, setFogTop] = useState<number | null>(null)
   // Где дым густеет: у последнего места под туманом (просьба владельца).
   const [fogThick, setFogThick] = useState<number | null>(null)
+  // Разделы, которые начинаются под туманом: их плашка — под дымом, как закрытые уроки (не поверх него).
+  const [fogSections, setFogSections] = useState<ReadonlySet<string>>(new Set())
   useLayoutEffect(() => {
     const list = listRef.current
     if (!list || !view?.fog) return
@@ -132,6 +134,11 @@ export function PathScreen() {
     if (!start) return
     const listTop = list.getBoundingClientRect().top
     const top = start.getBoundingClientRect().top - listTop
+    const startTop = start.getBoundingClientRect().top
+    const under = [...list.querySelectorAll<HTMLElement>('[data-section]')]
+      .filter((s) => s.getBoundingClientRect().top >= startTop)
+      .map((s) => s.dataset.section!)
+    setFogSections((prev) => (prev.size === under.length && under.every((id) => prev.has(id)) ? prev : new Set(under)))
     // Будущие уроки стоят на обычном шаге сразу за последним местом, а туман — на прежнем месте.
     const drop = start.hasAttribute('data-future') ? FOG_FUTURE_DROP : FOG_DROP
     setFogTop(Math.round(top + drop))
@@ -212,9 +219,9 @@ export function PathScreen() {
               collapsed ? (
                 <CollapsedSection key={section.deck.id} section={section} onOpen={() => setExpanded((s) => toggle(s, section.deck.id))} />
               ) : (
-                <section key={section.deck.id}>
-                  {/* Плашка прилипает к верху, пока виден её раздел. */}
-                  <div className="sticky -top-2 z-10 bg-bg pt-2 pb-2">
+                <section key={section.deck.id} data-section={section.deck.id}>
+                  {/* Плашка прилипает к верху, пока виден её раздел. Раздел под туманом — плашка под дымом, без подложки и z-10. */}
+                  <div className={`sticky -top-2 pt-2 pb-2 ${fogSections.has(section.deck.id) ? '' : 'z-10 bg-bg'}`}>
                     <SectionBanner deck={section.deck} number={section.number} />
                   </div>
                   {hiddenBefore > 0 && (
