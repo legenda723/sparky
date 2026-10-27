@@ -94,7 +94,8 @@ export function PathTrack({ entries, color, number, nodeCount, setRef, onSelect,
             data-fogged={fogged || undefined}
             data-future={item.kind === 'future' || undefined}
             // Глубоко в тумане (6-е место и ниже) не нажимается; место в лёгкой дымке — нажимается (fogPlan).
-            inert={deep?.has(item.key) || undefined}
+            // Без fogPlan (тестовый режим витрины выключен) — прежнее: под туманом не нажимается ничего.
+            inert={(deep ? deep.has(item.key) : i >= clear) || undefined}
             className="relative flex items-center justify-center"
             style={{ height: ROW }}
           >

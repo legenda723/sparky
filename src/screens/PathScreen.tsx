@@ -130,7 +130,12 @@ export function PathScreen() {
   // Где дым густеет: у последнего места под туманом (просьба владельца).
   const [fogThick, setFogThick] = useState<number | null>(null)
   // Глубина тумана: что в лёгкой дымке, что глубоко (не нажимается) и где лежат плашки разделов под туманом.
-  const fog = useMemo(() => (view ? fogPlan(view) : null), [view])
+  // Пока на проверке у владельца — только в тестовом режиме витрины (вместе с примером «Путь: раздел в тумане»);
+  // без него — прежнее поведение (TODO после «ок» владельца: оставить только новое).
+  const fog = useMemo(() => (view && demo ? fogPlan(view) : null), [view, demo])
+  // Прежнее поведение: разделы под туманом — по раскладке, растворение — до низа плашки.
+  const [fogSections, setFogSections] = useState<ReadonlySet<string>>(new Set())
+  const [fogFade, setFogFade] = useState<{ from: number; to: number } | null>(null)
   useLayoutEffect(() => {
     const list = listRef.current
     if (!list || !view?.fog) return
@@ -138,12 +143,27 @@ export function PathScreen() {
     if (!start) return
     const listTop = list.getBoundingClientRect().top
     const top = start.getBoundingClientRect().top - listTop
+    if (!fog) {
+      const startTop = start.getBoundingClientRect().top
+      const underEls = [...list.querySelectorAll<HTMLElement>('[data-section]')].filter((s) => s.getBoundingClientRect().top >= startTop)
+      const under = underEls.map((s) => s.dataset.section!)
+      setFogSections((prev) => (prev.size === under.length && under.every((id) => prev.has(id)) ? prev : new Set(under)))
+      const banner = underEls[0]?.querySelector('[data-banner]')
+      setFogFade(
+        banner
+          ? { from: Math.round(start.getBoundingClientRect().bottom - listTop), to: Math.round(banner.getBoundingClientRect().bottom - listTop) }
+          : null,
+      )
+    } else {
+      setFogSections((prev) => (prev.size === 0 ? prev : new Set()))
+      setFogFade(null)
+    }
     // Будущие уроки стоят на обычном шаге сразу за последним местом, а туман — на прежнем месте.
     const drop = start.hasAttribute('data-future') ? FOG_FUTURE_DROP : FOG_DROP
     setFogTop(Math.round(top + drop))
     const last = [...list.querySelectorAll('[data-fogged]')].at(-1)
     setFogThick(last ? Math.round(last.getBoundingClientRect().top - listTop) : null)
-  }, [view])
+  }, [view, fog])
 
   // Плавно к текущему узлу: при открытии и когда текущий сменился (вернулись из урока — память показала прошлый).
   const currentKey = data?.path.current?.key
@@ -254,9 +274,14 @@ export function PathScreen() {
                   />
                 </section>
               ) : (
-                <section key={section.deck.id}>
-                  {/* Плашка прилипает к верху, пока виден её раздел (подложка — чтобы путь не просвечивал). */}
-                  <div className="sticky -top-2 z-10 bg-bg pt-2 pb-2">
+                <section key={section.deck.id} data-section={section.deck.id}>
+                  {/* Плашка прилипает к верху, пока виден её раздел (подложка — чтобы путь не просвечивал).
+                      Прежнее поведение: раздел под туманом — плашка под дымом, без подложки и z-10. */}
+                  <div
+                    data-banner
+                    inert={fogSections.has(section.deck.id) || undefined}
+                    className={`sticky -top-2 pt-2 pb-2 ${fogSections.has(section.deck.id) ? '' : 'z-10 bg-bg'}`}
+                  >
                     <SectionBanner deck={section.deck} number={section.number} />
                   </div>
                   {hiddenBefore > 0 && (
@@ -287,7 +312,7 @@ export function PathScreen() {
             })}
             {/* Место под сплошной дым: долистать до него можно, дальше — только «резинка». */}
             {view.fog && !endsWithFuture && <div ref={tailRef} aria-hidden className="shrink-0" style={{ height: FOG_TAIL }} />}
-            {view.fog && fogTop !== null && <Fog top={fogTop} thickAt={fogThick} />}
+            {view.fog && fogTop !== null && <Fog top={fogTop} thickAt={fogThick} fade={fogFade} />}
           </div>
         )}
         </div>
