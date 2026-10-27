@@ -7,9 +7,8 @@ import { db } from '../db/db'
 import { useCachedLiveQuery } from '../db/liveCache'
 import { ensureQuests, moreNewWords, settleDay } from '../db/game'
 import { loadPath, PATH_KEY, type PathData } from '../db/path'
-import { demoPath, isDemoPath, setDemoPath } from '../game/demoPath'
 import type { PathItem, PathNode, PathSection } from '../game/path'
-import { fogPlan, FUTURES_CLEAR, pathView } from '../game/pathView'
+import { FUTURES_CLEAR, pathView } from '../game/pathView'
 import { unlockSpeech } from '../media/speech'
 import { CollapsedSection } from '../path/CollapsedSection'
 import { Fog } from '../path/Fog'
@@ -105,10 +104,7 @@ const toggle = (set: ReadonlySet<string>, id: string) => {
 export function PathScreen() {
   const tick = useMinuteTick()
   useSettleDay(tick)
-  const live = useCachedLiveQuery(PATH_KEY, () => loadPath(db, now()), [tick])
-  // Пример из витрины: вместо своих колод — два раздела, второй под туманом (база не меняется).
-  const [demo, setDemo] = useState(isDemoPath)
-  const data = useMemo(() => (live && demo ? { ...live, path: demoPath() } : live), [live, demo])
+  const data = useCachedLiveQuery(PATH_KEY, () => loadPath(db, now()), [tick])
   const reduce = useReducedMotion() ?? false
   const toast = useToast()
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -129,13 +125,6 @@ export function PathScreen() {
   const [fogTop, setFogTop] = useState<number | null>(null)
   // Где дым густеет: у последнего места под туманом (просьба владельца).
   const [fogThick, setFogThick] = useState<number | null>(null)
-  // Глубина тумана: что в лёгкой дымке, что глубоко (не нажимается) и где лежат плашки разделов под туманом.
-  // Пока на проверке у владельца — только в тестовом режиме витрины (вместе с примером «Путь: раздел в тумане»);
-  // без него — прежнее поведение (TODO после «ок» владельца: оставить только новое).
-  const fog = useMemo(() => (view && demo ? fogPlan(view) : null), [view, demo])
-  // Прежнее поведение: разделы под туманом — по раскладке, растворение — до низа плашки.
-  const [fogSections, setFogSections] = useState<ReadonlySet<string>>(new Set())
-  const [fogFade, setFogFade] = useState<{ from: number; to: number } | null>(null)
   useLayoutEffect(() => {
     const list = listRef.current
     if (!list || !view?.fog) return
@@ -143,27 +132,12 @@ export function PathScreen() {
     if (!start) return
     const listTop = list.getBoundingClientRect().top
     const top = start.getBoundingClientRect().top - listTop
-    if (!fog) {
-      const startTop = start.getBoundingClientRect().top
-      const underEls = [...list.querySelectorAll<HTMLElement>('[data-section]')].filter((s) => s.getBoundingClientRect().top >= startTop)
-      const under = underEls.map((s) => s.dataset.section!)
-      setFogSections((prev) => (prev.size === under.length && under.every((id) => prev.has(id)) ? prev : new Set(under)))
-      const banner = underEls[0]?.querySelector('[data-banner]')
-      setFogFade(
-        banner
-          ? { from: Math.round(start.getBoundingClientRect().bottom - listTop), to: Math.round(banner.getBoundingClientRect().bottom - listTop) }
-          : null,
-      )
-    } else {
-      setFogSections((prev) => (prev.size === 0 ? prev : new Set()))
-      setFogFade(null)
-    }
     // Будущие уроки стоят на обычном шаге сразу за последним местом, а туман — на прежнем месте.
     const drop = start.hasAttribute('data-future') ? FOG_FUTURE_DROP : FOG_DROP
     setFogTop(Math.round(top + drop))
     const last = [...list.querySelectorAll('[data-fogged]')].at(-1)
     setFogThick(last ? Math.round(last.getBoundingClientRect().top - listTop) : null)
-  }, [view, fog])
+  }, [view])
 
   // Плавно к текущему узлу: при открытии и когда текущий сменился (вернулись из урока — память показала прошлый).
   const currentKey = data?.path.current?.key
@@ -220,19 +194,6 @@ export function PathScreen() {
         <h1 className="m-0 min-w-0 flex-1 truncate text-title leading-11 font-black text-text">Путь</h1>
         {data && <StreakChip header={data.header} chipRef={(el) => setRef(STREAK_ID, el)} onClick={() => show({ id: STREAK_ID })} />}
       </header>
-      {demo && (
-        <div className="flex shrink-0 items-center justify-between gap-2 bg-info-tint px-4">
-          <span className="text-caption font-extrabold text-info-ink">Пример из витрины — твои слова не тронуты</span>
-          <TextButton
-            onClick={() => {
-              setDemoPath(false)
-              setDemo(false)
-            }}
-          >
-            Выключить
-          </TextButton>
-        </div>
-      )}
 
       {/* Родная «резинка» iPhone: оттянешь путь за конец — снизу тянется тот же туман (Fog рисует его за краем). */}
       <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-y-contain">
@@ -247,41 +208,13 @@ export function PathScreen() {
         )}
         {data && view && view.sections.length > 0 && (
           <div ref={listRef} className="relative flex flex-1 flex-col gap-6">
-            {view.sections.map(({ section, collapsed, hiddenBefore, entries }) => {
-              const fogRow = fog?.banners.get(section.deck.id)
-              return collapsed ? (
+            {view.sections.map(({ section, collapsed, hiddenBefore, entries }) =>
+              collapsed ? (
                 <CollapsedSection key={section.deck.id} section={section} onOpen={() => setExpanded((s) => toggle(s, section.deck.id))} />
-              ) : fogRow !== undefined ? (
-                // Раздел начинается под туманом: его места идут подряд с прежним шагом (отступ между разделами
-                // снят), плашка места не занимает — лежит глубоко в дыму, на уровне глубокого места, и растворена.
-                <section key={section.deck.id} className="relative -mt-6">
-                  <div
-                    inert
-                    aria-hidden
-                    className="pointer-events-none absolute inset-x-0 -translate-y-1/2 opacity-30 [mask-image:linear-gradient(to_bottom,transparent,#000_50%,transparent)]"
-                    style={{ top: fogRow * ROW + ROW / 2 }}
-                  >
-                    <SectionBanner deck={section.deck} number={section.number} />
-                  </div>
-                  <PathTrack
-                    entries={entries}
-                    color={section.deck.color}
-                    number={section.number}
-                    nodeCount={section.items.filter((x) => x.kind === 'node').length}
-                    setRef={setRef}
-                    onSelect={select}
-                    deep={fog?.deep}
-                  />
-                </section>
               ) : (
-                <section key={section.deck.id} data-section={section.deck.id}>
-                  {/* Плашка прилипает к верху, пока виден её раздел (подложка — чтобы путь не просвечивал).
-                      Прежнее поведение: раздел под туманом — плашка под дымом, без подложки и z-10. */}
-                  <div
-                    data-banner
-                    inert={fogSections.has(section.deck.id) || undefined}
-                    className={`sticky -top-2 pt-2 pb-2 ${fogSections.has(section.deck.id) ? '' : 'z-10 bg-bg'}`}
-                  >
+                <section key={section.deck.id}>
+                  {/* Плашка прилипает к верху, пока виден её раздел. */}
+                  <div className="sticky -top-2 z-10 bg-bg pt-2 pb-2">
                     <SectionBanner deck={section.deck} number={section.number} />
                   </div>
                   {hiddenBefore > 0 && (
@@ -299,7 +232,6 @@ export function PathScreen() {
                       nodeCount={section.items.filter((x) => x.kind === 'node').length}
                       setRef={setRef}
                       onSelect={select}
-                      deep={fog?.deep}
                     />
                   </div>
                   {expanded.has(section.deck.id) && (
@@ -308,11 +240,11 @@ export function PathScreen() {
                     </div>
                   )}
                 </section>
-              )
-            })}
+              ),
+            )}
             {/* Место под сплошной дым: долистать до него можно, дальше — только «резинка». */}
             {view.fog && !endsWithFuture && <div ref={tailRef} aria-hidden className="shrink-0" style={{ height: FOG_TAIL }} />}
-            {view.fog && fogTop !== null && <Fog top={fogTop} thickAt={fogThick} fade={fogFade} />}
+            {view.fog && fogTop !== null && <Fog top={fogTop} thickAt={fogThick} />}
           </div>
         )}
         </div>

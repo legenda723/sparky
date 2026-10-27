@@ -130,36 +130,3 @@ function withFuture(sections: ViewSection[]): ViewSection[] {
 function entries(section: PathSection, from: number, to: number): ViewEntry[] {
   return section.items.slice(from, to).map((item, k) => ({ item, index: from + k, fogged: false }))
 }
-
-/** Как глубоко места пути в тумане (просьба владельца 2026-10-27, по реальному пути на iPhone). */
-export interface FogPlan {
-  /** Первое место в лёгкой дымке (как 5-й урок): ещё хорошо видно и нажимается. */
-  light?: string
-  /** Места глубже (6-е и ниже): почти не видны и не нажимаются. Ключи мест (item.key). */
-  deep: ReadonlySet<string>
-  /**
-   * Разделы, которые начинаются под туманом: колода → строка своего пути (с нуля), на уровне которой лежит плашка.
-   * Плашка не занимает места (путь не длиннее, шаг тот же) и лежит не выше первого глубокого места —
-   * в лёгкой дымке плашки нет.
-   */
-  banners: ReadonlyMap<string, number>
-}
-
-export function fogPlan(view: PathView): FogPlan {
-  const fogged = view.sections.flatMap((s) => s.entries.filter((e) => e.fogged))
-  // Первые FUTURES_CLEAR будущих уроков стоят на чистом месте — туман опущен под них.
-  const skip = fogged[0]?.item.kind === 'future' ? FUTURES_CLEAR : 0
-  const clear = new Set(fogged.slice(0, skip).map((e) => e.item.key))
-  const light = fogged[skip]?.item.key
-  const deepList = fogged.slice(skip + 1)
-  const deep = new Set(deepList.map((e) => e.item.key))
-  const banners = new Map<string, number>()
-  for (const s of view.sections) {
-    const first = s.entries[0]
-    if (s.collapsed || !first?.fogged || clear.has(first.item.key)) continue
-    const at = deepList[0] ? s.entries.findIndex((e) => e.item.key === deepList[0].item.key) : -1
-    // Раздел начинается с места в лёгкой дымке — плашка ниже, на уровне следующего (глубокого) места.
-    banners.set(s.section.deck.id, at >= 0 ? at : first.item.key === light ? 1 : 0)
-  }
-  return { light, deep, banners }
-}
