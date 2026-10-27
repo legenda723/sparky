@@ -65,12 +65,14 @@ interface TrackProps {
   onSelect: (item: PathItem) => void
   /** Места глубоко в тумане — не нажимаются (deepInFog). */
   deep: ReadonlySet<string>
+  /** Всё пройдено — первые FUTURES_CLEAR будущих уроков стоят ещё на чистом месте (туман опущен под них). */
+  futureTail: boolean
 }
 
-export function PathTrack({ entries, color, nodeCount, setRef, onSelect, deep }: TrackProps) {
+export function PathTrack({ entries, color, nodeCount, setRef, onSelect, deep, futureTail }: TrackProps) {
   const firstFogged = entries.findIndex((e) => e.fogged)
-  // Чистые места — до тумана. Первые FUTURES_CLEAR будущих уроков стоят ещё на чистом месте (туман опущен под них).
-  const clear = firstFogged < 0 ? entries.length : firstFogged + (entries[firstFogged].item.kind === 'future' ? FUTURES_CLEAR : 0)
+  // Чистые места — до тумана.
+  const clear = firstFogged < 0 ? entries.length : firstFogged + (futureTail ? FUTURES_CLEAR : 0)
   // Маскот — у 3-го видимого места, но не под туманом.
   const mascotAt = clear > 1 ? Math.min(MASCOT_AT, clear - 1) : -1
   const curAt = entries.findIndex((e) => e.item.kind === 'node' && e.item.state === 'current')

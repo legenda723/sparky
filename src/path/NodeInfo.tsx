@@ -111,6 +111,32 @@ export function NodeInfo({ node, total, data, onStart, onReview, onMore }: NodeI
   )
 }
 
+/**
+ * Плашка «ТРЕНИРОВКА», когда тренироваться пока нельзя: есть повторения (сначала повторения — решение владельца)
+ * или знакомых слов ещё нет.
+ */
+export function TrainingInfo({ due, onReview }: { due: number; onReview: () => void }) {
+  if (due === 0) {
+    return (
+      <>
+        <Title>Тренировка</Title>
+        <Text>Тренировка — по знакомым словам. Пройди первый урок, и она откроется</Text>
+      </>
+    )
+  }
+  return (
+    <>
+      <Title>Тренировка</Title>
+      <Text>{`Сначала повтори ${words(due)} — потом тренировка`}</Text>
+      <div className="mt-4">
+        <Button variant="info" block icon={<RotateCcw size={22} strokeWidth={2.75} />} onClick={onReview}>
+          Повторить
+        </Button>
+      </div>
+    </>
+  )
+}
+
 /** Место следующего урока в конце пути (закрытый круг с замком). */
 export function GhostInfo({ onAdd }: { onAdd: () => void }) {
   return (

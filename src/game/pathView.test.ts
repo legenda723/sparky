@@ -33,11 +33,19 @@ describe('что видно на пути', () => {
     expect(kinds(pathView(m, false))).toEqual(['passed', 'current', 'locked', 'locked', 'locked~', 'locked~'])
   })
 
-  it('впереди слов нет — путь продолжают четыре будущих урока подряд', () => {
+  it('слов впереди мало — под текущим всё равно 2 места ясно и 2 под туманом: недостающие — будущие уроки', () => {
     const v = pathView(buildPath([deck('a', 0)], words('a', 'kkkkknn')), false)
-    expect(kinds(v)).toEqual(['passed', 'current', 'ghost', 'future~', 'future~', 'future~', 'future~'])
+    expect(kinds(v)).toEqual(['passed', 'current', 'ghost', 'future', 'future~', 'future~'])
     // Будущие уроки — на той же волне, подряд за последним местом.
-    expect(v.entries.map((e) => e.index)).toEqual([0, 1, 2, 3, 4, 5, 6])
+    expect(v.entries.map((e) => e.index)).toEqual([0, 1, 2, 3, 4, 5])
+    expect(v.futureTail).toBe(false)
+  })
+
+  it('слов впереди ровно на окно — 2 ясно и 2 под туманом, без лишних будущих уроков', () => {
+    const v = pathView(buildPath([deck('a', 0)], words('a', 'n'.repeat(15))), false)
+    expect(kinds(v)).toEqual(['current', 'locked', 'locked', 'ghost~', 'future~'])
+    const w = pathView(buildPath([deck('a', 0)], words('a', 'n'.repeat(20))), false)
+    expect(kinds(w)).toEqual(['current', 'locked', 'locked', 'locked~', 'ghost~'])
   })
 
   it('над текущим — не больше 6 мест, остальные пройденные — «Показать ещё»', () => {
@@ -50,13 +58,14 @@ describe('что видно на пути', () => {
     expect(pathView(m, true).hiddenBefore).toBe(0)
   })
 
-  it('всё пройдено — путь до места следующего урока и будущие уроки', () => {
+  it('всё пройдено — путь до места следующего урока и четыре будущих: два на чистом месте, два в дыму', () => {
     const v = pathView(buildPath([deck('a', 0), deck('b', 1)], [...words('a', 'kkkkk'), ...words('b', 'kkkkk', 1)]), false)
     expect(kinds(v)).toEqual(['passed', 'passed', 'ghost', 'future~', 'future~', 'future~', 'future~'])
+    expect(v.futureTail).toBe(true)
   })
 
   it('слов нет — пусто, без тумана', () => {
-    expect(pathView(buildPath([deck('a', 0)], []), false)).toEqual({ hiddenBefore: 0, entries: [], fog: false })
+    expect(pathView(buildPath([deck('a', 0)], []), false)).toEqual({ hiddenBefore: 0, entries: [], fog: false, futureTail: false })
   })
 
   it('5000 слов — на экране не больше ~11 мест', () => {
@@ -71,8 +80,13 @@ describe('касания под туманом', () => {
     expect([...deepInFog(v)]).toEqual(['n:4'])
   })
 
-  it('путь кончается будущими уроками: два на чистом месте, третий в дымке — нажимаются, четвёртый — нет', () => {
+  it('под текущим будущие уроки: в дымке нажимается, глубже — нет', () => {
     const v = pathView(buildPath([deck('a', 0)], words('a', 'kkkkknn')), false)
+    expect([...deepInFog(v)]).toEqual(['~2'])
+  })
+
+  it('всё пройдено: два будущих на чистом месте и третий в дымке нажимаются, четвёртый — нет', () => {
+    const v = pathView(buildPath([deck('a', 0)], words('a', 'kkkkk')), false)
     expect([...deepInFog(v)]).toEqual(['~3'])
   })
 })

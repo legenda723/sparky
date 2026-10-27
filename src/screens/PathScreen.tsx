@@ -1,6 +1,6 @@
 // Экран «Путь» (SPEC 7.1): одна извилистая змейка узлов (без разделов), туман впереди, кнопка «ПОВТОРИТЬ · N».
 import { useReducedMotion } from 'motion/react'
-import { Dumbbell, RotateCcw } from 'lucide-react'
+import { RotateCcw } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { navigate, openLesson, type LessonTarget } from '../app/routes'
 import { db } from '../db/db'
@@ -11,7 +11,8 @@ import type { PathItem, PathNode } from '../game/path'
 import { deepInFog, FUTURES_CLEAR, pathView } from '../game/pathView'
 import { unlockSpeech } from '../media/speech'
 import { Fog } from '../path/Fog'
-import { GhostInfo, NodeInfo } from '../path/NodeInfo'
+import { GhostInfo, NodeInfo, TrainingInfo } from '../path/NodeInfo'
+import { TrainingBanner } from '../path/TrainingBanner'
 import { StreakChip, StreakInfo } from '../path/PathBar'
 import { itemId, PathTrack, ROW } from '../path/PathTrack'
 import { now } from '../srs/clock'
@@ -37,6 +38,7 @@ type Selected = { id: string }
 
 /** Всплывашка полосы сверху (не место пути). */
 const STREAK_ID = 'bar:streak'
+const TRAINING_ID = 'bar:training'
 
 /**
  * Новый день (и первое открытие): пропуски закрываются заморозками или стрик сгорает, выбираются задания дня.
@@ -111,8 +113,8 @@ export function PathScreen() {
   // Туман: плотный дым начинается у первого места под туманом (или сразу под последним видимым).
   // Путь открылся дальше → край плавно отступает вниз (Fog).
   const tailRef = useRef<HTMLDivElement>(null)
-  // Путь кончается будущим уроком — место под туман уже занято им, отдельный хвост не нужен.
-  const endsWithFuture = view?.entries.at(-1)?.item.kind === 'future'
+  // Всё пройдено, путь кончается будущими уроками — место под туман уже занято ими, отдельный хвост не нужен.
+  const futureTail = view?.futureTail ?? false
   const [fogTop, setFogTop] = useState<number | null>(null)
   // Где дым густеет: у последнего места под туманом (просьба владельца).
   const [fogThick, setFogThick] = useState<number | null>(null)
@@ -123,8 +125,8 @@ export function PathScreen() {
     if (!start) return
     const listTop = list.getBoundingClientRect().top
     const top = start.getBoundingClientRect().top - listTop
-    // Будущие уроки стоят на обычном шаге сразу за последним местом, а туман — на прежнем месте.
-    const drop = start.hasAttribute('data-future') ? FOG_FUTURE_DROP : FOG_DROP
+    // Всё пройдено: будущие уроки стоят на обычном шаге сразу за последним местом, а туман — на прежнем месте.
+    const drop = futureTail ? FOG_FUTURE_DROP : FOG_DROP
     setFogTop(Math.round(top + drop))
     const last = [...list.querySelectorAll('[data-fogged]')].at(-1)
     setFogThick(last ? Math.round(last.getBoundingClientRect().top - listTop) : null)
@@ -175,9 +177,15 @@ export function PathScreen() {
 
   const found = data && selected ? findItem(data, selected.id) : null
   const nodeCount = data ? data.path.items.filter((x) => x.kind === 'node').length : 0
-  const barOpen = selected?.id === STREAK_ID ? selected.id : null
+  const barOpen = selected?.id === STREAK_ID || selected?.id === TRAINING_ID ? selected.id : null
   const close = () => setSelected(null)
   const hasDue = !!data && data.today.due > 0
+
+  /** Плашка «ТРЕНИРОВКА»: сначала повторения (всплывашка с «ПОВТОРИТЬ»), иначе — тренировка. */
+  const training = () => {
+    if (hasDue || !data?.plan.known) show({ id: TRAINING_ID })
+    else startLesson({ kind: 'training' })
+  }
 
   return (
     <div className="relative flex h-full flex-col bg-bg">
@@ -200,7 +208,11 @@ export function PathScreen() {
         )}
         {data && view && view.entries.length > 0 && (
           <div ref={listRef} className="relative flex flex-1 flex-col">
-            {/* Одна змейка без разделов: колоды — только папки во вкладке «Слова» (решение владельца 2026-10-27). */}
+            {/* Одна змейка без разделов: колоды — только папки во вкладке «Слова» (решение владельца 2026-10-27).
+                Наверху — плашка «ТРЕНИРОВКА» на месте прежней плашки раздела, прилипает к верху так же. */}
+            <div className="sticky -top-2 z-10 bg-bg pt-2 pb-2">
+              <TrainingBanner ref={(el) => setRef(TRAINING_ID, el)} onClick={training} />
+            </div>
             {view.hiddenBefore > 0 && (
               <div className="mt-2 flex justify-center">
                 <TextButton onClick={() => setShowAll(true)}>
@@ -216,26 +228,19 @@ export function PathScreen() {
                 setRef={setRef}
                 onSelect={select}
                 deep={deep}
+                futureTail={futureTail}
               />
             </div>
-            {/* Место под сплошной дым: долистать до него можно, дальше — только «резинка». */}
-            {view.fog && !endsWithFuture && <div ref={tailRef} aria-hidden className="shrink-0" style={{ height: FOG_TAIL }} />}
+            {/* Место под сплошной дым: долистать до него можно, дальше — только «резинка».
+                Отступ 24 сверху — как был между последним разделом и хвостом: конец прокрутки как в 0efb2d7. */}
+            {view.fog && !futureTail && <div ref={tailRef} aria-hidden className="mt-6 shrink-0" style={{ height: FOG_TAIL }} />}
             {view.fog && fogTop !== null && <Fog top={fogTop} thickAt={fogThick} />}
           </div>
         )}
         </div>
       </div>
 
-      {/* Поверх прилипающих плашек разделов (у них z-10): плашка, проезжая внизу, не закрывает кнопку. */}
-      {!hasDue && data?.plan.done && data.plan.known > 0 && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center">
-          <div className="pointer-events-auto">
-            <Button variant="info" icon={<Dumbbell size={22} strokeWidth={2.5} />} onClick={() => startLesson({ kind: 'training' })}>
-              Тренировка
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Тренировка — плашкой наверху; внизу только «ПОВТОРИТЬ · N», когда есть повторения. */}
       {hasDue && (
         <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center">
           <div className="path-pulse pointer-events-auto">
@@ -248,6 +253,15 @@ export function PathScreen() {
 
       <Popover open={!!found || barOpen !== null} onClose={close} anchorRef={anchor} width={300} gap={barOpen ? 8 : 22}>
         {barOpen === STREAK_ID && data && <StreakInfo header={data.header} />}
+        {barOpen === TRAINING_ID && data && (
+          <TrainingInfo
+            due={data.today.due}
+            onReview={() => {
+              close()
+              startLesson({ kind: 'review' })
+            }}
+          />
+        )}
         {found && data && found.kind === 'node' ? (
           <NodeInfo
             node={found}

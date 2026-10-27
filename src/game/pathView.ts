@@ -24,36 +24,41 @@ export interface PathView {
   entries: ViewEntry[]
   /** Внизу туман (путь не пуст). */
   fog: boolean
+  /**
+   * Всё пройдено — путь кончается будущими уроками: первые FUTURES_CLEAR из них на чистом месте, туман опущен
+   * под них. Иначе туман — сразу за 2 местами под текущим.
+   */
+  futureTail: boolean
 }
 
 /** showAll — владелец показал все пройденные уроки. */
 export function pathView(model: PathModel, showAll: boolean): PathView {
   const items = model.items
-  if (items.length === 0) return { hiddenBefore: 0, entries: [], fog: false }
+  if (items.length === 0) return { hiddenBefore: 0, entries: [], fog: false, futureTail: false }
   const cur = model.current
   // Над якорем — не больше KEEP_BEFORE мест.
   const anchor = cur ? items.findIndex((x) => x.key === cur.key) : items.length - 1
   const start = showAll ? 0 : Math.max(0, anchor - KEEP_BEFORE)
   const hiddenBefore = items.slice(0, start).filter((x) => x.kind === 'node').length
 
-  if (!cur) return { hiddenBefore, entries: withFuture(entries(items, start, items.length)), fog: true }
+  if (!cur) return { hiddenBefore, entries: withFuture(entries(items, start, items.length)), fog: true, futureTail: true }
 
-  // Под текущим — AHEAD_CLEAR + AHEAD_FOGGED мест; дальше путь не рисуется.
-  const end = Math.min(items.length, anchor + 1 + AHEAD_CLEAR + AHEAD_FOGGED)
+  // Под текущим — всегда AHEAD_CLEAR мест ясно и AHEAD_FOGGED под туманом (просьба владельца 2026-10-27);
+  // слов впереди не хватает — места достраивают будущие уроки. Дальше путь не рисуется.
+  const ahead = AHEAD_CLEAR + AHEAD_FOGGED
+  const end = Math.min(items.length, anchor + 1 + ahead)
   const list = entries(items, start, end)
-  // Последние AHEAD_FOGGED мест — под туманом, если за ними путь ещё есть.
-  if (end < items.length) {
-    for (let e = list.length - 1, left = AHEAD_FOGGED; e >= 0 && left > 0; e--, left--) {
-      if (list[e].item === cur) break
-      list[e].fogged = true
-    }
+  const missing = anchor + 1 + ahead - end
+  for (let k = 0; k < missing; k++) {
+    list.push({ item: { kind: 'future', key: `~${k}` }, index: list.at(-1)!.index + 1, fogged: false })
   }
-  return { hiddenBefore, entries: withFuture(list), fog: true }
+  for (let e = list.length - AHEAD_FOGGED; e < list.length; e++) list[e].fogged = true
+  return { hiddenBefore, entries: list, fog: true, futureTail: false }
 }
 
 /**
- * Путь всегда уходит в туман (решение владельца): если под туманом нет ни одного места (слова кончились),
- * в конец подряд добавляются будущие уроки: первые FUTURES_CLEAR — на чистом месте, остальные уходят в туман.
+ * Путь всегда уходит в туман (решение владельца): когда всё пройдено (текущего нет), в конец подряд добавляются
+ * будущие уроки: первые FUTURES_CLEAR — на чистом месте, остальные уходят в туман.
  */
 /** Будущих уроков в конце пути, когда настоящие места кончились. */
 export const FUTURES = 4
@@ -86,6 +91,6 @@ function entries(items: PathItem[], from: number, to: number): ViewEntry[] {
  */
 export function deepInFog(view: PathView): ReadonlySet<string> {
   const fogged = view.entries.filter((e) => e.fogged)
-  const skip = fogged[0]?.item.kind === 'future' ? FUTURES_CLEAR : 0
+  const skip = view.futureTail ? FUTURES_CLEAR : 0
   return new Set(fogged.slice(skip + 1).map((e) => e.item.key))
 }
