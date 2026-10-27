@@ -9,7 +9,7 @@ import { ensureQuests, moreNewWords, settleDay } from '../db/game'
 import { loadPath, PATH_KEY, type PathData } from '../db/path'
 import { demoPath, isDemoPath, setDemoPath } from '../game/demoPath'
 import type { PathItem, PathNode, PathSection } from '../game/path'
-import { FUTURES_CLEAR, pathView } from '../game/pathView'
+import { fogPlan, FUTURES_CLEAR, pathView } from '../game/pathView'
 import { unlockSpeech } from '../media/speech'
 import { CollapsedSection } from '../path/CollapsedSection'
 import { Fog } from '../path/Fog'
@@ -129,9 +129,8 @@ export function PathScreen() {
   const [fogTop, setFogTop] = useState<number | null>(null)
   // Где дым густеет: у последнего места под туманом (просьба владельца).
   const [fogThick, setFogThick] = useState<number | null>(null)
-  // Разделы, которые начинаются под туманом: их плашка — под дымом, как закрытые уроки (не поверх него).
-  const [fogSections, setFogSections] = useState<ReadonlySet<string>>(new Set())
-  const [fogFade, setFogFade] = useState<{ from: number; to: number } | null>(null)
+  // Глубина тумана: что в лёгкой дымке, что глубоко (не нажимается) и где лежат плашки разделов под туманом.
+  const fog = useMemo(() => (view ? fogPlan(view) : null), [view])
   useLayoutEffect(() => {
     const list = listRef.current
     if (!list || !view?.fog) return
@@ -139,18 +138,6 @@ export function PathScreen() {
     if (!start) return
     const listTop = list.getBoundingClientRect().top
     const top = start.getBoundingClientRect().top - listTop
-    const startTop = start.getBoundingClientRect().top
-    const underEls = [...list.querySelectorAll<HTMLElement>('[data-section]')].filter((s) => s.getBoundingClientRect().top >= startTop)
-    const under = underEls.map((s) => s.dataset.section!)
-    setFogSections((prev) => (prev.size === under.length && under.every((id) => prev.has(id)) ? prev : new Set(under)))
-    // Плашка первого раздела под туманом гаснет в фон, как уроки под дымом: растворение — от низа первого места
-    // под туманом (между ним и плашкой пусто — само место не меняется) до низа плашки.
-    const banner = underEls[0]?.querySelector('[data-banner]')
-    setFogFade(
-      banner
-        ? { from: Math.round(start.getBoundingClientRect().bottom - listTop), to: Math.round(banner.getBoundingClientRect().bottom - listTop) }
-        : null,
-    )
     // Будущие уроки стоят на обычном шаге сразу за последним местом, а туман — на прежнем месте.
     const drop = start.hasAttribute('data-future') ? FOG_FUTURE_DROP : FOG_DROP
     setFogTop(Math.round(top + drop))
@@ -240,17 +227,36 @@ export function PathScreen() {
         )}
         {data && view && view.sections.length > 0 && (
           <div ref={listRef} className="relative flex flex-1 flex-col gap-6">
-            {view.sections.map(({ section, collapsed, hiddenBefore, entries }) =>
-              collapsed ? (
+            {view.sections.map(({ section, collapsed, hiddenBefore, entries }) => {
+              const fogRow = fog?.banners.get(section.deck.id)
+              return collapsed ? (
                 <CollapsedSection key={section.deck.id} section={section} onOpen={() => setExpanded((s) => toggle(s, section.deck.id))} />
-              ) : (
-                <section key={section.deck.id} data-section={section.deck.id}>
-                  {/* Плашка прилипает к верху, пока виден её раздел. Раздел под туманом — плашка под дымом, без подложки и z-10. */}
+              ) : fogRow !== undefined ? (
+                // Раздел начинается под туманом: его места идут подряд с прежним шагом (отступ между разделами
+                // снят), плашка места не занимает — лежит глубоко в дыму, на уровне глубокого места, и растворена.
+                <section key={section.deck.id} className="relative -mt-6">
                   <div
-                    data-banner
-                    inert={fogSections.has(section.deck.id) || undefined}
-                    className={`sticky -top-2 pt-2 pb-2 ${fogSections.has(section.deck.id) ? '' : 'z-10 bg-bg'}`}
+                    inert
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 -translate-y-1/2 opacity-30 [mask-image:linear-gradient(to_bottom,transparent,#000_50%,transparent)]"
+                    style={{ top: fogRow * ROW + ROW / 2 }}
                   >
+                    <SectionBanner deck={section.deck} number={section.number} />
+                  </div>
+                  <PathTrack
+                    entries={entries}
+                    color={section.deck.color}
+                    number={section.number}
+                    nodeCount={section.items.filter((x) => x.kind === 'node').length}
+                    setRef={setRef}
+                    onSelect={select}
+                    deep={fog?.deep}
+                  />
+                </section>
+              ) : (
+                <section key={section.deck.id}>
+                  {/* Плашка прилипает к верху, пока виден её раздел (подложка — чтобы путь не просвечивал). */}
+                  <div className="sticky -top-2 z-10 bg-bg pt-2 pb-2">
                     <SectionBanner deck={section.deck} number={section.number} />
                   </div>
                   {hiddenBefore > 0 && (
@@ -268,6 +274,7 @@ export function PathScreen() {
                       nodeCount={section.items.filter((x) => x.kind === 'node').length}
                       setRef={setRef}
                       onSelect={select}
+                      deep={fog?.deep}
                     />
                   </div>
                   {expanded.has(section.deck.id) && (
@@ -276,11 +283,11 @@ export function PathScreen() {
                     </div>
                   )}
                 </section>
-              ),
-            )}
+              )
+            })}
             {/* Место под сплошной дым: долистать до него можно, дальше — только «резинка». */}
             {view.fog && !endsWithFuture && <div ref={tailRef} aria-hidden className="shrink-0" style={{ height: FOG_TAIL }} />}
-            {view.fog && fogTop !== null && <Fog top={fogTop} thickAt={fogThick} fade={fogFade} />}
+            {view.fog && fogTop !== null && <Fog top={fogTop} thickAt={fogThick} />}
           </div>
         )}
         </div>

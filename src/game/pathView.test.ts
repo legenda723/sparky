@@ -1,7 +1,7 @@
 import { State } from 'ts-fsrs'
 import { describe, expect, it } from 'vitest'
 import { buildPath, type PathCard, type PathDeck } from './path'
-import { KEEP_BEFORE, pathView } from './pathView'
+import { fogPlan, KEEP_BEFORE, pathView, type ViewSection } from './pathView'
 
 const deck = (id: string, order: number): PathDeck => ({ id, title: id, emoji: '📚', color: 'green', order, archived: false })
 
@@ -78,5 +78,44 @@ describe('что видно на пути', () => {
     const m = buildPath([deck('a', 0)], words('a', 'k'.repeat(4990) + 'n'.repeat(10)))
     const v = pathView(m, none, none)
     expect(v.sections[0].entries.length).toBeLessThanOrEqual(KEEP_BEFORE + 1 + 4 + 3)
+  })
+})
+
+describe('глубина тумана (fogPlan)', () => {
+  const sec = (id: string, kinds: [string, boolean][], number = 1): ViewSection => ({
+    section: { deck: deck(id, number), number, items: [] },
+    collapsed: false,
+    hiddenBefore: 0,
+    entries: kinds.map(([k, fogged], index) =>
+      k === 'f'
+        ? { item: { kind: 'future', key: `${id}:~${index}`, deckId: id }, index, fogged }
+        : { item: { kind: 'node', key: `${id}:${index}`, deckId: id, index, cardIds: [], introduced: 0, state: 'locked' }, index, fogged },
+    ),
+  })
+
+  it('путь кончается будущими уроками: два на чистом месте, третий в дымке (нажимается), четвёртый глубоко', () => {
+    const p = fogPlan({ fog: true, sections: [sec('a', [['n', false], ['n', false], ['f', true], ['f', true], ['f', true], ['f', true]])] })
+    expect(p.light).toBe('a:~4')
+    expect([...p.deep]).toEqual(['a:~5'])
+    expect(p.banners.size).toBe(0)
+  })
+
+  it('следующий раздел начинается глубоко в тумане — плашка на уровне его первого места', () => {
+    const p = fogPlan({ fog: true, sections: [sec('a', [['n', false], ['n', false], ['n', true]]), sec('b', [['n', true]], 2)] })
+    expect(p.light).toBe('a:2')
+    expect([...p.deep]).toEqual(['b:0'])
+    expect(p.banners.get('b')).toBe(0)
+  })
+
+  it('следующий раздел начинается в лёгкой дымке — плашка всё равно глубже, на уровне второго места', () => {
+    const p = fogPlan({ fog: true, sections: [sec('a', [['n', false], ['n', false]]), sec('b', [['n', true], ['n', true]], 2)] })
+    expect(p.light).toBe('b:0')
+    expect([...p.deep]).toEqual(['b:1'])
+    expect(p.banners.get('b')).toBe(1)
+  })
+
+  it('раздел над туманом — плашка как обычно', () => {
+    const p = fogPlan({ fog: true, sections: [sec('a', [['n', false]]), sec('b', [['n', false], ['n', true], ['n', true]], 2)] })
+    expect(p.banners.size).toBe(0)
   })
 })

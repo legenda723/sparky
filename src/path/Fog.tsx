@@ -25,11 +25,7 @@ const FOG_BELOW = 900
  */
 const FOG_THICK_RAMP = 70
 
-/**
- * top — край тумана; thickAt — где дым густеет; fade — когда под туманом плашка раздела: растворение в фон идёт
- * от from (сразу под первым местом под туманом) до to (низ плашки), чтобы плашка гасла, как уроки (дым не гуще).
- */
-export function Fog({ top, thickAt, fade }: { top: number; thickAt?: number | null; fade?: { from: number; to: number } | null }) {
+export function Fog({ top, thickAt }: { top: number; thickAt?: number | null }) {
   const reduce = useReducedMotion() ?? false
   const ref = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<SVGRectElement>(null)
@@ -65,12 +61,6 @@ export function Fog({ top, thickAt, fade }: { top: number; thickAt?: number | nu
 
   // Где густеет дым — в координатах тумана (он начинается на FOG_LEAD выше top).
   const thick = thickAt == null ? null : thickAt - top + FOG_LEAD
-  // Растворение в фон (в координатах тумана): обычно от чуть ниже края за 190 px (.fog-depth);
-  // с плашкой под туманом — от места под краем до низа плашки.
-  const depthTop = fade ? Math.max(0, fade.from - top + FOG_LEAD) : FOG_LEAD + 10
-  const depthStyle = fade
-    ? { top: depthTop, backgroundImage: `linear-gradient(to bottom, transparent, var(--c-bg) ${Math.max(40, fade.to - fade.from)}px)` }
-    : { top: depthTop }
 
   return (
     <div
@@ -81,7 +71,7 @@ export function Fog({ top, thickAt, fade }: { top: number; thickAt?: number | nu
       style={{ top: top - FOG_LEAD }}
     >
       {/* глубина: под дымом путь плавно уходит в фон — дальше двух мест его не видно, обрыва нет */}
-      <div className="fog-depth absolute inset-x-0 bottom-0" style={depthStyle} />
+      <div className="fog-depth absolute inset-x-0 bottom-0" style={{ top: FOG_LEAD + 10 }} />
       {/* основной дым: край и сплошной дым — одна картинка, едут вместе, плитки стыкуются без шва */}
       <svg className="fog-drift absolute top-0 left-0 h-full w-[calc(100%+512px)]" overflow="visible" style={{ overflow: 'visible' }}>
         <defs>

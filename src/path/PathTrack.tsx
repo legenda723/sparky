@@ -64,9 +64,11 @@ interface TrackProps {
   nodeCount: number
   setRef: (id: string, el: HTMLElement | null) => void
   onSelect: (item: PathItem) => void
+  /** Места глубоко в тумане — не нажимаются (fogPlan). */
+  deep?: ReadonlySet<string>
 }
 
-export function PathTrack({ entries, color, number, nodeCount, setRef, onSelect }: TrackProps) {
+export function PathTrack({ entries, color, number, nodeCount, setRef, onSelect, deep }: TrackProps) {
   const sign = number % 2 === 0 ? -1 : 1
   const firstFogged = entries.findIndex((e) => e.fogged)
   // Чистые места — до тумана. Первые FUTURES_CLEAR будущих уроков стоят ещё на чистом месте (туман опущен под них).
@@ -91,8 +93,8 @@ export function PathTrack({ entries, color, number, nodeCount, setRef, onSelect 
             data-fog-start={i === firstFogged || undefined}
             data-fogged={fogged || undefined}
             data-future={item.kind === 'future' || undefined}
-            // Под туманом ничего не нажимается (первые будущие уроки на чистом месте — нажимаются).
-            inert={i >= clear || undefined}
+            // Глубоко в тумане (6-е место и ниже) не нажимается; место в лёгкой дымке — нажимается (fogPlan).
+            inert={deep?.has(item.key) || undefined}
             className="relative flex items-center justify-center"
             style={{ height: ROW }}
           >
