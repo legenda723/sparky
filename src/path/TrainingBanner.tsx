@@ -22,7 +22,8 @@ export function TrainingBanner({ onClick, ref }: { onClick: () => void; ref?: Re
       className="press-3d flex h-[60px] w-full items-center justify-center gap-3 rounded-card bg-info px-5 text-title leading-none font-extrabold tracking-[0.04em] text-on-color uppercase [--press-shadow:var(--c-info-shadow)]"
     >
       <Dumbbell size={30} strokeWidth={2.75} />
-      Тренировка
+      {/* Заглавные Nunito сидят на 1 px выше середины строки — опускаем, чтобы буквы были ровно по центру. */}
+      <span className="translate-y-px">Тренировка</span>
     </button>
   )
 }
