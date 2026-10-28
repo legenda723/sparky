@@ -1,7 +1,8 @@
-import { Check, Crown, Lock, Star } from 'lucide-react'
+import { Check, Crown, Lock, RotateCcw, Star } from 'lucide-react'
 import { forwardRef } from 'react'
 import type { DeckColor } from '../db/types'
 import type { PathNode } from '../game/path'
+import { plural } from '../srs/status'
 import { feedback } from '../feedback/feedback'
 import { usePress } from '../ui/usePress'
 import { DECK_COLORS } from '../words/deckLook'
@@ -19,7 +20,9 @@ function look(node: PathNode, color: DeckColor): { fill: string; shadow: string 
   return DECK_COLORS[color]
 }
 
-function Icon({ node }: { node: PathNode }) {
+function Icon({ node, review }: { node: PathNode; review: boolean }) {
+  // Урок повторения (решение владельца 2026-10-28): вместо звезды — значок повтора.
+  if (review) return <RotateCcw size={34} strokeWidth={3} className="text-on-color" />
   switch (node.state) {
     case 'current':
       return <Star size={34} strokeWidth={2.5} className="fill-current text-on-color" />
@@ -69,23 +72,28 @@ interface Props {
   /** «Урок 3» — для чтения с экрана. */
   label: string
   onSelect: () => void
+  /** Урок повторения: сколько слов повторить (значок повтора и бейдж с числом). */
+  review?: number
 }
 
 /** Узел пути (DESIGN.md → «Узел пути»): круг 72, объёмный, нажатие на 6 px. */
-export const PathNodeButton = forwardRef<HTMLButtonElement, Props>(function PathNodeButton({ node, color, label, onSelect }, ref) {
+export const PathNodeButton = forwardRef<HTMLButtonElement, Props>(function PathNodeButton({ node, color, label, onSelect, review }, ref) {
   const { pressed, pressHandlers } = usePress()
   const { fill, shadow } = look(node, color)
+  const isReview = review !== undefined && review > 0
   return (
     <div className="relative" style={{ width: W, height: H + DEPTH }}>
       {node.state === 'current' && (
         // Мягкое сияние: кольцо цвета колоды расходится и тает.
         <span aria-hidden className="path-halo absolute -inset-4 rounded-[50%]" style={{ background: DECK_COLORS[color].fill }} />
       )}
-      {node.state === 'current' && <ProgressRing value={node.introduced / node.cardIds.length} color={DECK_COLORS[color].fill} />}
+      {node.state === 'current' && node.cardIds.length > 0 && (
+        <ProgressRing value={node.introduced / node.cardIds.length} color={DECK_COLORS[color].fill} />
+      )}
       <button
         ref={ref}
         type="button"
-        aria-label={`${label}, ${LABEL[node.state]}`}
+        aria-label={isReview ? `${label}: повторение, ${review} ${plural(review, 'слово', 'слова', 'слов')}` : `${label}, ${LABEL[node.state]}`}
         {...pressHandlers}
         data-pressed={pressed || undefined}
         onClick={() => {
@@ -99,8 +107,18 @@ export const PathNodeButton = forwardRef<HTMLButtonElement, Props>(function Path
         {node.state !== 'locked' && (
           <span aria-hidden className="absolute top-[6px] left-1/2 h-[7px] w-[32px] -translate-x-1/2 rounded-full bg-on-color/20" />
         )}
-        <Icon node={node} />
+        <Icon node={node} review={isReview} />
       </button>
+      {isReview && (
+        // Бейдж с числом повторений — у правого верхнего края, едет вместе с нажатием.
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -top-2 -right-3 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-bg bg-info px-1.5 text-caption leading-none font-black text-on-color transition-[translate] duration-[130ms]"
+          style={{ translate: pressed ? `0 ${DEPTH}px` : undefined }}
+        >
+          {review > 99 ? '99+' : review}
+        </span>
+      )}
     </div>
   )
 })

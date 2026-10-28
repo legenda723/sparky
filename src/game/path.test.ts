@@ -1,6 +1,6 @@
 import { State } from 'ts-fsrs'
 import { describe, expect, it } from 'vitest'
-import { buildPath, nodeCardIds, type PathCard, type PathDeck, type PathItem, type PathNode } from './path'
+import { buildPath, nodeCardIds, reviewKey, type PathCard, type PathDeck, type PathItem, type PathNode } from './path'
 
 const deck = (id: string, order: number, extra: Partial<PathDeck> = {}): PathDeck => ({ id, order, archived: false, ...extra })
 
@@ -98,5 +98,23 @@ describe('путь: места', () => {
     const p = buildPath([deck('a', 0), deck('b', 1)], [...words('a', 'n'.repeat(20)), ...words('b', 'n'.repeat(15), 1)])
     expect(p.items.map((x) => x.kind)).toEqual(['node', 'node', 'node', 'node', 'node', 'node', 'node', 'ghost'])
     expect(p.items.at(-1)).toEqual({ kind: 'ghost', key: '+' })
+  })
+})
+
+describe('путь: урок повторения', () => {
+  it('есть повторения — их берёт текущий урок', () => {
+    const m = buildPath([deck('a', 0)], words('a', 'kkkkknnnnn'))
+    expect(reviewKey(m, 3)).toBe('n:1')
+  })
+
+  it('новые слова кончились — урок повторения на месте следующего урока в конце пути', () => {
+    const m = buildPath([deck('a', 0)], words('a', 'kkkkk'))
+    expect(m.current).toBeUndefined()
+    expect(reviewKey(m, 3)).toBe('+')
+  })
+
+  it('повторений нет — урока повторения нет; слов нет — тоже', () => {
+    expect(reviewKey(buildPath([deck('a', 0)], words('a', 'kkkkknnnnn')), 0)).toBeUndefined()
+    expect(reviewKey(buildPath([deck('a', 0)], []), 5)).toBeUndefined()
   })
 })

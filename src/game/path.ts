@@ -86,6 +86,16 @@ export function nodeCardIds(cards: PathCard[], index: number): string[] {
     .map((c) => c.id)
 }
 
+/**
+ * Где на пути урок повторения (решение владельца 2026-10-28: отдельной кнопки «ПОВТОРИТЬ» нет, одна точка входа —
+ * путь). Есть повторения к сроку — их берёт текущий урок; текущего нет (новые слова кончились) — место
+ * следующего урока в конце пути. Повторений нет — нигде.
+ */
+export function reviewKey(model: PathModel, dueNow: number): string | undefined {
+  if (dueNow <= 0) return undefined
+  return model.current?.key ?? model.items.find((x) => x.kind === 'ghost')?.key
+}
+
 /** Строит путь: одна змейка из узлов по 5 слов. */
 export function buildPath(decks: PathDeck[], cards: PathCard[]): PathModel {
   const words = pathWords(inLiveDecks(decks, cards))

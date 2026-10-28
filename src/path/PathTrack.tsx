@@ -67,21 +67,26 @@ interface TrackProps {
   deep: ReadonlySet<string>
   /** Всё пройдено — первые FUTURES_CLEAR будущих уроков стоят ещё на чистом месте (туман опущен под них). */
   futureTail: boolean
+  /** Урок повторения: на каком месте (reviewKey) и сколько слов. Место следующего урока тогда — как текущий урок. */
+  review?: { key: string; count: number }
 }
 
-export function PathTrack({ entries, color, nodeCount, setRef, onSelect, deep, futureTail }: TrackProps) {
+export function PathTrack({ entries, color, nodeCount, setRef, onSelect, deep, futureTail, review }: TrackProps) {
   const firstFogged = entries.findIndex((e) => e.fogged)
   // Чистые места — до тумана.
   const clear = firstFogged < 0 ? entries.length : firstFogged + (futureTail ? FUTURES_CLEAR : 0)
   // Маскот — у 3-го видимого места, но не под туманом.
   const mascotAt = clear > 1 ? Math.min(MASCOT_AT, clear - 1) : -1
-  const curAt = entries.findIndex((e) => e.item.kind === 'node' && e.item.state === 'current')
+  // Урок повторения на месте следующего урока — выглядит и ведёт себя как текущий урок.
+  const reviewGhost = (item: PathItem) => item.kind === 'ghost' && item.key === review?.key
+  const curAt = entries.findIndex((e) => (e.item.kind === 'node' && e.item.state === 'current') || reviewGhost(e.item))
   return (
     <div className="relative flex flex-col">
       {entries.map(({ item, index, fogged }, i) => {
         const id = itemId(item)
-        const current = item.kind === 'node' && item.state === 'current'
-        const locked = (item.kind === 'node' && item.state === 'locked') || item.kind === 'ghost' || item.kind === 'future'
+        const current = (item.kind === 'node' && item.state === 'current') || reviewGhost(item)
+        const count = item.key === review?.key ? review.count : undefined
+        const locked = !current && ((item.kind === 'node' && item.state === 'locked') || item.kind === 'ghost' || item.kind === 'future')
         const scale = locked && curAt >= 0 && i === curAt + 1 ? NEXT_SCALE : locked ? LOCKED_SCALE : 1
         const x = waveX(index)
         const star = STARS[index % 8]
@@ -121,6 +126,16 @@ export function PathTrack({ entries, color, nodeCount, setRef, onSelect, deep, f
                     color={color}
                     label={`Урок ${item.index + 1} из ${nodeCount}`}
                     onSelect={() => onSelect(item)}
+                    review={count}
+                  />
+                ) : current ? (
+                  <PathNodeButton
+                    ref={(el) => setRef(id, el)}
+                    node={{ kind: 'node', key: item.key, index, cardIds: [], introduced: 0, state: 'current' }}
+                    color={color}
+                    label="Следующий урок"
+                    onSelect={() => onSelect(item)}
+                    review={count}
                   />
                 ) : (
                   // Место следующего урока и будущие уроки: выглядят как закрытый узел, касание — «добавь слова».

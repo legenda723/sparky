@@ -284,6 +284,15 @@ describe('урок узла и урок повторений (SPEC 7.1)', () => 
     expect(plan.newCount).toBe(0)
     expect(plan.reviewCount).toBe(1)
   })
+
+  it('урок повторения на пути — не больше размера урока; остальные — в следующем уроке повторения', () => {
+    const due = Array.from({ length: 20 }, (_, i) => review(`r${i}`, '2026-10-18T10:00'))
+    const plan = buildLesson(due, DECKS, NOW, LIMITS, { kind: 'review' })
+    expect(plan.reviewCount).toBe(15)
+    // Повторил 15 — осталось 5: путь снова покажет урок повторения.
+    const left = due.map((c) => (plan.tasks.some((t) => t.cardId === c.id) ? { ...c, due: at('2026-10-25T10:00') } : c))
+    expect(todayCounts(left, DECKS, NOW, LIMITS).dueNow).toBe(5)
+  })
 })
 
 describe('ход урока', () => {

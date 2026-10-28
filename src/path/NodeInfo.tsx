@@ -1,4 +1,4 @@
-// Содержимое всплывашек пути (DESIGN.md → «Всплывашка узла», «Сундук пути»).
+// Содержимое всплывашек пути (DESIGN.md → «Всплывашка узла»).
 import { RotateCcw } from 'lucide-react'
 import type { PathData } from '../db/path'
 import type { PathNode } from '../game/path'
@@ -65,16 +65,9 @@ export function NodeInfo({ node, total, data, onStart, onReview, onMore }: NodeI
     )
   }
 
-  // Текущий: сначала повторения к сроку (решение владельца), потом новые.
-  if (today.dueNow > 0) {
-    return (
-      <>
-        <Title>{title}</Title>
-        <Text>{`Сначала повтори ${words(today.due)} — потом новые`}</Text>
-        {review}
-      </>
-    )
-  }
+  // Текущий: сначала повторения к сроку (решение владельца) — этот же урок становится уроком повторения.
+  if (today.dueNow > 0) return <ReviewInfo due={today.due} onStart={onReview} />
+
   const left = node.cardIds.length - node.introduced
   const n = Math.min(left, today.newAvailable, data.newPerLesson)
   if (n === 0) {
@@ -131,6 +124,23 @@ export function TrainingInfo({ due, onReview }: { due: number; onReview: () => v
       <div className="mt-4">
         <Button variant="info" block icon={<RotateCcw size={22} strokeWidth={2.75} />} onClick={onReview}>
           Повторить
+        </Button>
+      </div>
+    </>
+  )
+}
+
+/**
+ * Урок повторения на пути (решение владельца 2026-10-28: отдельной кнопки «ПОВТОРИТЬ» нет): текущий урок,
+ * пока есть повторения к сроку, или место следующего урока, когда новые слова кончились.
+ */
+export function ReviewInfo({ due, onStart }: { due: number; onStart: () => void }) {
+  return (
+    <>
+      <Title>{`Повторение · ${words(due)}`}</Title>
+      <div className="mt-4">
+        <Button block onClick={onStart}>
+          Начать
         </Button>
       </div>
     </>

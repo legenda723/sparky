@@ -1,17 +1,16 @@
-// Экран «Путь» (SPEC 7.1): одна извилистая змейка узлов (без разделов), туман впереди, кнопка «ПОВТОРИТЬ · N».
+// Экран «Путь» (SPEC 7.1): одна извилистая змейка узлов (без разделов), туман впереди; повторения — уроком на пути.
 import { useReducedMotion } from 'motion/react'
-import { RotateCcw } from 'lucide-react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { navigate, openLesson, type LessonTarget } from '../app/routes'
 import { db } from '../db/db'
 import { useCachedLiveQuery } from '../db/liveCache'
 import { ensureQuests, moreNewWords, settleDay } from '../db/game'
 import { loadPath, PATH_KEY, type PathData } from '../db/path'
-import type { PathItem, PathNode } from '../game/path'
+import { reviewKey, type PathItem, type PathNode } from '../game/path'
 import { deepInFog, FUTURES_CLEAR, pathView } from '../game/pathView'
 import { unlockSpeech } from '../media/speech'
 import { Fog } from '../path/Fog'
-import { GhostInfo, NodeInfo, TrainingInfo } from '../path/NodeInfo'
+import { GhostInfo, NodeInfo, ReviewInfo, TrainingInfo } from '../path/NodeInfo'
 import { TrainingBanner } from '../path/TrainingBanner'
 import { StreakChip, StreakInfo } from '../path/PathBar'
 import { itemId, PathTrack, ROW } from '../path/PathTrack'
@@ -133,7 +132,9 @@ export function PathScreen() {
   }, [view])
 
   // Плавно к текущему узлу: при открытии и когда текущий сменился (вернулись из урока — память показала прошлый).
-  const currentKey = data?.path.current?.key
+  // Урок повторения в конце пути (новые кончились) — тоже «текущий»: к нему едем так же.
+  const reviewAt = data ? reviewKey(data.path, data.today.dueNow) : undefined
+  const currentKey = data?.path.current?.key ?? reviewAt
   const scrolledTo = useRef<string | undefined>(undefined)
   const scrollToCurrent = (smooth: boolean) => {
     const box = scrollRef.current
@@ -181,7 +182,7 @@ export function PathScreen() {
   const close = () => setSelected(null)
   const hasDue = !!data && data.today.due > 0
 
-  /** Плашка «ТРЕНИРОВКА»: сначала повторения (всплывашка с «ПОВТОРИТЬ»), иначе — тренировка. */
+  /** Плашка «ТРЕНИРОВКА»: сначала повторения (всплывашка «Сначала повтори» и «ПОВТОРИТЬ»), иначе — тренировка. */
   const training = () => {
     if (hasDue || !data?.plan.known) show({ id: TRAINING_ID })
     else startLesson({ kind: 'training' })
@@ -230,6 +231,7 @@ export function PathScreen() {
                 onSelect={select}
                 deep={deep}
                 futureTail={futureTail}
+                review={reviewAt ? { key: reviewAt, count: data.today.due } : undefined}
               />
             </div>
             {/* Место под сплошной дым: долистать до него можно, дальше — только «резинка».
@@ -240,17 +242,6 @@ export function PathScreen() {
         )}
         </div>
       </div>
-
-      {/* Тренировка — плашкой наверху; внизу только «ПОВТОРИТЬ · N», когда есть повторения. */}
-      {hasDue && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center">
-          <div className="path-pulse pointer-events-auto">
-            <Button variant="info" icon={<RotateCcw size={22} strokeWidth={2.75} />} onClick={() => startLesson({ kind: 'review' })}>
-              Повторить · {data.today.due}
-            </Button>
-          </div>
-        </div>
-      )}
 
       <Popover open={!!found || barOpen !== null} onClose={close} anchorRef={anchor} width={300} gap={barOpen ? 8 : 22}>
         {barOpen === STREAK_ID && data && <StreakInfo header={data.header} />}
@@ -284,6 +275,14 @@ export function PathScreen() {
               void moreNewWords(db, now())
                 .then((target) => target && openLesson(target))
                 .catch(() => toast({ message: 'Не получилось добавить новые слова' }))
+            }}
+          />
+        ) : found && data && found.kind === 'ghost' && found.key === reviewAt ? (
+          <ReviewInfo
+            due={data.today.due}
+            onStart={() => {
+              close()
+              startLesson({ kind: 'review' })
             }}
           />
         ) : found && found.kind === 'ghost' ? (
