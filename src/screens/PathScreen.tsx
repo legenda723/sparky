@@ -7,6 +7,7 @@ import { db } from '../db/db'
 import { useCachedLiveQuery } from '../db/liveCache'
 import { ensureQuests, moreNewWords, settleDay } from '../db/game'
 import { loadPath, PATH_KEY, type PathData } from '../db/path'
+import { demoColor, getDemoColors, setDemoColors } from '../game/demoColors'
 import type { PathItem, PathNode } from '../game/path'
 import { deepInFog, FUTURES_CLEAR, pathView } from '../game/pathView'
 import { unlockSpeech } from '../media/speech'
@@ -97,6 +98,8 @@ export function PathScreen() {
   const tick = useMinuteTick()
   useSettleDay(tick)
   const data = useCachedLiveQuery(PATH_KEY, () => loadPath(db, now()), [tick])
+  // Пример цветов кнопок из витрины (база не меняется).
+  const [demo, setDemo] = useState(getDemoColors)
   const reduce = useReducedMotion() ?? false
   const toast = useToast()
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -194,6 +197,19 @@ export function PathScreen() {
         <h1 className="m-0 min-w-0 flex-1 truncate text-title leading-11 font-black text-text">Путь</h1>
         {data && <StreakChip header={data.header} chipRef={(el) => setRef(STREAK_ID, el)} onClick={() => show({ id: STREAK_ID })} />}
       </header>
+      {demo && (
+        <div className="flex shrink-0 items-center justify-between gap-2 bg-info-tint px-4">
+          <span className="text-caption font-extrabold text-info-ink">Пример цветов из витрины</span>
+          <TextButton
+            onClick={() => {
+              setDemoColors(null)
+              setDemo(null)
+            }}
+          >
+            Выключить
+          </TextButton>
+        </div>
+      )}
 
       {/* Родная «резинка» iPhone: оттянешь путь за конец — снизу тянется тот же туман (Fog рисует его за краем). */}
       <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-y-contain">
@@ -212,7 +228,7 @@ export function PathScreen() {
                 Наверху — плашка «ТРЕНИРОВКА» на месте прежней плашки раздела, прилипает к верху так же.
                 Обёртка без фона: фон-прямоугольник был виден поверх тумана как «вырезанная» рамка (владелец 2026-10-28). */}
             <div className="sticky -top-2 z-10 pt-2 pb-2">
-              <TrainingBanner ref={(el) => setRef(TRAINING_ID, el)} onClick={training} />
+              <TrainingBanner ref={(el) => setRef(TRAINING_ID, el)} onClick={training} color={demoColor(demo, 'training')} />
             </div>
             {view.hiddenBefore > 0 && (
               <div className="mt-2 flex justify-center">
@@ -245,7 +261,7 @@ export function PathScreen() {
       {hasDue && (
         <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center">
           <div className="path-pulse pointer-events-auto">
-            <Button variant="info" icon={<RotateCcw size={22} strokeWidth={2.75} />} onClick={() => startLesson({ kind: 'review' })}>
+            <Button variant={demoColor(demo, 'review')} icon={<RotateCcw size={22} strokeWidth={2.75} />} onClick={() => startLesson({ kind: 'review' })}>
               Повторить · {data.today.due}
             </Button>
           </div>

@@ -3,6 +3,7 @@ import { useRef, useState, type ReactNode } from 'react'
 import { setPref, usePrefs, type ThemePref } from '../app/prefs'
 import { navigateSub } from '../app/routes'
 import { feedback, type FeedbackEvent } from '../feedback/feedback'
+import { setDemoColors, type DemoColors } from '../game/demoColors'
 import { getDevClockOffset, now, setDevClockOffset } from '../srs/clock'
 import { AnswerBanner } from '../ui/AnswerBanner'
 import { Button } from '../ui/Button'
@@ -60,6 +61,7 @@ export default function DevPage() {
             value={prefs.theme}
             onChange={(v) => setPref('theme', v)}
           />
+          <PathColorsDemo />
         </Section>
 
         <MotionLab />
@@ -385,6 +387,37 @@ function TypeSection() {
       <p className="m-0 text-small font-semibold">15 · Пояснение и подписи</p>
       <p className="m-0 text-caption font-semibold text-muted">13 · Мелкая подпись</p>
     </Section>
+  )
+}
+
+const COLOR_DEMOS: { value: DemoColors; label: string }[] = [
+  { value: 'green-blue', label: 'Зелёная + синяя' },
+  { value: 'blue-green', label: 'Синяя + зелёная' },
+  { value: 'blue-blue', label: 'Обе синие' },
+]
+
+/** Пример цветов кнопок «Пути» (просьба владельца 2026-10-28): открывает «Путь» с выбранными цветами. */
+function PathColorsDemo() {
+  return (
+    <>
+      <span className="text-small font-extrabold text-muted">Путь: цвета кнопок</span>
+      {COLOR_DEMOS.map((d) => (
+        <Button
+          key={d.value}
+          variant="secondary"
+          block
+          onClick={() => {
+            setDemoColors(d.value)
+            navigateSub('path')
+          }}
+        >
+          {d.label}
+        </Button>
+      ))}
+      <p className="m-0 text-caption font-bold text-muted">
+        Первый цвет — «ТРЕНИРОВКА», второй — «ПОВТОРИТЬ». Перекрашивает только эти две кнопки на «Пути». Твои слова не меняются; выключить — кнопкой на «Пути».
+      </p>
+    </>
   )
 }
 
