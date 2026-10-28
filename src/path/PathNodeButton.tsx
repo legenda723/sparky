@@ -113,7 +113,7 @@ export const PathNodeButton = forwardRef<HTMLButtonElement, Props>(function Path
         // Бейдж с числом повторений — у правого верхнего края, едет вместе с нажатием.
         <span
           aria-hidden
-          className="pointer-events-none absolute -top-2 -right-3 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-on-color bg-primary px-1.5 text-caption leading-none font-black text-on-color transition-[translate] duration-[130ms]"
+          className="pointer-events-none absolute -top-2 -right-3 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-bg bg-primary px-1.5 text-caption leading-none font-black text-on-color transition-[translate] duration-[130ms]"
           style={{ translate: pressed ? `0 ${DEPTH}px` : undefined }}
         >
           {review > 99 ? '99+' : review}
