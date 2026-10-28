@@ -5,7 +5,7 @@ import { usePress } from '../ui/usePress'
 
 /**
  * Плашка «ТРЕНИРОВКА» наверху «Пути» (DESIGN.md → «Плашка тренировки»): на месте и в стиле прежней плашки раздела,
- * цвета info, справа гантель. Касание — вся плашка.
+ * цвета info, одна крупная надпись «Тренировка», справа гантель. Касание — вся плашка.
  */
 export function TrainingBanner({ onClick, ref }: { onClick: () => void; ref?: Ref<HTMLButtonElement> }) {
   const { pressed, pressHandlers } = usePress()
@@ -13,7 +13,6 @@ export function TrainingBanner({ onClick, ref }: { onClick: () => void; ref?: Re
     <button
       ref={ref}
       type="button"
-      aria-label="Тренировка: знакомые слова"
       {...pressHandlers}
       data-pressed={pressed || undefined}
       onClick={() => {
@@ -22,10 +21,7 @@ export function TrainingBanner({ onClick, ref }: { onClick: () => void; ref?: Re
       }}
       className="press-3d flex w-full items-center gap-3 rounded-card bg-info p-4 text-left text-on-color [--press-shadow:var(--c-info-shadow)]"
     >
-      <span className="min-w-0 flex-1">
-        <span className="block text-caption font-black tracking-[0.04em] uppercase opacity-85">Тренировка</span>
-        <span className="block truncate text-heading font-black">Знакомые слова</span>
-      </span>
+      <span className="min-w-0 flex-1 truncate text-title font-black">Тренировка</span>
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-info-shadow">
         <Dumbbell size={24} strokeWidth={2.5} />
       </span>
