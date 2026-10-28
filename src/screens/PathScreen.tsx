@@ -209,8 +209,9 @@ export function PathScreen() {
         {data && view && view.entries.length > 0 && (
           <div ref={listRef} className="relative flex flex-1 flex-col">
             {/* Одна змейка без разделов: колоды — только папки во вкладке «Слова» (решение владельца 2026-10-27).
-                Наверху — плашка «ТРЕНИРОВКА» на месте прежней плашки раздела, прилипает к верху так же. */}
-            <div className="sticky -top-2 z-10 bg-bg pt-2 pb-2">
+                Наверху — плашка «ТРЕНИРОВКА» на месте прежней плашки раздела, прилипает к верху так же.
+                Обёртка без фона: фон-прямоугольник был виден поверх тумана как «вырезанная» рамка (владелец 2026-10-28). */}
+            <div className="sticky -top-2 z-10 pt-2 pb-2">
               <TrainingBanner ref={(el) => setRef(TRAINING_ID, el)} onClick={training} />
             </div>
             {view.hiddenBefore > 0 && (
