@@ -258,11 +258,16 @@ export function PathScreen() {
       </div>
 
       {/* Тренировка — плашкой наверху; внизу только «ПОВТОРИТЬ · N», когда есть повторения. */}
-      {hasDue && (
+      {/* В примере цветов из витрины кнопка видна всегда — чтобы посмотреть цвет, даже когда повторять нечего. */}
+      {data && (hasDue || demo) && (
         <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex items-center justify-center">
           <div className="path-pulse pointer-events-auto">
-            <Button variant={demoColor(demo, 'review')} icon={<RotateCcw size={22} strokeWidth={2.75} />} onClick={() => startLesson({ kind: 'review' })}>
-              Повторить · {data.today.due}
+            <Button
+              variant={demoColor(demo, 'review')}
+              icon={<RotateCcw size={22} strokeWidth={2.75} />}
+              onClick={() => (hasDue ? startLesson({ kind: 'review' }) : toast({ message: 'Это пример — повторять пока нечего' }))}
+            >
+              Повторить · {hasDue ? data.today.due : 5}
             </Button>
           </div>
         </div>
